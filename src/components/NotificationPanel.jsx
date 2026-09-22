@@ -43,9 +43,29 @@ const colorMap = {
 
 export default function NotificationPanel() {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem("xnet_notifications");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn("Error loading notifications from localStorage:", e);
+    }
+    return initialNotifications;
+  });
   const [filter, setFilter] = useState("all"); // all, unread, pekerjaan, gangguan, leads
   const panelRef = useRef(null);
+
+  // Sync to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem("xnet_notifications", JSON.stringify(notifications));
+    } catch (e) {
+      console.warn("Error saving notifications to localStorage:", e);
+    }
+  }, [notifications]);
 
   const unreadCount = notifications.filter((n) => !n.dibaca).length;
 

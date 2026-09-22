@@ -88,6 +88,7 @@ export default function Dashboard() {
   const [pekerjaanData] = usePersistState("xnet_pekerjaan", pekerjaanList);
   const [leadsData] = usePersistState("xnet_leads", leadsList);
   const [gangguanDataState] = usePersistState("xnet_gangguan", gangguanList);
+  const [timData] = usePersistState("xnet_tim", initialTimData);
 
   // Hitung stats dari localStorage (real-time)
   const totalPekerjaan = pekerjaanData.length;
@@ -96,7 +97,7 @@ export default function Dashboard() {
   const totalLeads = leadsData.length;
   const totalGangguan = gangguanDataState.length;
 
-  const timChartData = initialTimData.map((t) => {
+  const timChartData = timData.map((t) => {
     const timPekerjaan = pekerjaanData.filter((p) => p.tim === t.nama);
     return {
       name: t.nama.split(" - ")[0],
@@ -346,14 +347,14 @@ export default function Dashboard() {
       {/* Kinerja Progress */}
       {(() => {
         // Hitung kinerja dari localStorage (real-time)
-        const kinerjaPemasangan = initialTimData.map((t) => {
+        const kinerjaPemasangan = timData.map((t) => {
           const timPekerjaan = pekerjaanData.filter((p) => p.tim === t.nama && p.jenis === "PEMASANGAN");
           const selesai = timPekerjaan.filter((p) => p.status === "SELESAI").length;
           const total = timPekerjaan.length;
           const gagal = timPekerjaan.filter((p) => p.status === "GAGAL").length;
           return { tim: t.nama, selesai, total, persen: total > 0 ? (selesai / total) * 100 : 0, gagal };
         });
-        const kinerjaPemutusan = initialTimData.map((t) => {
+        const kinerjaPemutusan = timData.map((t) => {
           const timPekerjaan = pekerjaanData.filter((p) => p.tim === t.nama && p.jenis === "PEMUTUSAN");
           const selesai = timPekerjaan.filter((p) => p.status === "SELESAI").length;
           const total = timPekerjaan.length;

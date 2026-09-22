@@ -45,7 +45,7 @@ function exportToJSON(data, filename) {
   URL.revokeObjectURL(url);
 }
 
-function exportToExcel(pekerjaanData, leadsData, gangguanDataState, filename) {
+function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, filename) {
   const wb = XLSX.utils.book_new();
 
   const totalSelesai = pekerjaanData.filter((d) => d.status === "SELESAI").length;
@@ -70,7 +70,7 @@ function exportToExcel(pekerjaanData, leadsData, gangguanDataState, filename) {
   const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
   XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
 
-  const timRows = initialTimData.map((t) => {
+  const timRows = timData.map((t) => {
     const timP = pekerjaanData.filter((p) => p.tim === t.nama);
     return {
       Tim: t.nama,
@@ -83,7 +83,7 @@ function exportToExcel(pekerjaanData, leadsData, gangguanDataState, filename) {
   const wsTim = XLSX.utils.json_to_sheet(timRows);
   XLSX.utils.book_append_sheet(wb, wsTim, "Data Tim");
 
-  const kinerjaPemasangan = initialTimData.map((t) => {
+  const kinerjaPemasangan = timData.map((t) => {
     const timP = pekerjaanData.filter((p) => p.tim === t.nama && p.jenis === "PEMASANGAN");
     const selesai = timP.filter((p) => p.status === "SELESAI").length;
     const total = timP.length;
@@ -93,7 +93,7 @@ function exportToExcel(pekerjaanData, leadsData, gangguanDataState, filename) {
   const wsKinerja = XLSX.utils.json_to_sheet(kinerjaPemasangan);
   XLSX.utils.book_append_sheet(wb, wsKinerja, "Kinerja Pemasangan");
 
-  const kinerjaPemutusan = initialTimData.map((t) => {
+  const kinerjaPemutusan = timData.map((t) => {
     const timP = pekerjaanData.filter((p) => p.tim === t.nama && p.jenis === "PEMUTUSAN");
     const selesai = timP.filter((p) => p.status === "SELESAI").length;
     const total = timP.length;
@@ -144,6 +144,11 @@ function exportToExcel(pekerjaanData, leadsData, gangguanDataState, filename) {
   })));
   XLSX.utils.book_append_sheet(wb, wsDaftarGangguan, "Daftar Gangguan");
 
+  const wsOdp = XLSX.utils.json_to_sheet(odpOdcList.map((o) => ({
+    ID: o.id, ODC: o.odc, "Nama ODP": o.nama, Keterangan: o.keterangan || "-", Status: o.status || "Belum Dicek",
+  })));
+  XLSX.utils.book_append_sheet(wb, wsOdp, "ODP ODC");
+
   XLSX.writeFile(wb, filename);
 }
 
@@ -167,11 +172,12 @@ export default function Laporan() {
   const [pekerjaanData] = usePersistState("xnet_pekerjaan", pekerjaanList);
   const [leadsData] = usePersistState("xnet_leads", leadsList);
   const [gangguanDataState] = usePersistState("xnet_gangguan", gangguanList);
+  const [timData] = usePersistState("xnet_tim", initialTimData);
 
   const totalSelesai = pekerjaanData.filter((d) => d.status === "SELESAI").length;
   const totalGagal = pekerjaanData.filter((d) => d.status === "GAGAL").length;
 
-  const timChartData = initialTimData.map((t) => {
+  const timChartData = timData.map((t) => {
     const timP = pekerjaanData.filter((p) => p.tim === t.nama);
     return {
       name: t.nama.split(" - ")[0],
@@ -209,7 +215,7 @@ export default function Laporan() {
     { Metrik: "User Terdampak", Nilai: gangguanDataState.reduce((a, b) => a + (b.userTerdampak || 0), 0) },
   ];
 
-  const timExport = initialTimData.map((t) => {
+  const timExport = timData.map((t) => {
     const timP = pekerjaanData.filter((p) => p.tim === t.nama);
     return {
       Tim: t.nama,
@@ -233,7 +239,7 @@ export default function Laporan() {
       <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
         <h3 className="text-sm font-bold text-gray-800 mb-4">Export Data</h3>
         <div className="flex flex-wrap gap-3">
-          <button onClick={() => exportToExcel(pekerjaanData, leadsData, gangguanDataState, "laporan-september-2026.xlsx")}
+          <button onClick={() => exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, "laporan-september-2026.xlsx")}
             className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#0D1B4A] to-[#1a237e] text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-900/25 transition-all">
             <FileSpreadsheet className="w-4 h-4" /> Export Excel (Semua Sheet)
           </button>
@@ -259,7 +265,7 @@ export default function Laporan() {
           { label: "Leads", value: leadsData.length, icon: Target, bg: "bg-amber-50" },
           { label: "Selesai", value: totalSelesai, icon: BarChart3, bg: "bg-emerald-50" },
           { label: "Gangguan", value: gangguanDataState.length, icon: AlertTriangle, bg: "bg-red-50" },
-          { label: "Tim", value: initialTimData.length, icon: Users, bg: "bg-blue-50" },
+          { label: "Tim", value: timData.length, icon: Users, bg: "bg-blue-50" },
         ].map((s) => (
           <div key={s.label} className={`${s.bg} rounded-2xl p-4 border border-gray-100`}>
             <s.icon className="w-5 h-5 text-gray-400 mb-2" />

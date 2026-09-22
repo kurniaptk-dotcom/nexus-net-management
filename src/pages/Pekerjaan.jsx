@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -11,8 +12,6 @@ import {
   Clock,
   Calendar,
   CheckCircle,
-  Filter,
-  Download,
   CalendarDays,
   XCircle,
 } from "lucide-react";
@@ -65,12 +64,13 @@ function JenisBadge({ jenis }) {
   );
 }
 
-function KanbanCard({ item, onEdit, onDelete, onDragStart }) {
+function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd }) {
   const jc = jenisColors[item.jenis] || jenisColors.PEMASANGAN;
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, item.id)}
+      onDragEnd={onDragEnd}
       className="bg-white rounded-xl border border-gray-200 p-4 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-gray-300 transition-all group"
     >
       <div className="flex items-start justify-between mb-2">
@@ -114,14 +114,21 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart }) {
 
 export default function Pekerjaan() {
   const [data, setData] = usePersistState("xnet_pekerjaan", pekerjaanList);
-  const [search, setSearch] = useState("");
+  const [timData] = usePersistState("xnet_tim", timList);
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [prevQuery, setPrevQuery] = useState(searchParams.get("search"));
+  if (searchParams.get("search") !== prevQuery) {
+    setPrevQuery(searchParams.get("search"));
+    setSearch(searchParams.get("search") || "");
+  }
   const [filterJenis, setFilterJenis] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterTim, setFilterTim] = useState("ALL");
   const [viewMode, setViewMode] = useState("kanban");
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [draggedId, setDraggedId] = useState(null);
+  const [, setDraggedId] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
   const [formData, setFormData] = useState({
     tim: "",
@@ -154,7 +161,7 @@ export default function Pekerjaan() {
   const handleAdd = () => {
     setEditingItem(null);
     setFormData({
-      tim: timList[0]?.nama || "",
+      tim: timData[0]?.nama || "",
       jenis: "PEMASANGAN",
       alamat: "",
       pelanggan: "",
@@ -339,7 +346,7 @@ export default function Pekerjaan() {
           className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#F59E0B] outline-none"
         >
           <option value="ALL">Semua Tim</option>
-          {timList.map((t) => (
+          {timData.map((t) => (
             <option key={t.id} value={t.nama}>{t.nama}</option>
           ))}
         </select>
@@ -402,6 +409,7 @@ export default function Pekerjaan() {
                       onEdit={handleEdit}
                       onDelete={handleDelete}
                       onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
                     />
                   ))}
                   {colItems.length === 0 && (
@@ -501,7 +509,7 @@ export default function Pekerjaan() {
                     onChange={(e) => setFormData({ ...formData, tim: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none"
                   >
-                    {timList.map((t) => (
+                    {timData.map((t) => (
                       <option key={t.id} value={t.nama}>{t.nama}</option>
                     ))}
                   </select>

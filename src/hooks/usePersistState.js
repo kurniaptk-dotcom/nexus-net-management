@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { supabase, db } from "../lib/supabase";
+import { db } from "../lib/supabase";
 
 const TABLE_MAP = {
   xnet_pekerjaan: "pekerjaan",
@@ -29,6 +29,9 @@ function toSnake(row) {
   if (out.hasilFU !== undefined) { out.hasil_fu = out.hasilFU; delete out.hasilFU; }
   delete out.id;
   delete out.created_at;
+  delete out.pemasangan;
+  delete out.perbaikan;
+  delete out.pemutusan;
   return out;
 }
 
@@ -38,25 +41,16 @@ export function usePersistState(key, initialValue) {
   const [state, setState] = useState(() => {
     try {
       const saved = localStorage.getItem(key);
-      console.log(`[PERSIST] ${key}: saved=${saved ? 'found' : 'none'}, initialValue=${initialValue.length} items`);
       return saved ? JSON.parse(saved) : initialValue;
-    } catch (err) {
-      console.error(`[PERSIST] ${key}: parse error`, err);
+    } catch {
       return initialValue;
     }
   });
 
-  // Track IDs we just changed locally — skip realtime events for these
-  const suppressedIds = useRef(new Set());
-  const suppressTimeout = useRef(null);
-
-  function suppressId(id) {
-    suppressedIds.current.add(id);
-    clearTimeout(suppressTimeout.current);
-    suppressTimeout.current = setTimeout(() => {
-      suppressedIds.current.clear();
-    }, 1500);
-  }
+  const prevStateRef = useRef(state);
+  useEffect(() => {
+    prevStateRef.current = state;
+  }, [state]);
 
   // On mount: fetch from Supabase and merge
   useEffect(() => {
@@ -85,33 +79,62 @@ export function usePersistState(key, initialValue) {
     }
   }, [key, state]);
 
-  // Supabase Realtime subscription (disabled until RLS fixed)
-  // useEffect(() => {
-  //   if (!table) return;
-  //   const channel = supabase
-  //     .channel(`realtime:${table}`)
-  //     .on("postgres_changes", { event: "*", schema: "public", table }, (payload) => {})
-  //     .subscribe();
-  //   return () => { supabase.removeChannel(channel); };
-  // }, [table, key]);
-
-  // Sync to Supabase on change (debounced, fire-and-forget)
+  // Smart Sync to Supabase: handles insert, update, and delete cleanly without identity constraint error
   const syncTimer = useRef(null);
   const syncToSupabase = useCallback((newState) => {
-    if (!table) return;
-    if (!Array.isArray(newState)) return;
+    if (!table || !Array.isArray(newState)) return;
     clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(async () => {
       try {
-        const snakeRows = newState.map((r) => {
-          const s = toSnake(r);
-          return { ...s, id: r.id };
+        const prevRows = prevStateRef.current || [];
+        const nextIds = new Set(newState.map((r) => r.id));
+
+        // 1. Deleted items
+        const deletedRows = prevRows.filter((r) => !nextIds.has(r.id) && r.id < 1000000000000);
+        for (const d of deletedRows) {
+          try {
+            await db.remove(table, d.id);
+          } catch (e) {
+            console.warn(`[SYNC] Remove ${table} id=${d.id} error:`, e.message);
+          }
+        }
+
+        // 2. Added items (new client items have temporary Date.now() timestamp IDs)
+        const addedRows = newState.filter((r) => r.id >= 1000000000000);
+        for (const a of addedRows) {
+          try {
+            const snake = toSnake(a);
+            const inserted = await db.insert(table, snake);
+            if (inserted && inserted.id) {
+              setState((current) => {
+                const updated = current.map((row) => (row.id === a.id ? { ...row, id: inserted.id } : row));
+                localStorage.setItem(key, JSON.stringify(updated));
+                return updated;
+              });
+            }
+          } catch (e) {
+            console.warn(`[SYNC] Insert ${table} error:`, e.message);
+          }
+        }
+
+        // 3. Updated items
+        const updatedRows = newState.filter((r) => {
+          if (r.id >= 1000000000000) return false;
+          const old = prevRows.find((p) => p.id === r.id);
+          return old && JSON.stringify(old) !== JSON.stringify(r);
         });
-        await db.upsert(table, snakeRows);
+        for (const u of updatedRows) {
+          try {
+            const snake = toSnake(u);
+            await db.update(table, u.id, snake);
+          } catch (e) {
+            console.warn(`[SYNC] Update ${table} id=${u.id} error:`, e.message);
+          }
+        }
       } catch (err) {
         console.warn(`usePersistState sync ${key}:`, err);
       }
-    }, 500);
+    }, 400);
   }, [table, key]);
 
   const setPersistState = useCallback((updater) => {

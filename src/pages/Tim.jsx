@@ -93,7 +93,7 @@ function TeamCard({ tim, pekerjaanData, onEdit, onDelete }) {
 }
 
 export default function Tim() {
-  const [timData, setTimData] = useState(initialTimData);
+  const [timData, setTimData] = usePersistState("xnet_tim", initialTimData);
   const [pekerjaanData] = usePersistState("xnet_pekerjaan", pekerjaanList);
   const [showModal, setShowModal] = useState(false);
   const [editingTim, setEditingTim] = useState(null);
