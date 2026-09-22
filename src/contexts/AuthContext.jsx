@@ -95,8 +95,16 @@ export function AuthProvider({ children }) {
     return data;
   }
 
+  async function resetPassword(email) {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login`,
+    });
+    if (error) throw error;
+    return data;
+  }
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, deleteUser, deleteUserCompletely, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, deleteUser, deleteUserCompletely, updateProfile, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );
