@@ -1,5 +1,4 @@
 import {
-  LayoutDashboard,
   Wrench,
   Target,
   AlertTriangle,
@@ -71,6 +70,19 @@ const CustomTooltip = ({ active, payload, label }) => {
   }
   return null;
 };
+
+function StatusBadge({ status }) {
+  const styles = {
+    SELESAI: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+    PROGRESS: "bg-orange-50 text-orange-700 ring-1 ring-orange-200",
+    "WAITING LIST": "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+  };
+  return (
+    <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${styles[status] || "bg-gray-50 text-gray-700 ring-1 ring-gray-200"}`}>
+      {status}
+    </span>
+  );
+}
 
 export default function Dashboard() {
   const [pekerjaanData] = usePersistState("xnet_pekerjaan", pekerjaanList);

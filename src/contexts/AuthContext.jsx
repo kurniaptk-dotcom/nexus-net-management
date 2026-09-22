@@ -8,6 +8,22 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  async function fetchProfile(userId) {
+    try {
+      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
+      if (error) {
+        console.error("fetchProfile error:", error.message);
+        setProfile(null);
+      } else {
+        setProfile(data);
+      }
+    } catch (err) {
+      console.error("fetchProfile exception:", err);
+      setProfile(null);
+    }
+    setLoading(false);
+  }
+
   useEffect(() => {
     console.log('[AUTH] Checking session...');
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -26,22 +42,6 @@ export function AuthProvider({ children }) {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  async function fetchProfile(userId) {
-    try {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
-      if (error) {
-        console.error("fetchProfile error:", error.message);
-        setProfile(null);
-      } else {
-        setProfile(data);
-      }
-    } catch (err) {
-      console.error("fetchProfile exception:", err);
-      setProfile(null);
-    }
-    setLoading(false);
-  }
 
   async function signUp(email, password, fullName, role = "user") {
     const { data, error } = await supabase.auth.signUp({

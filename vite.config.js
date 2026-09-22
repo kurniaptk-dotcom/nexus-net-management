@@ -8,12 +8,13 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/react/')) return 'vendor'
-          if (id.includes('node_modules/react-dom/')) return 'vendor'
-          if (id.includes('node_modules/react-router')) return 'vendor'
-          if (id.includes('node_modules/recharts/')) return 'charts'
-          if (id.includes('node_modules/lucide-react/')) return 'icons'
-          if (id.includes('node_modules/@supabase/')) return 'supabase'
+          const normalized = id.replace(/\\/g, '/')
+          if (normalized.includes('node_modules/react/')) return 'vendor'
+          if (normalized.includes('node_modules/react-dom/')) return 'vendor'
+          if (normalized.includes('node_modules/react-router')) return 'vendor'
+          if (normalized.includes('node_modules/recharts/')) return 'charts'
+          if (normalized.includes('node_modules/lucide-react/')) return 'icons'
+          if (normalized.includes('node_modules/@supabase/')) return 'supabase'
         },
       },
     },
