@@ -14,8 +14,11 @@ import {
   Search,
   LogOut,
   Settings,
+  Shield,
+  UserCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import NotificationPanel from "./NotificationPanel";
 
 const navItems = [
@@ -43,6 +46,18 @@ function Logo({ collapsed }) {
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const { profile, signOut } = useAuth();
+
+  const allNavItems = [
+    { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+    { to: "/tim", icon: Users, label: "Tim" },
+    { to: "/pekerjaan", icon: Wrench, label: "Pekerjaan" },
+    { to: "/leads", icon: Target, label: "Leads" },
+    { to: "/gangguan", icon: AlertTriangle, label: "Gangguan" },
+    { to: "/odp", icon: Network, label: "ODP / ODC" },
+    { to: "/laporan", icon: FileText, label: "Laporan" },
+    ...(profile?.role === "admin" ? [{ to: "/users", icon: Shield, label: "Manajemen User" }] : []),
+  ];
 
   return (
     <div className="flex h-screen bg-[#F0F2F5]">
@@ -70,7 +85,7 @@ export default function Layout() {
               Menu
             </p>
           )}
-          {navItems.map((item) => (
+          {allNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -92,18 +107,20 @@ export default function Layout() {
 
         {/* User */}
         <div className={`p-3 border-t border-white/10 ${collapsed ? "px-2" : ""}`}>
-          <div className={`flex items-center gap-3 p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer ${collapsed ? "justify-center" : ""}`}>
+          <div className={`flex items-center gap-3 p-2 rounded-xl hover:bg-white/10 transition-colors ${collapsed ? "justify-center" : ""}`}>
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#F97316] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-              N
+              {profile?.full_name?.[0]?.toUpperCase() || "U"}
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate">Nexus Admin</p>
-                <p className="text-[11px] text-white/40 truncate">admin@nexus.net</p>
+                <p className="text-sm font-semibold text-white truncate">{profile?.full_name || "User"}</p>
+                <p className="text-[11px] text-white/40 truncate">{profile?.email}</p>
               </div>
             )}
             {!collapsed && (
-              <LogOut className="w-4 h-4 text-white/40 hover:text-white transition-colors" />
+              <button onClick={signOut} title="Keluar" className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-red-400 transition-colors">
+                <LogOut className="w-4 h-4" />
+              </button>
             )}
           </div>
         </div>
