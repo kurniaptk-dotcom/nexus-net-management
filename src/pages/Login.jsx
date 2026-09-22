@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { LogIn, Eye, EyeOff, Wifi } from "lucide-react";
+import { LogIn, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -28,8 +28,8 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-[#F59E0B] to-[#F97316] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-500/25">
-            <Wifi className="w-10 h-10 text-white" />
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-500/25 overflow-hidden">
+            <img src="/LogoNexusputihoren.png" alt="Nexus Net" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">Nexus Net</h1>
           <p className="text-white/50 text-sm mt-1">WiFi Management System</p>
