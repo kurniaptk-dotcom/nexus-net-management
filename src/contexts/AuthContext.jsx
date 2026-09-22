@@ -9,13 +9,16 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[AUTH] Checking session...');
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('[AUTH] Session:', session ? 'found' : 'none');
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id);
       else setLoading(false);
-    });
+    }).catch(e => console.error('[AUTH] getSession error:', e));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('[AUTH] State change:', session ? 'found' : 'none');
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id);
       else { setProfile(null); setLoading(false); }

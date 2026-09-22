@@ -38,8 +38,10 @@ export function usePersistState(key, initialValue) {
   const [state, setState] = useState(() => {
     try {
       const saved = localStorage.getItem(key);
+      console.log(`[PERSIST] ${key}: saved=${saved ? 'found' : 'none'}, initialValue=${initialValue.length} items`);
       return saved ? JSON.parse(saved) : initialValue;
-    } catch {
+    } catch (err) {
+      console.error(`[PERSIST] ${key}: parse error`, err);
       return initialValue;
     }
   });
