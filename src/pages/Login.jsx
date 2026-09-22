@@ -28,8 +28,8 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-500/25 overflow-hidden">
-            <img src="/LogoNexusputihoren.png" alt="Nexus Net" className="w-full h-full object-contain" />
+          <div className="mb-6">
+            <img src="/LogoNexusputihoren.png" alt="Nexus Net" className="w-[160px] h-auto mx-auto" />
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">Nexus Net</h1>
           <p className="text-white/50 text-sm mt-1">WiFi Management System</p>
