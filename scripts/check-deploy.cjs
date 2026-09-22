@@ -3,15 +3,16 @@ const req = https.request('https://nexus-net-management.vercel.app/', (res) => {
   let d = '';
   res.on('data', c => d += c);
   res.on('end', () => {
-    // Check if JS references new chunks
-    console.log('Status:', res.statusCode);
-    const hasBBw2V6CD = d.includes('BBw2V6CD');
-    const hasBXlELVOI = d.includes('BXlELVOI');
-    console.log('Has BBw2V6CD (old):', hasBBw2V6CD);
-    console.log('Has BXlELVOI (new):', hasBXlELVOI);
-    // Check if HTML has root div
-    console.log('Has #root:', d.includes('id="root"'));
-    console.log('Has script module:', d.includes('type="module"'));
+    console.log('Content length:', d.length);
+    // Find script tags
+    const scriptMatches = d.match(/<script[^>]*src="([^"]*)"[^>]*>/g);
+    console.log('Script tags found:', scriptMatches ? scriptMatches.length : 0);
+    if (scriptMatches) {
+      scriptMatches.forEach(s => console.log('  -', s.substring(0, 120)));
+    }
+    // Find asset references
+    const assetMatches = d.match(/\/assets\/[^"'\s]+/g);
+    console.log('Asset references:', assetMatches ? [...new Set(assetMatches)] : 'none');
     process.exit(0);
   });
 });
