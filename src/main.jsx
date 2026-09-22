@@ -7,8 +7,12 @@ try { localStorage.setItem('app_test', Date.now().toString()); } catch {}
 window.__APP_STARTED__ = true;
 document.body && (document.body.style.backgroundColor = '#ff0000');
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+try {
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+} catch (e) {
+  document.body.innerHTML = '<div style="color:white;padding:20px;background:red;">ERROR: ' + e.message + '</div>'
+}
