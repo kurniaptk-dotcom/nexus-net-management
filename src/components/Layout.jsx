@@ -7,29 +7,16 @@ import {
   AlertTriangle,
   Network,
   FileText,
-  Wifi,
   Menu,
-  X,
   ChevronRight,
   Search,
   LogOut,
   Settings,
   Shield,
-  UserCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import NotificationPanel from "./NotificationPanel";
-
-const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/tim", icon: Users, label: "Tim" },
-  { to: "/pekerjaan", icon: Wrench, label: "Pekerjaan" },
-  { to: "/leads", icon: Target, label: "Leads" },
-  { to: "/gangguan", icon: AlertTriangle, label: "Gangguan" },
-  { to: "/odp", icon: Network, label: "ODP / ODC" },
-  { to: "/laporan", icon: FileText, label: "Laporan" },
-];
 
 function Logo({ collapsed }) {
   return (
@@ -46,6 +33,7 @@ function Logo({ collapsed }) {
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
   const { profile, signOut } = useAuth();
 
   const allNavItems = [
@@ -155,6 +143,8 @@ export default function Layout() {
             <input
               type="text"
               placeholder="Cari..."
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
               className="bg-transparent text-sm outline-none w-40 placeholder:text-gray-400"
             />
           </div>

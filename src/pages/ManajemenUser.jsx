@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 import { Users, Plus, Trash2, Shield, User, Mail, Calendar } from "lucide-react";
 
 export default function ManajemenUser() {
-  const { profile, signUp, deleteUser, updateProfile } = useAuth();
+  const { profile, signUp, deleteUser, deleteUserCompletely, updateProfile } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -42,7 +42,11 @@ export default function ManajemenUser() {
   async function handleDelete(id) {
     if (!confirm("Hapus user ini?")) return;
     try {
-      await deleteUser(id);
+      if (deleteUserCompletely) {
+        await deleteUserCompletely(id);
+      } else {
+        await deleteUser(id);
+      }
       setUsers(users.filter((u) => u.id !== id));
     } catch (err) {
       alert("Gagal hapus: " + err.message);

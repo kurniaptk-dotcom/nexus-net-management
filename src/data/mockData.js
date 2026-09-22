@@ -49,11 +49,11 @@ export const initialTimData = [
 
 export const summaryData = {
   totalPekerjaan: 63,
-  totalLeads: 27,
+  totalLeads: 5,
   pemasangan: { waitingList: 2, dijadwalkan: 0, selesai: 25, gagal: 0 },
   perbaikan: { waitingList: 1, dijadwalkan: 0, selesai: 33 },
   pemutusan: { waitingList: 1, dijadwalkan: 0, selesai: 1, gagal: 0 },
-  sumberLeads: { iklan: 16, affiliate: 5, marketing: 7 },
+  sumberLeads: { iklan: 2, affiliate: 2, marketing: 1 },
   odpOdc: { total: 0, userTerdampak: 17 },
 };
 
@@ -67,8 +67,7 @@ export const gangguanData = {
     "Server": 0,
     Pusat: 0,
   },
-  internal: { eksternal: 20, internal: 20 },
-  totalCase: 37,
+  totalCase: 20,
 };
 
 // Data pekerjaan detail untuk tabel

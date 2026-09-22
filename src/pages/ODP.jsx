@@ -25,7 +25,7 @@ export default function ODP() {
     aman: data.filter((d) => d.status === "Aman").length,
     diperbaiki: data.filter((d) => d.status === "Diperbaiki").length,
     kosong: data.filter((d) => !d.status).length,
-    totalOdc: Object.keys(grouped).length,
+    totalOdc: [...new Set(data.map((d) => d.odc))].length,
   };
 
   const toggleOdc = (odc) => {

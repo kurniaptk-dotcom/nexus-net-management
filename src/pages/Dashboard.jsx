@@ -1,18 +1,11 @@
 import {
   LayoutDashboard,
-  Users,
   Wrench,
   Target,
   AlertTriangle,
-  TrendingUp,
   CheckCircle,
-  Wifi,
   ArrowUpRight,
   ArrowDownRight,
-  Activity,
-  Zap,
-  Globe,
-  Server,
   XCircle,
 } from "lucide-react";
 import {
@@ -39,7 +32,7 @@ import { usePersistState } from "../hooks/usePersistState";
 
 const COLORS = ["#0D1B4A", "#F59E0B", "#F97316", "#10B981", "#6366F1", "#EC4899"];
 
-function StatCard({ icon: Icon, label, value, change, changeType, color, bgGradient }) {
+function StatCard({ icon: Icon, label, value, change, changeType, bgGradient }) {
   return (
     <div className="bg-white rounded-2xl p-5 border border-gray-100 hover:shadow-lg hover:shadow-gray-200/50 transition-all duration-300 group">
       <div className="flex items-start justify-between">
@@ -60,20 +53,6 @@ function StatCard({ icon: Icon, label, value, change, changeType, color, bgGradi
         </div>
       </div>
     </div>
-  );
-}
-
-function StatusBadge({ status }) {
-  const styles = {
-    SELESAI: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
-    "WAITING LIST": "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
-    DIJADWALKAN: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
-    PROGRESS: "bg-orange-50 text-orange-700 ring-1 ring-orange-200",
-  };
-  return (
-    <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${styles[status] || "bg-gray-50 text-gray-700 ring-1 ring-gray-200"}`}>
-      {status}
-    </span>
   );
 }
 

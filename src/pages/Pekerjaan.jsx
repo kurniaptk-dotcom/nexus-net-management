@@ -343,6 +343,16 @@ export default function Pekerjaan() {
             <option key={t.id} value={t.nama}>{t.nama}</option>
           ))}
         </select>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#F59E0B] outline-none"
+        >
+          <option value="ALL">Semua Status</option>
+          {statusPekerjaan.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
       </div>
 
       {/* Kanban Board */}

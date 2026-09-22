@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "../lib/supabase";
 
-// Map localStorage keys to Supabase table names
 const TABLE_MAP = {
   xnet_pekerjaan: "pekerjaan",
   xnet_leads: "leads",
@@ -10,7 +9,6 @@ const TABLE_MAP = {
   xnet_odpodc: "odp_odc",
 };
 
-// snake_case → camelCase
 function toCamel(row) {
   if (!row) return row;
   const out = { ...row };
@@ -22,7 +20,6 @@ function toCamel(row) {
   return out;
 }
 
-// camelCase → snake_case
 function toSnake(row) {
   if (!row) return row;
   const out = { ...row };
@@ -35,15 +32,8 @@ function toSnake(row) {
   return out;
 }
 
-/**
- * usePersistState — localStorage + Supabase hybrid.
- * - Instant UI from localStorage
- * - Syncs to Supabase in background
- * - On mount, fetches latest from Supabase
- */
 export function usePersistState(key, initialValue) {
   const table = TABLE_MAP[key];
-  const mountedRef = useRef(false);
 
   const [state, setState] = useState(() => {
     try {
@@ -54,48 +44,49 @@ export function usePersistState(key, initialValue) {
     }
   });
 
-  // On mount: fetch from Supabase and merge
   useEffect(() => {
     if (!table) return;
     let cancelled = false;
     (async () => {
       try {
         const rows = await db.fetchAll(table);
-        if (cancelled || !rows.length) return;
+        if (cancelled || !rows || !rows.length) return;
         const camelRows = rows.map(toCamel);
         setState(camelRows);
         localStorage.setItem(key, JSON.stringify(camelRows));
-      } catch {}
-      mountedRef.current = true;
+      } catch (err) {
+        console.warn(`usePersistState fetch ${key}:`, err);
+      }
     })();
     return () => { cancelled = true; };
   }, [table, key]);
 
-  // Persist to localStorage on change
   useEffect(() => {
     try {
       localStorage.setItem(key, JSON.stringify(state));
-    } catch {}
+    } catch (err) {
+      console.warn(`usePersistState localStorage ${key}:`, err);
+    }
   }, [key, state]);
 
-  // Sync to Supabase on change (debounced, fire-and-forget)
   const syncTimer = useRef(null);
   const syncToSupabase = useCallback((newState) => {
     if (!table) return;
+    if (!Array.isArray(newState)) return;
     clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(async () => {
       try {
-        // Upsert all rows to Supabase
         const snakeRows = newState.map((r) => {
           const s = toSnake(r);
           return { ...s, id: r.id };
         });
         await db.upsert(table, snakeRows);
-      } catch {}
+      } catch (err) {
+        console.warn(`usePersistState sync ${key}:`, err);
+      }
     }, 500);
-  }, [table]);
+  }, [table, key]);
 
-  // Wrap setState to also sync to Supabase
   const setPersistState = useCallback((updater) => {
     setState((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;

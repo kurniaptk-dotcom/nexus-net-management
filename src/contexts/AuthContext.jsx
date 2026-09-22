@@ -25,8 +25,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function fetchProfile(userId) {
-    const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
-    setProfile(data);
+    try {
+      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
+      if (error) {
+        console.error("fetchProfile error:", error.message);
+        setProfile(null);
+      } else {
+        setProfile(data);
+      }
+    } catch (err) {
+      console.error("fetchProfile exception:", err);
+      setProfile(null);
+    }
     setLoading(false);
   }
 
@@ -62,10 +72,17 @@ export function AuthProvider({ children }) {
   }
 
   async function deleteUser(userId) {
-    // Admin deletes user via Supabase REST API (service role needed)
-    // For now, delete from profiles table
     const { error } = await supabase.from("profiles").delete().eq("id", userId);
     if (error) throw error;
+  }
+
+  async function deleteUserCompletely(userId) {
+    const profileError = await supabase.from("profiles").delete().eq("id", userId);
+    if (profileError.error) throw profileError.error;
+    const { error } = await supabase.auth.admin.deleteUser(userId);
+    if (error) {
+      console.warn("Could not delete auth user (need service role):", error.message);
+    }
   }
 
   async function updateProfile(userId, updates) {
@@ -76,7 +93,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, deleteUser, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, deleteUser, deleteUserCompletely, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

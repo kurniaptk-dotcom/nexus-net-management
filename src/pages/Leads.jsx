@@ -79,6 +79,7 @@ export default function Leads() {
     e.preventDefault();
     if (editingItem) {
       setData(data.map((d) => (d.id === editingItem.id ? { ...d, ...formData } : d)));
+      notify(generateLeadsNotification({ ...editingItem, ...formData }, "diperbarui"));
     } else {
       const newItem = { id: Date.now(), ...formData };
       setData([...data, newItem]);

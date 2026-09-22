@@ -63,6 +63,7 @@ export default function Gangguan() {
     const submitData = { ...formData, userTerdampak: Number(formData.userTerdampak) };
     if (editingItem) {
       setData(data.map((d) => (d.id === editingItem.id ? { ...d, ...submitData } : d)));
+      notify(generateGangguanNotification({ ...editingItem, ...submitData }, "diperbarui"));
     } else {
       const newItem = { id: Date.now(), ...submitData };
       setData([...data, newItem]);
