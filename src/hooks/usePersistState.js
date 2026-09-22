@@ -83,63 +83,21 @@ export function usePersistState(key, initialValue) {
     }
   }, [key, state]);
 
-  // Supabase Realtime subscription
-  useEffect(() => {
-    if (!table) return;
-
-    const channel = supabase
-      .channel(`realtime:${table}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table },
-        (payload) => {
-          const { eventType, new: newRow, old: oldRow } = payload;
-
-          setState((prev) => {
-            // Skip our own changes
-            if (eventType === "INSERT" || eventType === "UPDATE") {
-              if (suppressedIds.current.has(newRow.id)) return prev;
-            }
-            if (eventType === "DELETE" && oldRow?.id) {
-              if (suppressedIds.current.has(oldRow.id)) return prev;
-            }
-
-            switch (eventType) {
-              case "INSERT": {
-                const exists = prev.some((r) => r.id === newRow.id);
-                if (exists) return prev;
-                return [...prev, toCamel(newRow)];
-              }
-              case "UPDATE": {
-                return prev.map((r) =>
-                  r.id === newRow.id ? toCamel(newRow) : r
-                );
-              }
-              case "DELETE": {
-                return prev.filter((r) => r.id !== oldRow.id);
-              }
-              default:
-                return prev;
-            }
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [table, key]);
+  // Supabase Realtime subscription (disabled until RLS fixed)
+  // useEffect(() => {
+  //   if (!table) return;
+  //   const channel = supabase
+  //     .channel(`realtime:${table}`)
+  //     .on("postgres_changes", { event: "*", schema: "public", table }, (payload) => {})
+  //     .subscribe();
+  //   return () => { supabase.removeChannel(channel); };
+  // }, [table, key]);
 
   // Sync to Supabase on change (debounced, fire-and-forget)
   const syncTimer = useRef(null);
   const syncToSupabase = useCallback((newState) => {
     if (!table) return;
     if (!Array.isArray(newState)) return;
-
-    // Suppress realtime events for IDs we're about to change
-    newState.forEach((r) => suppressId(r.id));
-
     clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(async () => {
       try {
