@@ -27,11 +27,9 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-[#0D1B4A] via-[#0f1d5e] to-[#1a237e] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="mb-6">
-            <img src="/LogoNexusputihoren.png" alt="Nexus Net" className="w-[160px] h-auto mx-auto" />
-          </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">Nexus Net</h1>
+        <div className="text-center mb-2">
+          <img src="/LogoNexusputihoren.png" alt="Nexus Net" className="w-[160px] h-auto mx-auto" />
+          <h1 className="text-2xl font-extrabold text-white tracking-tight mt-2">Nexus Net</h1>
           <p className="text-white/50 text-sm mt-1">WiFi Management System</p>
         </div>
 
