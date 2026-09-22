@@ -14,5 +14,5 @@ try {
     </StrictMode>,
   )
 } catch (e) {
-  document.body.innerHTML = '<div style="color:white;padding:20px;background:red;">ERROR: ' + e.message + '</div>'
+  document.body.innerHTML = '<div style="color:white;padding:20px;background:black;font-size:18px;font-family:monospace;">ERROR: ' + e.message + '</div>'
 }
