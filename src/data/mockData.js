@@ -310,3 +310,16 @@ export const odpOdcList = [
   // ODC 23
   { id: 17, odc: "ODC 23", nama: "ODP 23.2 Hasbi Andika", keterangan: "Aman", status: "Aman" },
 ];
+
+export const odcMasterList = [
+  { id: "ODC-1", nama: "ODC 1", lokasi: "Jl. Merdeka - Area Gardu 1", kapasitas: "8 Port / 144 Core", keterangan: "Induk Distribusi Utama" },
+  { id: "ODC-2", nama: "ODC 2", lokasi: "Jl. Dahlia - Tiang Induk 04", kapasitas: "8 Port / 96 Core", keterangan: "Area Perumahan Dahlia" },
+  { id: "ODC-3", nama: "ODC 3", lokasi: "Jl. Sudirman No. 12", kapasitas: "8 Port / 96 Core", keterangan: "Area Komersil Sudirman" },
+  { id: "ODC-4", nama: "ODC 4", lokasi: "Jl. Gatot Subroto RT 03", kapasitas: "8 Port / 72 Core", keterangan: "Distribusi Timur" },
+  { id: "ODC-6", nama: "ODC 6", lokasi: "Jl. Diponegoro No. 45", kapasitas: "8 Port / 72 Core", keterangan: "Area Pasar Sentral" },
+  { id: "ODC-7", nama: "ODC 7", lokasi: "Jl. Pahlawan Blok B", kapasitas: "8 Port / 96 Core", keterangan: "Perumahan Pahlawan" },
+  { id: "ODC-8", nama: "ODC 8", lokasi: "Jl. Kenanga Gang 2", kapasitas: "8 Port / 96 Core", keterangan: "Distribusi Barat" },
+  { id: "ODC-11", nama: "ODC 11", lokasi: "Jl. Ahmad Yani No. 88", kapasitas: "16 Port / 144 Core", keterangan: "Hub Cluster Ahmad Yani" },
+  { id: "ODC-12", nama: "ODC 12", lokasi: "Jl. Melati RT 01/RW 04", kapasitas: "8 Port / 72 Core", keterangan: "Area Permukiman Melati" },
+  { id: "ODC-23", nama: "ODC 23", lokasi: "Jl. Imam Bonjol No. 15", kapasitas: "8 Port / 96 Core", keterangan: "Jalur Selatan" },
+];
