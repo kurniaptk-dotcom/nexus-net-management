@@ -52,6 +52,7 @@ function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odp
   const totalGagal = pekerjaanData.filter((d) => d.status === "GAGAL").length;
   const pemasanganSelesai = pekerjaanData.filter((d) => d.jenis === "PEMASANGAN" && d.status === "SELESAI").length;
   const perbaikanSelesai = pekerjaanData.filter((d) => d.jenis === "PERBAIKAN" && d.status === "SELESAI").length;
+  const perbaikanKhususSelesai = pekerjaanData.filter((d) => d.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && d.status === "SELESAI").length;
   const pemutusanSelesai = pekerjaanData.filter((d) => d.jenis === "PEMUTUSAN" && d.status === "SELESAI").length;
 
   const summaryRows = [
@@ -61,6 +62,7 @@ function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odp
     ["Total Leads", leadsData.length],
     ["Pemasangan Selesai", pemasanganSelesai],
     ["Perbaikan Selesai", perbaikanSelesai],
+    ["Perbaikan Khusus (ODP/ODC) Selesai", perbaikanKhususSelesai],
     ["Pemutusan Selesai", pemutusanSelesai],
     ["Selesai Total", totalSelesai],
     ["Gagal Total", totalGagal],
@@ -76,6 +78,7 @@ function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odp
       Tim: t.nama,
       "Pemasangan Selesai": timP.filter((p) => p.jenis === "PEMASANGAN" && p.status === "SELESAI").length,
       "Perbaikan Selesai": timP.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length,
+      "Perbaikan Khusus Selesai": timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length,
       "Pemutusan Selesai": timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length,
       Total: timP.filter((p) => p.status === "SELESAI").length,
     };
@@ -171,7 +174,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 export default function Laporan() {
   const [pekerjaanData] = usePersistState("xnet_pekerjaan", pekerjaanList);
   const [leadsData] = usePersistState("xnet_leads", leadsList);
-  const [gangguanDataState] = usePersistState("xnet_gangguan", gangguanList);
+  const [gangguanDataState] = usePersistState("xnet_daftar_gangguan_v2", daftarGangguanList);
   const [timData] = usePersistState("xnet_tim", initialTimData);
   const [odpData] = usePersistState("xnet_odpodc", odpOdcList);
 
@@ -184,6 +187,7 @@ export default function Laporan() {
       name: t.nama.split(" - ")[0],
       pemasangan: timP.filter((p) => p.jenis === "PEMASANGAN" && p.status === "SELESAI").length,
       perbaikan: timP.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length,
+      perbaikanKhusus: timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length,
       pemutusan: timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length,
     };
   });
@@ -222,6 +226,7 @@ export default function Laporan() {
       Tim: t.nama,
       "Pemasangan Selesai": timP.filter((p) => p.jenis === "PEMASANGAN" && p.status === "SELESAI").length,
       "Perbaikan Selesai": timP.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length,
+      "Perbaikan Khusus Selesai": timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length,
       "Pemutusan Selesai": timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length,
       "Total Selesai": timP.filter((p) => p.status === "SELESAI").length,
     };
@@ -288,6 +293,7 @@ export default function Laporan() {
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="pemasangan" fill="#0D1B4A" name="Pemasangan" radius={[6, 6, 0, 0]} />
               <Bar dataKey="perbaikan" fill="#F59E0B" name="Perbaikan" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="perbaikanKhusus" fill="#8B5CF6" name="Perbaikan Khusus" radius={[6, 6, 0, 0]} />
               <Bar dataKey="pemutusan" fill="#F97316" name="Pemutusan" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -333,6 +339,7 @@ export default function Laporan() {
                 <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Tim</th>
                 <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Pemasangan</th>
                 <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Perbaikan</th>
+                <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Perbaikan Khusus</th>
                 <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Pemutusan</th>
                 <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Total</th>
               </tr>
@@ -342,13 +349,15 @@ export default function Laporan() {
                 const timP = pekerjaanData.filter((p) => p.tim === t.nama);
                 const pemasangan = timP.filter((p) => p.jenis === "PEMASANGAN" && p.status === "SELESAI").length;
                 const perbaikan = timP.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length;
+                const perbaikanKhusus = timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length;
                 const pemutusan = timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length;
-                const total = pemasangan + perbaikan + pemutusan;
+                const total = pemasangan + perbaikan + perbaikanKhusus + pemutusan;
                 return (
                   <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-3 font-bold text-gray-800">{t.nama}</td>
                     <td className="px-5 py-3 text-center text-[#0D1B4A] font-bold">{pemasangan}</td>
                     <td className="px-5 py-3 text-center text-[#F59E0B] font-bold">{perbaikan}</td>
+                    <td className="px-5 py-3 text-center text-[#8B5CF6] font-bold">{perbaikanKhusus}</td>
                     <td className="px-5 py-3 text-center text-[#F97316] font-bold">{pemutusan}</td>
                     <td className="px-5 py-3 text-center">
                       <span className="px-2.5 py-1 bg-gray-100 rounded-lg text-xs font-bold text-gray-800">{total}</span>

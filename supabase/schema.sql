@@ -12,9 +12,10 @@ CREATE TABLE IF NOT EXISTS tim (
 CREATE TABLE IF NOT EXISTS pekerjaan (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   tim text NOT NULL,
-  jenis text NOT NULL CHECK (jenis IN ('PEMASANGAN', 'PERBAIKAN', 'PEMUTUSAN')),
+  jenis text NOT NULL CHECK (jenis IN ('PEMASANGAN', 'PERBAIKAN', 'PEMUTUSAN', 'PERBAIKAN KHUSUS (ODP/ODC)')),
   alamat text,
   pelanggan text NOT NULL,
+  odp text,
   status text NOT NULL DEFAULT 'WAITING LIST' CHECK (status IN ('WAITING LIST', 'DIJADWALKAN', 'SELESAI', 'GAGAL')),
   tanggal date,
   keterangan text,

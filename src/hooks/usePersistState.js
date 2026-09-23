@@ -5,6 +5,7 @@ const TABLE_MAP = {
   xnet_pekerjaan: "pekerjaan",
   xnet_leads: "leads",
   xnet_gangguan: "gangguan",
+  xnet_daftar_gangguan_v2: "gangguan",
   xnet_tim: "tim",
   xnet_odpodc: "odp_odc",
 };
@@ -52,6 +53,28 @@ export function usePersistState(key, initialValue) {
     prevStateRef.current = state;
   }, [state]);
 
+  // Listen for storage events across tabs & custom events in the same tab (instant real-time sync)
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === key && e.newValue) {
+        try {
+          setState(JSON.parse(e.newValue));
+        } catch {}
+      }
+    };
+    const handleCustom = (e) => {
+      if (e.detail?.key === key && e.detail?.value !== undefined) {
+        setState(e.detail.value);
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("xnet_storage_update", handleCustom);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("xnet_storage_update", handleCustom);
+    };
+  }, [key]);
+
   // On mount: fetch from Supabase and merge
   useEffect(() => {
     if (!table) return;
@@ -61,8 +84,16 @@ export function usePersistState(key, initialValue) {
         const rows = await db.fetchAll(table);
         if (cancelled || !rows || !rows.length) return;
         const camelRows = rows.map(toCamel);
-        setState(camelRows);
-        localStorage.setItem(key, JSON.stringify(camelRows));
+        
+        setState((current) => {
+          // Keep local pending items created by user (timestamp IDs or items not in remote)
+          const remoteIds = new Set(camelRows.map((r) => r.id));
+          const localOnly = (current || []).filter((r) => r.id >= 1000000000000 || !remoteIds.has(r.id));
+          const merged = [...camelRows, ...localOnly];
+          localStorage.setItem(key, JSON.stringify(merged));
+          window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: merged } }));
+          return merged;
+        });
       } catch (err) {
         console.warn(`usePersistState fetch ${key}:`, err);
       }
@@ -104,11 +135,22 @@ export function usePersistState(key, initialValue) {
         for (const a of addedRows) {
           try {
             const snake = toSnake(a);
-            const inserted = await db.insert(table, snake);
+            let inserted = null;
+            try {
+              inserted = await db.insert(table, snake);
+            } catch (insErr) {
+              if (snake.odp !== undefined) {
+                const { odp, ...withoutOdp } = snake;
+                inserted = await db.insert(table, withoutOdp);
+              } else {
+                throw insErr;
+              }
+            }
             if (inserted && inserted.id) {
               setState((current) => {
                 const updated = current.map((row) => (row.id === a.id ? { ...row, id: inserted.id } : row));
                 localStorage.setItem(key, JSON.stringify(updated));
+                window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: updated } }));
                 return updated;
               });
             }
@@ -140,10 +182,16 @@ export function usePersistState(key, initialValue) {
   const setPersistState = useCallback((updater) => {
     setState((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
+      try {
+        localStorage.setItem(key, JSON.stringify(next));
+        window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
+      } catch (e) {
+        console.warn(`usePersistState set ${key}:`, e);
+      }
       syncToSupabase(next);
       return next;
     });
-  }, [syncToSupabase]);
+  }, [key, syncToSupabase]);
 
   return [state, setPersistState];
 }

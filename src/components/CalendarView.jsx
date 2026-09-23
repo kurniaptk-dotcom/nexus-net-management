@@ -11,6 +11,7 @@ const jenisColors = {
   PEMASANGAN: { bg: "bg-blue-500", text: "text-blue-700", light: "bg-blue-100", border: "border-blue-300" },
   PERBAIKAN: { bg: "bg-orange-500", text: "text-orange-700", light: "bg-orange-100", border: "border-orange-300" },
   PEMUTUSAN: { bg: "bg-red-500", text: "text-red-700", light: "bg-red-100", border: "border-red-300" },
+  "PERBAIKAN KHUSUS (ODP/ODC)": { bg: "bg-purple-500", text: "text-purple-700", light: "bg-purple-100", border: "border-purple-300" },
 };
 
 const statusDot = {
@@ -288,6 +289,11 @@ export default function CalendarView({ data }) {
                       </div>
                       <p className="text-sm font-bold text-gray-800 truncate">{item.pelanggan}</p>
                       <p className="text-xs text-gray-400 truncate">{item.alamat}</p>
+                      {item.odp && (
+                        <p className="text-[11px] font-medium text-blue-600 mt-0.5 truncate">
+                          📍 {item.odp}
+                        </p>
+                      )}
                     </div>
                     <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
                       {item.tim.split(" - ")[0]}

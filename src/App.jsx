@@ -10,6 +10,7 @@ import Gangguan from "./pages/Gangguan";
 import ODP from "./pages/ODP";
 import Laporan from "./pages/Laporan";
 import ManajemenUser from "./pages/ManajemenUser";
+import InstallPWA from "./components/InstallPWA";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -57,6 +58,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <AppRoutes />
+        <InstallPWA />
       </AuthProvider>
     </BrowserRouter>
   );

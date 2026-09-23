@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
+import { supabase, createUnpersistedClient } from "../lib/supabase";
 
 const AuthContext = createContext(null);
 
@@ -44,14 +44,16 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function signUp(email, password, fullName, role = "user") {
-    const { data, error } = await supabase.auth.signUp({
+    // Gunakan unpersisted client agar sesi admin saat ini tidak terganti oleh user baru
+    const client = profile?.role === "admin" ? createUnpersistedClient() : supabase;
+    const { data, error } = await client.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName, role } },
     });
     if (error) throw error;
-    // If admin is creating user, insert profile directly
-    if (profile?.role === "admin" && data.user) {
+    // Insert/upsert profile directly
+    if (data.user) {
       await supabase.from("profiles").upsert({
         id: data.user.id,
         email,

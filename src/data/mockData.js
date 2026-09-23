@@ -8,7 +8,12 @@ export const timList = [
 
 export const statusPekerjaan = ["WAITING LIST", "DIJADWALKAN", "SELESAI", "GAGAL"];
 
-export const jenisPekerjaan = ["PEMASANGAN", "PERBAIKAN", "PEMUTUSAN"];
+export const jenisPekerjaan = [
+  "PEMASANGAN",
+  "PERBAIKAN",
+  "PEMUTUSAN",
+  "PERBAIKAN KHUSUS (ODP/ODC)",
+];
 
 export const sumberLeads = ["IKLAN", "AFFILIATE", "MARKETING"];
 
@@ -72,16 +77,16 @@ export const gangguanData = {
 
 // Data pekerjaan detail untuk tabel
 export const pekerjaanList = [
-  { id: 1, tim: "GATRA - AIS", jenis: "PEMASANGAN", alamat: "Jl. Merdeka No. 10", pelanggan: "Ahmad Fauzi", status: "SELESAI", tanggal: "2026-09-01", keterangan: "Pemasangan baru RG" },
-  { id: 2, tim: "GATRA - AIS", jenis: "PEMASANGAN", alamat: "Jl. Sudirman No. 25", pelanggan: "Budi Santoso", status: "SELESAI", tanggal: "2026-09-02", keterangan: "Pemasangan ONT" },
-  { id: 3, tim: "GATRA - AIS", jenis: "PERBAIKAN", alamat: "Jl. Gatot Subroto No. 5", pelanggan: "Dewi Lestari", status: "SELESAI", tanggal: "2026-09-03", keterangan: "Ganti kabel fiber" },
-  { id: 4, tim: "AZWAR - RIO", jenis: "PEMASANGAN", alamat: "Jl. Ahmad Yani No. 12", pelanggan: "Eko Prasetyo", status: "SELESAI", tanggal: "2026-09-01", keterangan: "Pemasangan baru" },
-  { id: 5, tim: "AZWAR - RIO", jenis: "PEMASANGAN", alamat: "Jl. Diponegoro No. 8", pelanggan: "Fitri Handayani", status: "WAITING LIST", tanggal: "2026-09-15", keterangan: "Menunggu ODP ready" },
-  { id: 6, tim: "AZWAR - RIO", jenis: "PERBAIKAN", alamat: "Jl. Imam Bonjol No. 3", pelanggan: "Gunawan Wibisono", status: "SELESAI", tanggal: "2026-09-05", keterangan: "Perbaikan redaman" },
-  { id: 7, tim: "IQBAL - JUSMAN", jenis: "PEMASANGAN", alamat: "Jl. Pemuda No. 17", pelanggan: "Hendra Kurniawan", status: "SELESAI", tanggal: "2026-09-01", keterangan: "Pemasangan baru" },
-  { id: 8, tim: "IQBAL - JUSMAN", jenis: "PEMUTUSAN", alamat: "Jl. Kartini No. 22", pelanggan: "Indah Permata", status: "SELESAI", tanggal: "2026-09-10", keterangan: "Putus permintaan pelanggan" },
-  { id: 9, tim: "IQBAL - JUSMAN", jenis: "PERBAIKAN", alamat: "Jl. Cut Nyak Dien No. 9", pelanggan: "Joko Susilo", status: "SELESAI", tanggal: "2026-09-18", keterangan: "Modem rusak diganti" },
-  { id: 10, tim: "GATRA - AIS", jenis: "PEMASANGAN", alamat: "Jl. Diponegoro No. 14", pelanggan: "Kartika Dewi", status: "WAITING LIST", tanggal: "2026-09-20", keterangan: "Menunggu stok ONT" },
+  { id: 1, tim: "GATRA - AIS", jenis: "PEMASANGAN", alamat: "Jl. Merdeka No. 10", pelanggan: "Ahmad Fauzi", odp: "ODC 1 - ODP 1.2 - M. Sarno", status: "SELESAI", tanggal: "2026-09-01", keterangan: "Pemasangan baru RG" },
+  { id: 2, tim: "GATRA - AIS", jenis: "PEMASANGAN", alamat: "Jl. Sudirman No. 25", pelanggan: "Budi Santoso", odp: "ODC 1 - ODP 1.7 - Ani Febriyanti", status: "SELESAI", tanggal: "2026-09-02", keterangan: "Pemasangan ONT" },
+  { id: 3, tim: "GATRA - AIS", jenis: "PERBAIKAN", alamat: "Jl. Gatot Subroto No. 5", pelanggan: "Dewi Lestari", odp: "ODC 2 - ODP 2.4 - Alfian Azis P", status: "SELESAI", tanggal: "2026-09-03", keterangan: "Ganti kabel fiber" },
+  { id: 4, tim: "AZWAR - RIO", jenis: "PEMASANGAN", alamat: "Jl. Ahmad Yani No. 12", pelanggan: "Eko Prasetyo", odp: "ODC 3 - ODP 3.5 - Selvi Sushanti", status: "SELESAI", tanggal: "2026-09-01", keterangan: "Pemasangan baru" },
+  { id: 5, tim: "AZWAR - RIO", jenis: "PEMASANGAN", alamat: "Jl. Diponegoro No. 8", pelanggan: "Fitri Handayani", odp: "ODC 4 - ODP 4.8 - Sanyabi", status: "WAITING LIST", tanggal: "2026-09-15", keterangan: "Menunggu ODP ready" },
+  { id: 6, tim: "AZWAR - RIO", jenis: "PERBAIKAN", alamat: "Jl. Imam Bonjol No. 3", pelanggan: "Gunawan Wibisono", odp: "ODC 8 - ODP 8.3 - Iwan Hermawan", status: "SELESAI", tanggal: "2026-09-05", keterangan: "Perbaikan redaman" },
+  { id: 7, tim: "IQBAL - JUSMAN", jenis: "PEMASANGAN", alamat: "Jl. Pemuda No. 17", pelanggan: "Hendra Kurniawan", odp: "ODC 11 - ODP 11.2 - Kusnadin", status: "SELESAI", tanggal: "2026-09-01", keterangan: "Pemasangan baru" },
+  { id: 8, tim: "IQBAL - JUSMAN", jenis: "PEMUTUSAN", alamat: "Jl. Kartini No. 22", pelanggan: "Indah Permata", odp: "ODC 12 - ODP 12.7 - Adi Gunawan", status: "SELESAI", tanggal: "2026-09-10", keterangan: "Putus permintaan pelanggan" },
+  { id: 9, tim: "IQBAL - JUSMAN", jenis: "PERBAIKAN", alamat: "Jl. Cut Nyak Dien No. 9", pelanggan: "Joko Susilo", odp: "ODC 23 - ODP 23.2 Hasbi Andika", status: "SELESAI", tanggal: "2026-09-18", keterangan: "Modem rusak diganti" },
+  { id: 10, tim: "GATRA - AIS", jenis: "PEMASANGAN", alamat: "Jl. Diponegoro No. 14", pelanggan: "Kartika Dewi", odp: "ODC 11 - ODP 11.3 Rizka Andriana S", status: "WAITING LIST", tanggal: "2026-09-20", keterangan: "Menunggu stok ONT" },
   { id: 11, tim: "GATRA - AIS", jenis: "PEMASANGAN", alamat: "Jl. Veteran No. 7", pelanggan: "Lukman Hakim", status: "SELESAI", tanggal: "2026-09-04", keterangan: "Pemasangan ONT baru" },
   { id: 12, tim: "GATRA - AIS", jenis: "PEMASANGAN", alamat: "Jl. Panjaitan No. 19", pelanggan: "Maya Sari", status: "SELESAI", tanggal: "2026-09-06", keterangan: "Pemasangan baru RG" },
   { id: 13, tim: "GATRA - AIS", jenis: "PEMASANGAN", alamat: "Jl. Sisingamangaraja No. 31", pelanggan: "Nugroho Adi", status: "SELESAI", tanggal: "2026-09-08", keterangan: "Instalasi fiber ke rumah" },
@@ -135,6 +140,8 @@ export const pekerjaanList = [
   { id: 61, tim: "IQBAL - JUSMAN", jenis: "PERBAIKAN", alamat: "Jl. Radio Dalam No. 3", pelanggan: "Prasetyo Utomo", status: "SELESAI", tanggal: "2026-09-15", keterangan: "Ganti patch cord SC" },
   { id: 62, tim: "IQBAL - JUSMAN", jenis: "PERBAIKAN", alamat: "Jl. Lebak Bulus No. 10", pelanggan: "Rina Wulandari", status: "SELESAI", tanggal: "2026-09-17", keterangan: "Perbaikan lampu LOS" },
   { id: 63, tim: "IQBAL - JUSMAN", jenis: "PEMUTUSAN", alamat: "Jl. Kemang No. 16", pelanggan: "Satria Nugraha", status: "WAITING LIST", tanggal: "2026-09-26", keterangan: "Menunggu konfirmasi pelanggan" },
+  { id: 64, tim: "GATRA - AIS", jenis: "PERBAIKAN KHUSUS (ODP/ODC)", alamat: "Jl. Melati RT 02", pelanggan: "M. Sarno (ODP 1.2)", odp: "ODC 1 - ODP 1.2 - M. Sarno", status: "DIJADWALKAN", tanggal: "2026-09-24", keterangan: "Splicing ulang ODP LOS di lapangan" },
+  { id: 65, tim: "AZWAR - RIO", jenis: "PERBAIKAN KHUSUS (ODP/ODC)", alamat: "Jl. Dahlia No. 15", pelanggan: "Alfian Azis (ODP 2.4)", odp: "ODC 2 - ODP 2.4 - Alfian Azis P", status: "SELESAI", tanggal: "2026-09-22", keterangan: "Pergantian splitter ODC 2 selesai" },
 ];
 
 export const leadsList = [

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { LogIn, Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
+import { LogIn, Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function Login() {
   const { signIn, resetPassword } = useAuth();
@@ -97,19 +97,15 @@ export default function Login() {
 
       <div className="w-full max-w-[420px] relative z-10">
         {/* Brand Header */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center p-3.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl shadow-black/20 mb-3">
+        <div className="flex flex-col items-center justify-center text-center mb-6">
+          <div className="w-28 h-28 flex items-center justify-center p-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-black/30 mb-3.5">
             <img
               src="/LogoNexusputihoren.png"
               alt="Nexus Net"
-              className="w-32 h-auto object-contain"
+              className="w-full h-full object-contain"
             />
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10 text-white/80 text-[11px] font-medium mb-1">
-            <Sparkles className="w-3 h-3 text-[#F59E0B]" />
-            WiFi Management System
-          </div>
-          <h1 className="text-xl font-bold text-white tracking-tight">Nexus Net Dashboard</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Nexus Net Dashboard</h1>
         </div>
 
         {/* Login Card */}
