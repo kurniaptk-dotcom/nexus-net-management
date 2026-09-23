@@ -105,8 +105,9 @@ function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odp
   const wsPemutusan = XLSX.utils.json_to_sheet(kinerjaPemutusan);
   XLSX.utils.book_append_sheet(wb, wsPemutusan, "Kinerja Pemutusan");
 
-  const gangguanByKat = gangguanDataState.reduce((acc, g) => {
-    acc[g.kategori] = (acc[g.kategori] || 0) + 1;
+  const gangguanByKat = (gangguanDataState || []).reduce((acc, g) => {
+    const kat = g.kategori || g.keterangan || "Lainnya";
+    acc[kat] = (acc[kat] || 0) + 1;
     return acc;
   }, {});
   const gangguanRows = Object.entries(gangguanByKat).map(([kategori, jumlah]) => ({ Kategori: kategori, Jumlah: jumlah }));
@@ -141,7 +142,7 @@ function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odp
   })));
   XLSX.utils.book_append_sheet(wb, wsPengajuan, "Pengajuan Pemutusan");
 
-  const wsDaftarGangguan = XLSX.utils.json_to_sheet(daftarGangguanList.map((g) => ({
+  const wsDaftarGangguan = XLSX.utils.json_to_sheet((gangguanDataState || []).map((g) => ({
     ID: g.id, Nama: g.nama, Keterangan: g.keterangan, Kontak: g.kontak,
     "Tanggal Mulai": g.tanggalMulai, "Follow Up": g.followUp, "Hasil FU": g.hasilFU,
   })));
@@ -202,8 +203,9 @@ export default function Laporan() {
     { name: "Marketing", value: leadsBySumberMap["MARKETING"] || 0 },
   ];
 
-  const gangguanByKat = gangguanDataState.reduce((acc, g) => {
-    acc[g.kategori] = (acc[g.kategori] || 0) + 1;
+  const gangguanByKat = (gangguanDataState || []).reduce((acc, g) => {
+    const kat = g.kategori || g.keterangan || "Lainnya";
+    acc[kat] = (acc[kat] || 0) + 1;
     return acc;
   }, {});
   const gangguanChartData = Object.entries(gangguanByKat)

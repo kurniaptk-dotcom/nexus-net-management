@@ -36,7 +36,7 @@ function SumberBadge({ sumber }) {
   );
 }
 
-const statusOptions = ["BARU", "KONTAK", "DIJADWALKAN", "SELESAI", "BATAL"];
+const statusOptions = ["BARU", "KONTAK", "DIJADWALKAN", "SELESAI"];
 
 export default function Leads() {
   const [data, setData] = usePersistState("xnet_leads", leadsList);

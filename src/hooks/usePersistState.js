@@ -28,6 +28,33 @@ function sanitizeForTable(tableName, row) {
       clean[col] = row[col];
     }
   }
+
+  // Safety guards for PostgreSQL check constraints
+  if (tableName === "leads") {
+    const validStatus = ["BARU", "KONTAK", "DIJADWALKAN", "SELESAI"];
+    if (clean.status && !validStatus.includes(clean.status)) {
+      clean.status = "BARU";
+    }
+    const validSumber = ["IKLAN", "AFFILIATE", "MARKETING"];
+    if (clean.sumber && !validSumber.includes(clean.sumber)) {
+      clean.sumber = "IKLAN";
+    }
+  } else if (tableName === "odp_odc") {
+    const validStatus = ["", "Aman", "Diperbaiki"];
+    if (clean.status && !validStatus.includes(clean.status)) {
+      clean.status = (clean.status || "").toLowerCase().includes("perbaik") ? "Diperbaiki" : "Aman";
+    }
+  } else if (tableName === "pekerjaan") {
+    const validStatus = ["WAITING LIST", "DIJADWALKAN", "SELESAI", "GAGAL"];
+    if (clean.status && !validStatus.includes(clean.status)) {
+      clean.status = "WAITING LIST";
+    }
+    const validJenis = ["PEMASANGAN", "PERBAIKAN", "PEMUTUSAN", "PERBAIKAN KHUSUS (ODP/ODC)"];
+    if (clean.jenis && !validJenis.includes(clean.jenis)) {
+      clean.jenis = "PEMASANGAN";
+    }
+  }
+
   return clean;
 }
 
