@@ -5,10 +5,31 @@ const TABLE_MAP = {
   xnet_pekerjaan: "pekerjaan",
   xnet_leads: "leads",
   xnet_gangguan: "gangguan",
-  xnet_daftar_gangguan_v2: "gangguan",
+  xnet_daftar_gangguan_v2: "daftar_gangguan",
   xnet_tim: "tim",
   xnet_odpodc: "odp_odc",
 };
+
+const ALLOWED_COLUMNS = {
+  pekerjaan: ["tim", "jenis", "alamat", "pelanggan", "status", "tanggal", "keterangan"],
+  daftar_gangguan: ["nama", "keterangan", "kontak", "tanggal_mulai", "follow_up", "hasil_fu"],
+  gangguan: ["tanggal", "kategori", "pelanggan", "alamat", "status", "keterangan", "user_terdampak"],
+  leads: ["nama", "sumber", "status", "tanggal", "telepon", "alamat"],
+  tim: ["nama"],
+  odp_odc: ["odc", "nama", "keterangan", "status"],
+};
+
+function sanitizeForTable(tableName, row) {
+  const allowed = ALLOWED_COLUMNS[tableName];
+  if (!allowed) return row;
+  const clean = {};
+  for (const col of allowed) {
+    if (row[col] !== undefined) {
+      clean[col] = row[col];
+    }
+  }
+  return clean;
+}
 
 function toCamel(row) {
   if (!row) return row;
@@ -48,10 +69,7 @@ export function usePersistState(key, initialValue) {
     }
   });
 
-  const prevStateRef = useRef(state);
-  useEffect(() => {
-    prevStateRef.current = state;
-  }, [state]);
+  const baselineStateRef = useRef(null);
 
   // Listen for storage events across tabs & custom events in the same tab (instant real-time sync)
   useEffect(() => {
@@ -86,10 +104,17 @@ export function usePersistState(key, initialValue) {
         const camelRows = rows.map(toCamel);
         
         setState((current) => {
-          // Keep local pending items created by user (timestamp IDs or items not in remote)
-          const remoteIds = new Set(camelRows.map((r) => r.id));
-          const localOnly = (current || []).filter((r) => r.id >= 1000000000000 || !remoteIds.has(r.id));
-          const merged = [...camelRows, ...localOnly];
+          const currentList = Array.isArray(current) ? current : [];
+          // Keep only user-created pending items with timestamp IDs
+          const localOnly = currentList.filter((r) => r.id >= 1000000000000);
+          
+          // Merge remote rows with local, keeping any local frontend-only attributes (e.g. odp, userTerdampak)
+          const mergedRemote = camelRows.map((remote) => {
+            const local = currentList.find((c) => c.id === remote.id);
+            return local ? { ...local, ...remote } : remote;
+          });
+
+          const merged = [...mergedRemote, ...localOnly];
           localStorage.setItem(key, JSON.stringify(merged));
           window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: merged } }));
           return merged;
@@ -110,18 +135,24 @@ export function usePersistState(key, initialValue) {
     }
   }, [key, state]);
 
-  // Smart Sync to Supabase: handles insert, update, and delete cleanly without identity constraint error
+  // Smart Sync to Supabase: handles insert, update, and delete cleanly without schema error
   const syncTimer = useRef(null);
-  const syncToSupabase = useCallback((newState) => {
+  const syncToSupabase = useCallback((prevRows, newState) => {
     if (!table || !Array.isArray(newState)) return;
+    if (!baselineStateRef.current) {
+      baselineStateRef.current = prevRows || [];
+    }
     clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(async () => {
       try {
-        const prevRows = prevStateRef.current || [];
+        const base = baselineStateRef.current || [];
+        baselineStateRef.current = null;
+
+        const prevMap = new Map(base.map((r) => [r.id, r]));
         const nextIds = new Set(newState.map((r) => r.id));
 
         // 1. Deleted items
-        const deletedRows = prevRows.filter((r) => !nextIds.has(r.id) && r.id < 1000000000000);
+        const deletedRows = base.filter((r) => !nextIds.has(r.id) && r.id < 1000000000000);
         for (const d of deletedRows) {
           try {
             await db.remove(table, d.id);
@@ -134,21 +165,11 @@ export function usePersistState(key, initialValue) {
         const addedRows = newState.filter((r) => r.id >= 1000000000000);
         for (const a of addedRows) {
           try {
-            const snake = toSnake(a);
-            let inserted = null;
-            try {
-              inserted = await db.insert(table, snake);
-            } catch (insErr) {
-              if (snake.odp !== undefined) {
-                const { odp, ...withoutOdp } = snake;
-                inserted = await db.insert(table, withoutOdp);
-              } else {
-                throw insErr;
-              }
-            }
+            const snake = sanitizeForTable(table, toSnake(a));
+            const inserted = await db.insert(table, snake);
             if (inserted && inserted.id) {
               setState((current) => {
-                const updated = current.map((row) => (row.id === a.id ? { ...row, id: inserted.id } : row));
+                const updated = (current || []).map((row) => (row.id === a.id ? { ...row, id: inserted.id } : row));
                 localStorage.setItem(key, JSON.stringify(updated));
                 window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: updated } }));
                 return updated;
@@ -162,12 +183,12 @@ export function usePersistState(key, initialValue) {
         // 3. Updated items
         const updatedRows = newState.filter((r) => {
           if (r.id >= 1000000000000) return false;
-          const old = prevRows.find((p) => p.id === r.id);
-          return old && JSON.stringify(old) !== JSON.stringify(r);
+          const old = prevMap.get(r.id);
+          return !old || JSON.stringify(old) !== JSON.stringify(r);
         });
         for (const u of updatedRows) {
           try {
-            const snake = toSnake(u);
+            const snake = sanitizeForTable(table, toSnake(u));
             await db.update(table, u.id, snake);
           } catch (e) {
             console.warn(`[SYNC] Update ${table} id=${u.id} error:`, e.message);
@@ -188,7 +209,7 @@ export function usePersistState(key, initialValue) {
       } catch (e) {
         console.warn(`usePersistState set ${key}:`, e);
       }
-      syncToSupabase(next);
+      syncToSupabase(prev, next);
       return next;
     });
   }, [key, syncToSupabase]);

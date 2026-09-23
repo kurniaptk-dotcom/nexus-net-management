@@ -6,6 +6,7 @@ const TABLE_MAP = {
   xnet_pekerjaan: "pekerjaan",
   xnet_leads: "leads",
   xnet_gangguan: "gangguan",
+  xnet_daftar_gangguan_v2: "daftar_gangguan",
   xnet_tim: "tim",
   xnet_odpodc: "odp_odc",
 };
