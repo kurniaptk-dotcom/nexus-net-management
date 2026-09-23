@@ -38,6 +38,7 @@ import {
   pekerjaanList,
   leadsList,
   odpOdcList,
+  odcMasterList,
 } from "../data/mockData";
 import { usePersistState } from "../hooks/usePersistState";
 
@@ -108,6 +109,7 @@ export default function Dashboard() {
   const [gangguanData] = usePersistState("xnet_daftar_gangguan_v2", daftarGangguanList);
   const [timData] = usePersistState("xnet_tim", initialTimData);
   const [odpData] = usePersistState("xnet_odpodc", odpOdcList);
+  const [odcList] = usePersistState("xnet_odc_list", odcMasterList);
 
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -145,7 +147,11 @@ export default function Dashboard() {
 
   // ODP / ODC Infrastructure Stats
   const totalOdp = odpData.length;
-  const totalOdc = useMemo(() => new Set(odpData.map((o) => o.odc)).size, [odpData]);
+  const totalOdc = useMemo(() => {
+    const fromOdp = (odpData || []).map((o) => o.odc).filter(Boolean);
+    const fromOdcList = (odcList || []).map((o) => o.nama).filter(Boolean);
+    return new Set([...fromOdcList, ...fromOdp]).size;
+  }, [odcList, odpData]);
   const odpLinkedCount = useMemo(() => pekerjaanData.filter((p) => !!p.odp).length, [pekerjaanData]);
 
   // Tim Chart Data
@@ -301,6 +307,13 @@ export default function Dashboard() {
           >
             <Wrench className="w-3.5 h-3.5" />
             <span>+ Pekerjaan</span>
+          </Link>
+          <Link
+            to="/pekerjaan?search=ODP"
+            className="flex items-center gap-1 px-3.5 py-2 text-xs font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-md transition-all shadow-sm"
+          >
+            <Network className="w-3.5 h-3.5" />
+            <span>+ Perbaikan ODP</span>
           </Link>
           <Link
             to="/gangguan"
