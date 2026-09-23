@@ -52,7 +52,16 @@ export default function Layout() {
 
   const handleClearCache = () => {
     if (confirm("Apakah Anda yakin ingin mereset cache lokal aplikasi? Data offline di browser akan dikembalikan ke state awal.")) {
-      const keys = ["xnet_pekerjaan", "xnet_leads", "xnet_gangguan", "xnet_tim", "xnet_odpodc", "xnet_notifications"];
+      const keys = [
+        "xnet_pekerjaan",
+        "xnet_leads",
+        "xnet_gangguan",
+        "xnet_daftar_gangguan_v2",
+        "xnet_tim",
+        "xnet_odpodc",
+        "xnet_odc_list",
+        "xnet_notifications",
+      ];
       keys.forEach((k) => localStorage.removeItem(k));
       window.location.reload();
     }
