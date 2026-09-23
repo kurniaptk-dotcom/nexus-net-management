@@ -45,7 +45,7 @@ function exportToJSON(data, filename) {
   URL.revokeObjectURL(url);
 }
 
-function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, filename) {
+function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odpData, filename) {
   const wb = XLSX.utils.book_new();
 
   const totalSelesai = pekerjaanData.filter((d) => d.status === "SELESAI").length;
@@ -144,7 +144,7 @@ function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, fil
   })));
   XLSX.utils.book_append_sheet(wb, wsDaftarGangguan, "Daftar Gangguan");
 
-  const wsOdp = XLSX.utils.json_to_sheet(odpOdcList.map((o) => ({
+  const wsOdp = XLSX.utils.json_to_sheet(odpData.map((o) => ({
     ID: o.id, ODC: o.odc, "Nama ODP": o.nama, Keterangan: o.keterangan || "-", Status: o.status || "Belum Dicek",
   })));
   XLSX.utils.book_append_sheet(wb, wsOdp, "ODP ODC");
@@ -173,6 +173,7 @@ export default function Laporan() {
   const [leadsData] = usePersistState("xnet_leads", leadsList);
   const [gangguanDataState] = usePersistState("xnet_gangguan", gangguanList);
   const [timData] = usePersistState("xnet_tim", initialTimData);
+  const [odpData] = usePersistState("xnet_odpodc", odpOdcList);
 
   const totalSelesai = pekerjaanData.filter((d) => d.status === "SELESAI").length;
   const totalGagal = pekerjaanData.filter((d) => d.status === "GAGAL").length;
@@ -239,7 +240,7 @@ export default function Laporan() {
       <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
         <h3 className="text-sm font-bold text-gray-800 mb-4">Export Data</h3>
         <div className="flex flex-wrap gap-3">
-          <button onClick={() => exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, "laporan-september-2026.xlsx")}
+          <button onClick={() => exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odpData, "laporan-september-2026.xlsx")}
             className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#0D1B4A] to-[#1a237e] text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-900/25 transition-all">
             <FileSpreadsheet className="w-4 h-4" /> Export Excel (Semua Sheet)
           </button>
