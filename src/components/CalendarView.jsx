@@ -112,7 +112,7 @@ export default function CalendarView({ data }) {
         {/* Calendar Header */}
         <div className="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0D1B4A] to-[#1a237e] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[#0D1B4A] flex items-center justify-center">
               <CalendarIcon className="w-4.5 h-4.5 text-white" />
             </div>
             <div>
@@ -194,7 +194,7 @@ export default function CalendarView({ data }) {
                   <span
                     className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${
                       cell.isToday
-                        ? "bg-gradient-to-br from-[#F59E0B] to-[#F97316] text-white"
+                        ? "bg-[#F59E0B] text-white"
                         : cell.pekerjaan.length > 0
                         ? "text-gray-800"
                         : "text-gray-400"

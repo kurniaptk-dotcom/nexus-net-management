@@ -664,7 +664,7 @@ export default function Dashboard() {
           value={totalPekerjaan}
           subtext={`${selesai} selesai · ${waiting} waiting`}
           changeType="up"
-          bgGradient="bg-gradient-to-br from-[#0D1B4A] to-[#1a237e]"
+          bgGradient="bg-[#0D1B4A]"
           href="/pekerjaan"
         />
         <StatCard
@@ -673,7 +673,7 @@ export default function Dashboard() {
           value={totalLeads}
           subtext={`${leadsKonversi} konversi (${leadsConversionRate}%)`}
           changeType="up"
-          bgGradient="bg-gradient-to-br from-[#F59E0B] to-[#F97316]"
+          bgGradient="bg-[#F59E0B]"
           href="/leads"
         />
         <StatCard
@@ -682,7 +682,7 @@ export default function Dashboard() {
           value={`${completionRate}%`}
           subtext={`${selesai} dari ${totalPekerjaan} tuntas`}
           changeType="up"
-          bgGradient="bg-gradient-to-br from-emerald-500 to-teal-600"
+          bgGradient="bg-emerald-600"
           href="/pekerjaan"
         />
         <StatCard
@@ -691,7 +691,7 @@ export default function Dashboard() {
           value={totalGangguan}
           subtext={`${gangguanBelumSelesai} belum selesai · ${gangguanAman} aman`}
           changeType={gangguanBelumSelesai > 0 ? "down" : "up"}
-          bgGradient="bg-gradient-to-br from-red-500 to-rose-600"
+          bgGradient="bg-red-600"
           href="/gangguan"
         />
         <StatCard
@@ -700,7 +700,7 @@ export default function Dashboard() {
           value={`${totalOdp} ODP`}
           subtext={`${totalOdc} ODC · ${odpLinkedCount} di pekerjaan`}
           changeType="up"
-          bgGradient="bg-gradient-to-br from-indigo-500 to-blue-600"
+          bgGradient="bg-indigo-600"
           href="/odp"
         />
       </div>
@@ -710,7 +710,7 @@ export default function Dashboard() {
         {/* Header of Detail Pekerjaan */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0D1B4A] to-blue-900 flex items-center justify-center text-white shadow-md shadow-blue-950/20">
+            <div className="w-10 h-10 rounded-xl bg-[#0D1B4A] flex items-center justify-center text-white shadow-md shadow-blue-950/20">
               <Wrench className="w-5 h-5" />
             </div>
             <div>
@@ -743,7 +743,7 @@ export default function Dashboard() {
         {/* 4 Category Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Pemasangan Baru */}
-          <div className="bg-gradient-to-b from-blue-50/60 to-white rounded-2xl p-4 border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all flex flex-col justify-between group">
+          <div className="bg-white rounded-2xl p-4 border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all flex flex-col justify-between group">
             <div>
               <div className="flex items-start justify-between">
                 <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
@@ -816,7 +816,7 @@ export default function Dashboard() {
           </div>
 
           {/* Card 2: Perbaikan Reguler */}
-          <div className="bg-gradient-to-b from-orange-50/60 to-white rounded-2xl p-4 border border-orange-100 hover:border-orange-300 hover:shadow-md transition-all flex flex-col justify-between group">
+          <div className="bg-white rounded-2xl p-4 border border-orange-100 hover:border-orange-300 hover:shadow-md transition-all flex flex-col justify-between group">
             <div>
               <div className="flex items-start justify-between">
                 <div className="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
@@ -889,7 +889,7 @@ export default function Dashboard() {
           </div>
 
           {/* Card 3: Perbaikan Khusus (ODP/ODC) */}
-          <div className="bg-gradient-to-b from-purple-50/60 to-white rounded-2xl p-4 border border-purple-100 hover:border-purple-300 hover:shadow-md transition-all flex flex-col justify-between group">
+          <div className="bg-white rounded-2xl p-4 border border-purple-100 hover:border-purple-300 hover:shadow-md transition-all flex flex-col justify-between group">
             <div>
               <div className="flex items-start justify-between">
                 <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
@@ -967,7 +967,7 @@ export default function Dashboard() {
           </div>
 
           {/* Card 4: Pemutusan Layanan */}
-          <div className="bg-gradient-to-b from-rose-50/60 to-white rounded-2xl p-4 border border-rose-100 hover:border-rose-300 hover:shadow-md transition-all flex flex-col justify-between group">
+          <div className="bg-white rounded-2xl p-4 border border-rose-100 hover:border-rose-300 hover:shadow-md transition-all flex flex-col justify-between group">
             <div>
               <div className="flex items-start justify-between">
                 <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
@@ -1476,10 +1476,10 @@ export default function Dashboard() {
                   <div
                     className={`h-full rounded-full transition-all duration-700 ${
                       item.persen >= 90
-                        ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
+                        ? "bg-emerald-500"
                         : item.persen >= 70
-                        ? "bg-gradient-to-r from-amber-500 to-amber-400"
-                        : "bg-gradient-to-r from-red-500 to-red-400"
+                        ? "bg-amber-500"
+                        : "bg-red-500"
                     }`}
                     style={{ width: `${item.persen}%` }}
                   />
@@ -1522,10 +1522,10 @@ export default function Dashboard() {
                     <div
                       className={`h-full rounded-full transition-all duration-700 ${
                         item.persen >= 90
-                          ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
+                          ? "bg-emerald-500"
                           : item.persen >= 50
-                          ? "bg-gradient-to-r from-amber-500 to-amber-400"
-                          : "bg-gradient-to-r from-red-500 to-red-400"
+                          ? "bg-amber-500"
+                          : "bg-red-500"
                       }`}
                       style={{ width: `${item.persen}%` }}
                     />

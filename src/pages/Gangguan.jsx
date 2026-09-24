@@ -270,7 +270,7 @@ export default function Gangguan() {
           </button>
           <button
             onClick={handleOpenAdd}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-red-500/25 active:scale-95 transition-all shadow-md"
+            className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-red-500/25 active:scale-95 transition-all shadow-md"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Gangguan</span>
@@ -717,7 +717,7 @@ export default function Gangguan() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white text-sm font-semibold hover:shadow-lg hover:shadow-red-500/25 active:scale-95 transition-all shadow-md"
+                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold hover:shadow-lg hover:shadow-red-500/25 active:scale-95 transition-all shadow-md"
                 >
                   {editingItem ? "Simpan Perubahan" : "Tambahkan Gangguan"}
                 </button>

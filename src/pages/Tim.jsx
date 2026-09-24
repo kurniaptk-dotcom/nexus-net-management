@@ -13,16 +13,16 @@ function TeamCard({ tim, pekerjaanData, onEdit, onDelete }) {
   const completionRate = (totalPekerjaan + totalWaiting) > 0 ? ((totalPekerjaan / (totalPekerjaan + totalWaiting)) * 100).toFixed(0) : 0;
 
   const colors = [
-    { from: "from-[#0D1B4A]", to: "to-[#1a237e]", accent: "#F59E0B" },
-    { from: "from-[#F59E0B]", to: "to-[#F97316]", accent: "#0D1B4A" },
-    { from: "from-emerald-600", to: "to-emerald-500", accent: "#F59E0B" },
+    { bg: "bg-[#0D1B4A]", accent: "#F59E0B" },
+    { bg: "bg-[#F59E0B]", accent: "#0D1B4A" },
+    { bg: "bg-emerald-600", accent: "#F59E0B" },
   ];
   const colorSet = colors[tim.id % colors.length];
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:shadow-gray-200/50 transition-all duration-300 group">
-      {/* Header with gradient */}
-      <div className={`bg-gradient-to-r ${colorSet.from} ${colorSet.to} px-5 py-4`}>
+      {/* Header */}
+      <div className={`${colorSet.bg} px-5 py-4`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
@@ -75,7 +75,7 @@ function TeamCard({ tim, pekerjaanData, onEdit, onDelete }) {
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-[#F59E0B] to-[#F97316] rounded-full transition-all duration-500"
+              className="h-full bg-[#F59E0B] rounded-full transition-all duration-500"
               style={{ width: `${completionRate}%` }}
             />
           </div>
@@ -149,7 +149,7 @@ export default function Tim() {
         </div>
         <button
           onClick={handleAdd}
-          className="flex items-center gap-2 bg-gradient-to-r from-[#0D1B4A] to-[#1a237e] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-900/25 transition-all"
+          className="flex items-center gap-2 bg-[#0D1B4A] hover:bg-[#1a237e] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-900/25 transition-all"
         >
           <Plus className="w-4 h-4" />
           Tambah Tim
@@ -198,7 +198,7 @@ export default function Tim() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-white rounded-xl hover:shadow-lg hover:shadow-orange-500/25 transition-all"
+                  className="px-4 py-2.5 text-sm font-semibold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl hover:shadow-lg hover:shadow-orange-500/25 transition-all"
                 >
                   Simpan
                 </button>

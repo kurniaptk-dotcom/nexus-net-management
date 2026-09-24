@@ -374,14 +374,14 @@ export default function Pekerjaan() {
           </div>
           <button
             onClick={() => handleAdd("PERBAIKAN KHUSUS (ODP/ODC)")}
-            className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-3.5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all"
+            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all"
           >
             <Wrench className="w-4 h-4" />
             + Perbaikan ODP/ODC
           </button>
           <button
             onClick={() => handleAdd("PEMASANGAN")}
-            className="flex items-center gap-2 bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all"
+            className="flex items-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all"
           >
             <Plus className="w-4 h-4" />
             Tambah
@@ -613,7 +613,7 @@ export default function Pekerjaan() {
               {formData.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" ? (
                 <>
                   {/* Banner Info Khusus */}
-                  <div className="bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-transparent border border-purple-200/80 rounded-xl p-3.5 flex items-start gap-3">
+                  <div className="bg-purple-50 border border-purple-200/80 rounded-xl p-3.5 flex items-start gap-3">
                     <div className="p-2 bg-purple-100 text-purple-700 rounded-lg shrink-0">
                       <Wrench className="w-5 h-5" />
                     </div>
@@ -934,8 +934,8 @@ export default function Pekerjaan() {
                   type="submit"
                   className={`px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition-all shadow-md ${
                     formData.jenis === "PERBAIKAN KHUSUS (ODP/ODC)"
-                      ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:shadow-purple-500/25"
-                      : "bg-gradient-to-r from-[#F59E0B] to-[#F97316] hover:shadow-orange-500/25"
+                      ? "bg-purple-600 hover:bg-purple-700"
+                      : "bg-[#F59E0B] hover:bg-[#d97706]"
                   }`}
                 >
                   Simpan Pekerjaan

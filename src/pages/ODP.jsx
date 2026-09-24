@@ -325,14 +325,14 @@ export default function ODP() {
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={handleOpenAddOdc}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#0D1B4A] to-[#1a237e] text-white font-bold rounded-xl text-sm shadow-md hover:shadow-indigo-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0D1B4A] hover:bg-[#1a237e] text-white font-bold rounded-xl text-sm shadow-md hover:shadow-indigo-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             <Layers className="w-4 h-4 text-purple-300" />
             <span>+ Tambah ODC</span>
           </button>
           <button
             onClick={() => handleOpenAddOdp()}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#F59E0B] to-amber-600 text-slate-900 font-bold rounded-xl text-sm shadow-md hover:shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#F59E0B] hover:bg-amber-600 text-slate-900 font-bold rounded-xl text-sm shadow-md hover:shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             <Plus className="w-4 h-4 text-slate-900" />
             <span>+ Tambah ODP</span>
@@ -446,12 +446,12 @@ export default function ODP() {
                 className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all"
               >
                 {/* ODC Header */}
-                <div className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-gray-100 bg-gradient-to-r from-gray-50/70 via-white to-gray-50/40">
+                <div className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/70">
                   <div
                     onClick={() => toggleOdc(odcName)}
                     className="flex items-center gap-3 cursor-pointer flex-1"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0D1B4A] to-[#1a237e] flex items-center justify-center shadow-sm shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-[#0D1B4A] flex items-center justify-center shadow-sm shrink-0">
                       <Network className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -659,7 +659,7 @@ export default function ODP() {
       {isOdcModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-[#0D1B4A] to-[#1a237e] text-white flex items-center justify-between">
+            <div className="px-6 py-4 bg-[#0D1B4A] text-white flex items-center justify-between">
               <h3 className="font-bold text-base flex items-center gap-2">
                 <Layers className="w-4 h-4 text-purple-300" />
                 {editingOdc ? "Edit Data ODC" : "Tambah ODC Baru"}
@@ -736,7 +736,7 @@ export default function ODP() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-[#0D1B4A] to-[#1a237e] text-white rounded-xl text-sm font-semibold hover:shadow-lg transition-all"
+                  className="px-5 py-2 bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl text-sm font-semibold hover:shadow-lg transition-all"
                 >
                   {editingOdc ? "Simpan Perubahan" : "Tambahkan ODC"}
                 </button>
@@ -750,7 +750,7 @@ export default function ODP() {
       {isOdpModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-white flex items-center justify-between">
+            <div className="px-6 py-4 bg-[#F59E0B] text-white flex items-center justify-between">
               <h3 className="font-bold text-base flex items-center gap-2">
                 <Network className="w-4 h-4 text-white" />
                 {editingOdp ? "Edit Data ODP" : "Tambah ODP Baru"}
@@ -861,7 +861,7 @@ export default function ODP() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-white rounded-xl text-sm font-semibold hover:shadow-lg transition-all"
+                  className="px-5 py-2 bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl text-sm font-semibold hover:shadow-lg transition-all"
                 >
                   {editingOdp ? "Simpan Perubahan" : "Tambahkan ODP"}
                 </button>

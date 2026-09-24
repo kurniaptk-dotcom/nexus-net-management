@@ -249,7 +249,7 @@ export default function ManajemenUser() {
             setShowAddModal(true);
             setAddError("");
           }}
-          className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#0D1B4A] to-[#1a237e] hover:from-[#132766] hover:to-[#222e96] text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md shadow-blue-950/20 hover:shadow-lg transition-all"
+          className="flex items-center justify-center gap-2 bg-[#0D1B4A] hover:bg-[#1a237e] text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md shadow-blue-950/20 hover:shadow-lg transition-all"
         >
           <Plus className="w-4 h-4" />
           <span>Tambah Akun Baru</span>
@@ -378,8 +378,8 @@ export default function ManajemenUser() {
                           <div
                             className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white font-bold text-xs shadow-sm flex-shrink-0 ${
                               u.role === "admin"
-                                ? "bg-gradient-to-br from-[#0D1B4A] to-[#20367d]"
-                                : "bg-gradient-to-br from-[#F59E0B] to-[#ea580c]"
+                                ? "bg-[#0D1B4A]"
+                                : "bg-[#F59E0B]"
                             }`}
                           >
                             {u.full_name ? u.full_name.charAt(0).toUpperCase() : "U"}
@@ -569,7 +569,7 @@ export default function ManajemenUser() {
                 <button
                   type="submit"
                   disabled={savingAdd}
-                  className="px-5 py-2.5 text-xs font-semibold bg-gradient-to-r from-[#F59E0B] to-[#F97316] hover:from-[#e08e0a] hover:to-[#e2640f] text-white rounded-xl shadow-md transition-all disabled:opacity-50"
+                  className="px-5 py-2.5 text-xs font-semibold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl shadow-md transition-all disabled:opacity-50"
                 >
                   {savingAdd ? "Menyimpan..." : "Simpan Akun"}
                 </button>

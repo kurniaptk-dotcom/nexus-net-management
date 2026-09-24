@@ -141,7 +141,7 @@ export default function NotificationPanel() {
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-[380px] max-h-[520px] bg-white rounded-2xl shadow-2xl shadow-black/15 border border-gray-100 overflow-hidden z-50">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-[#0D1B4A] to-[#1a237e]">
+          <div className="px-4 py-3 border-b border-gray-100 bg-[#0D1B4A]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-white" />

@@ -82,7 +82,7 @@ export default function Layout() {
     <div className="flex h-screen bg-[#F0F2F5]">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-gradient-to-b from-[#0D1B4A] via-[#0F2366] to-[#0D1B4A] text-white transform transition-all duration-300 lg:translate-x-0 lg:static lg:inset-auto ${
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-[#0D1B4A] text-white transform transition-all duration-300 lg:translate-x-0 lg:static lg:inset-auto ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } ${collapsed ? "w-20" : "w-64"}`}
       >
@@ -108,7 +108,7 @@ export default function Layout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   isActive
-                    ? "bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0D1B4A] font-bold shadow-lg shadow-orange-500/20"
+                    ? "bg-[#F59E0B] text-[#0D1B4A] font-bold shadow-lg shadow-orange-500/20"
                     : "text-white/70 hover:bg-white/10 hover:text-white"
                 } ${collapsed ? "justify-center px-2" : ""}`
               }
@@ -135,7 +135,7 @@ export default function Layout() {
         {/* User Info */}
         <div className="p-3 border-t border-white/10">
           <div className="flex items-center gap-3 p-2 rounded-xl bg-white/5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#F59E0B] to-[#F97316] flex items-center justify-center font-bold text-sm text-[#0D1B4A] flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-[#F59E0B] flex items-center justify-center font-bold text-sm text-[#0D1B4A] flex-shrink-0">
               {profile?.full_name?.[0]?.toUpperCase() || "U"}
             </div>
             {!collapsed && (
@@ -210,7 +210,7 @@ export default function Layout() {
       {settingsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-[#0D1B4A] to-[#1a237e] text-white flex items-center justify-between">
+            <div className="px-6 py-4 bg-[#0D1B4A] text-white flex items-center justify-between">
               <h3 className="font-bold text-base flex items-center gap-2">
                 <Settings className="w-4 h-4 text-amber-400" />
                 Pengaturan Sistem & Profil
@@ -226,7 +226,7 @@ export default function Layout() {
             <div className="p-6 space-y-5">
               {/* Profile Card */}
               <div className="p-4 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0D1B4A] to-[#1a237e] text-amber-400 font-extrabold text-lg flex items-center justify-center shadow-sm">
+                <div className="w-12 h-12 rounded-xl bg-[#0D1B4A] text-amber-400 font-extrabold text-lg flex items-center justify-center shadow-sm">
                   {profile?.full_name?.[0]?.toUpperCase() || "U"}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -271,7 +271,7 @@ export default function Layout() {
                       setSettingsOpen(false);
                       if (window.__showPwaInstallPrompt) window.__showPwaInstallPrompt();
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-[#0D1B4A] to-[#1a237e] text-white rounded-lg text-xs font-semibold shadow-sm hover:shadow-md transition-all active:scale-95"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0D1B4A] hover:bg-[#152763] text-white rounded-lg text-xs font-semibold shadow-sm hover:shadow-md transition-all active:scale-95"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Pasang</span>
