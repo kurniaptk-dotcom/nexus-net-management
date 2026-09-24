@@ -479,10 +479,10 @@ export default function Dashboard() {
   }, [pekerjaanData, refToday]);
 
   const filteredScheduleList = useMemo(() => {
-    if (scheduleTab === "TODAY") return scheduleData.todayJobs.slice(0, 4);
-    if (scheduleTab === "UPCOMING") return scheduleData.upcomingJobs.slice(0, 4);
-    if (scheduleTab === "WAITING") return scheduleData.waitingJobs.slice(0, 4);
-    return scheduleData.displayList.slice(0, 4);
+    if (scheduleTab === "TODAY") return scheduleData.todayJobs.slice(0, 3);
+    if (scheduleTab === "UPCOMING") return scheduleData.upcomingJobs.slice(0, 3);
+    if (scheduleTab === "WAITING") return scheduleData.waitingJobs.slice(0, 3);
+    return scheduleData.displayList.slice(0, 3);
   }, [scheduleData, scheduleTab]);
 
   const filterLabel = useMemo(() => {
@@ -1098,30 +1098,28 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Specific Dedicated Card: Pekerjaan Hari Ini & Terdekat (Minimalist) */}
-      <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-4">
-        {/* Minimalist Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#0D1B4A] flex items-center justify-center text-white shadow-xs">
-              <CalendarClock className="w-4 h-4 text-[#F59E0B]" />
-            </div>
-            <div>
-              <h2 className="text-sm font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
-                Pekerjaan Hari Ini & Jadwal Terdekat
-                {scheduleData.todayJobs.length > 0 && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                )}
-              </h2>
-              <p className="text-[11px] text-gray-400">
-                Antrian penugasan operasional teknisi yang siap dikerjakan
-              </p>
-            </div>
+      {/* Specific Dedicated Card: Pekerjaan Hari Ini & Terdekat (Ultra-Compact) */}
+      <div className="bg-white rounded-xl px-4 py-3 border border-gray-100 shadow-xs space-y-2.5">
+        {/* Minimalist Slim Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-2">
+          <div className="flex items-center gap-2">
+            <CalendarClock className="w-4 h-4 text-[#0D1B4A]" />
+            <h2 className="text-xs font-bold text-gray-900 tracking-tight uppercase flex items-center gap-1.5">
+              Jadwal & Penugasan Terdekat
+              {scheduleData.todayJobs.length > 0 && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              )}
+            </h2>
+            {scheduleData.todayJobs.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
+                {scheduleData.todayJobs.length} Hari Ini
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
             {/* Minimalist Tab Pills */}
-            <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl border border-gray-200/60 text-xs font-semibold">
+            <div className="flex items-center gap-0.5 bg-gray-50 p-0.5 rounded-lg border border-gray-200/60 text-[11px] font-semibold">
               {[
                 { id: "ALL", label: `Semua (${scheduleData.displayList.length})` },
                 { id: "TODAY", label: `Hari Ini (${scheduleData.todayJobs.length})` },
@@ -1131,7 +1129,7 @@ export default function Dashboard() {
                 <button
                   key={t.id}
                   onClick={() => setScheduleTab(t.id)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
                     scheduleTab === t.id
                       ? "bg-[#0D1B4A] text-white shadow-2xs"
                       : "text-gray-500 hover:text-gray-900 hover:bg-white"
@@ -1144,17 +1142,17 @@ export default function Dashboard() {
 
             <Link
               to="/pekerjaan"
-              className="text-xs font-bold text-[#0D1B4A] hover:text-blue-700 flex items-center gap-1 transition-colors px-2 py-1"
+              className="text-[11px] font-bold text-[#0D1B4A] hover:text-blue-700 flex items-center gap-0.5 transition-colors pl-1"
             >
               <span>Semua</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
         </div>
 
-        {/* Minimalist Compact List */}
+        {/* Ultra-Compact Single-Line Rows */}
         {filteredScheduleList.length > 0 ? (
-          <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+          <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden">
             {filteredScheduleList.map((item) => {
               const jc =
                 item.jenis === "PEMASANGAN"
@@ -1177,82 +1175,73 @@ export default function Dashboard() {
               return (
                 <div
                   key={item.id}
-                  className="px-4 py-3 hover:bg-blue-50/30 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3 group"
+                  className="px-3 py-1.5 hover:bg-blue-50/30 transition-colors flex items-center justify-between gap-3 text-xs group"
                 >
-                  {/* Left: Timing badge, Name, Category */}
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    {/* Timing Badge */}
+                  {/* Left: Timing Pill, Pelanggan, Kategori, Lokasi, ODP */}
+                  <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
                     <div className="shrink-0">
                       {item.isToday ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
                           HARI INI
                         </span>
                       ) : item.diffDays === 1 ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                           BESOK
                         </span>
                       ) : item.diffDays > 1 ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
                           {item.diffDays}h lagi
                         </span>
                       ) : item.isWaiting ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                           Waiting
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-medium bg-gray-100 text-gray-600">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-600">
                           {item.tanggal}
                         </span>
                       )}
                     </div>
 
-                    {/* Customer info & tags */}
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Link
-                          to={`/pekerjaan?search=${encodeURIComponent(item.pelanggan)}`}
-                          className="font-bold text-gray-900 text-xs hover:text-blue-600 transition-colors truncate"
-                        >
-                          {item.pelanggan}
-                        </Link>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${jc}`}>
-                          {item.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" ? "ODP/ODC" : item.jenis}
-                        </span>
-                        {item.odp && (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-blue-700 bg-blue-50/80 px-1.5 py-0.5 rounded border border-blue-100 truncate max-w-[180px]">
-                            <Network className="w-3 h-3 text-blue-500 shrink-0" />
-                            <span className="truncate">{item.odp}</span>
-                          </span>
-                        )}
-                        {item.userTerdampak ? (
-                          <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">
-                            {item.userTerdampak} Terdampak
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="text-[11px] text-gray-400 truncate flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-3 h-3 shrink-0" />
-                        <span className="truncate">{item.alamat || "Alamat belum diatur"}</span>
-                      </p>
-                    </div>
+                    <Link
+                      to={`/pekerjaan?search=${encodeURIComponent(item.pelanggan)}`}
+                      className="font-bold text-gray-900 text-xs hover:text-blue-600 transition-colors truncate shrink-0 max-w-[140px]"
+                    >
+                      {item.pelanggan}
+                    </Link>
+
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border shrink-0 ${jc}`}>
+                      {item.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" ? "ODP" : item.jenis}
+                    </span>
+
+                    <span className="text-[11px] text-gray-400 truncate hidden sm:inline">
+                      · {item.alamat || "Alamat belum diatur"}
+                    </span>
+
+                    {item.odp && (
+                      <span className="hidden md:inline-flex items-center gap-1 text-[9px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 truncate max-w-[150px]">
+                        <Network className="w-2.5 h-2.5 text-blue-500 shrink-0" />
+                        <span className="truncate">{item.odp}</span>
+                      </span>
+                    )}
                   </div>
 
-                  {/* Right: Team, Status, Action */}
-                  <div className="flex items-center gap-3 shrink-0 self-end md:self-auto text-xs">
-                    <span className="text-[11px] text-gray-500 font-semibold flex items-center gap-1">
-                      <Users className="w-3 h-3 text-gray-400" />
+                  {/* Right: Tim, Status, Link */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] text-gray-500 font-semibold hidden md:inline-flex items-center gap-1">
+                      <Users className="w-2.5 h-2.5 text-gray-400" />
                       {item.tim ? item.tim.split(" - ")[0] : "Belum Ditugaskan"}
                     </span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${sc}`}>
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border ${sc}`}>
                       {item.status}
                     </span>
                     <Link
                       to={`/pekerjaan?search=${encodeURIComponent(item.pelanggan)}`}
-                      className="p-1 rounded-lg text-gray-400 hover:text-[#0D1B4A] hover:bg-gray-100 transition-all"
-                      title="Lihat Detail Pekerjaan"
+                      className="p-1 text-gray-400 hover:text-[#0D1B4A] hover:bg-gray-100 rounded transition-colors"
+                      title="Detail Pekerjaan"
                     >
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-3 h-3" />
                     </Link>
                   </div>
                 </div>
@@ -1260,7 +1249,7 @@ export default function Dashboard() {
             })}
           </div>
         ) : (
-          <div className="py-6 text-center text-gray-400 text-xs">
+          <div className="py-3 text-center text-gray-400 text-xs">
             <p>Tidak ada antrian pekerjaan pada kategori ini.</p>
           </div>
         )}
