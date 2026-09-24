@@ -711,71 +711,74 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Specific Dedicated Card: Detail Pekerjaan */}
-      <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm transition-all ${showDetailPekerjaan ? "p-6 space-y-5" : "p-5"}`}>
-        {/* Header of Detail Pekerjaan */}
-        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${showDetailPekerjaan ? "border-b border-gray-100 pb-4" : ""}`}>
-          <div
-            onClick={() => setShowDetailPekerjaan(!showDetailPekerjaan)}
-            className="flex items-center gap-3 cursor-pointer group select-none flex-1 min-w-0"
-            title={showDetailPekerjaan ? "Klik untuk menyembunyikan detail" : "Klik untuk menampilkan detail"}
-          >
-            <div className="w-10 h-10 rounded-xl bg-[#0D1B4A] flex items-center justify-center text-white shadow-sm shrink-0 group-hover:bg-[#152a6b] transition-colors">
-              <Wrench className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base font-extrabold text-gray-900 tracking-tight group-hover:text-blue-900 transition-colors">
-                  Detail Pekerjaan & Status Operasional
-                </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 ring-1 ring-blue-200">
-                  {totalPekerjaan} Total Pekerjaan
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">
-                  {filterLabel}
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Rincian progres, volume, dan status per kategori layanan untuk periode terpilih
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-            <button
-              type="button"
+      {/* 2 Dedicated Cards Side-by-Side: Detail Pekerjaan & Jadwal Terdekat */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        {/* Card 1: Detail Pekerjaan */}
+        <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm transition-all ${showDetailPekerjaan ? "p-5 sm:p-6 space-y-4" : "p-4 sm:p-5"}`}>
+          {/* Header of Detail Pekerjaan */}
+          <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${showDetailPekerjaan ? "border-b border-gray-100 pb-3 sm:pb-4" : ""}`}>
+            <div
               onClick={() => setShowDetailPekerjaan(!showDetailPekerjaan)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200/90 active:bg-gray-200 rounded-xl border border-gray-200/70 transition-all shadow-2xs cursor-pointer"
-              title={showDetailPekerjaan ? "Sembunyikan card ini" : "Tampilkan isi card ini"}
+              className="flex items-center gap-3 cursor-pointer group select-none flex-1 min-w-0"
+              title={showDetailPekerjaan ? "Klik untuk menyembunyikan detail" : "Klik untuk menampilkan detail"}
             >
-              {showDetailPekerjaan ? (
-                <>
-                  <ChevronUp className="w-3.5 h-3.5 text-gray-600" />
-                  <span>Sembunyikan</span>
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="w-3.5 h-3.5 text-gray-600" />
-                  <span>Tampilkan</span>
-                </>
-              )}
-            </button>
+              <div className="w-10 h-10 rounded-xl bg-[#0D1B4A] flex items-center justify-center text-white shadow-sm shrink-0 group-hover:bg-[#152a6b] transition-colors">
+                <Wrench className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-sm sm:text-base font-extrabold text-gray-900 tracking-tight group-hover:text-blue-900 transition-colors">
+                    Detail Pekerjaan & Status
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-blue-50 text-blue-700 ring-1 ring-blue-200">
+                    {totalPekerjaan} Total
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">
+                    {filterLabel}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5 truncate">
+                  Rincian progres, volume, dan status per kategori layanan
+                </p>
+              </div>
+            </div>
 
-            <Link
-              to="/pekerjaan"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all group shadow-2xs"
-            >
-              <span>Buka Manajemen Pekerjaan</span>
-              <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-            </Link>
+            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowDetailPekerjaan(!showDetailPekerjaan)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200/90 active:bg-gray-200 rounded-xl border border-gray-200/70 transition-all shadow-2xs cursor-pointer"
+                title={showDetailPekerjaan ? "Sembunyikan card ini" : "Tampilkan isi card ini"}
+              >
+                {showDetailPekerjaan ? (
+                  <>
+                    <ChevronUp className="w-3.5 h-3.5 text-gray-600" />
+                    <span>Sembunyikan</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-600" />
+                    <span>Tampilkan</span>
+                  </>
+                )}
+              </button>
+
+              <Link
+                to="/pekerjaan"
+                className="inline-flex items-center gap-1 px-3 py-1.5 sm:py-2 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all group shadow-2xs"
+                title="Buka Manajemen Pekerjaan"
+              >
+                <span className="hidden sm:inline">Buka</span>
+                <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            </div>
           </div>
-        </div>
 
-        {/* Collapsible Content */}
-        {showDetailPekerjaan && (
-          <>
-            {/* 4 Category Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Collapsible Content */}
+          {showDetailPekerjaan && (
+            <>
+              {/* 4 Category Cards Grid (2x2) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Card 1: Pemasangan Baru */}
           <div className="bg-white rounded-2xl p-4 border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all flex flex-col justify-between group">
             <div>
@@ -1075,19 +1078,19 @@ export default function Dashboard() {
         </div>
 
         {/* Global Distribution Status Progress Bar */}
-        <div className="p-4 bg-gray-50/70 rounded-xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex-1">
+        <div className="p-3.5 bg-gray-50/70 rounded-xl border border-gray-100 flex flex-col gap-3">
+          <div>
             <div className="flex items-center justify-between text-xs font-bold text-gray-700 mb-2">
-              <span className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[#0D1B4A]" />
-                Komposisi Status Pekerjaan
+              <span className="flex items-center gap-1.5">
+                <Activity className="w-3.5 h-3.5 text-[#0D1B4A]" />
+                Komposisi Status
               </span>
-              <span className="text-gray-500 font-semibold">
-                {selesai} Selesai · {waiting} Waiting · {dijadwalkan} Dijadwalkan · {gagal} Gagal
+              <span className="text-[11px] text-gray-500 font-semibold">
+                {selesai} Selesai · {waiting} Waiting · {dijadwalkan} Jdwl · {gagal} Gagal
               </span>
             </div>
             {/* Segmented bar */}
-            <div className="w-full h-3 bg-gray-200/80 rounded-full overflow-hidden flex shadow-inner">
+            <div className="w-full h-2.5 bg-gray-200/80 rounded-full overflow-hidden flex shadow-inner">
               <div
                 className="bg-emerald-500 transition-all duration-500"
                 style={{ width: `${statusSummaryPercentages.selesai}%` }}
@@ -1111,21 +1114,21 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4 text-xs font-semibold shrink-0 flex-wrap">
+          <div className="flex items-center gap-2.5 text-[11px] font-semibold shrink-0 flex-wrap">
             <span className="flex items-center gap-1.5 text-gray-600">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
               Selesai ({statusSummaryPercentages.selesai}%)
             </span>
             <span className="flex items-center gap-1.5 text-gray-600">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
               Waiting ({statusSummaryPercentages.waiting}%)
             </span>
             <span className="flex items-center gap-1.5 text-gray-600">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
               Jadwal ({statusSummaryPercentages.dijadwalkan}%)
             </span>
             <span className="flex items-center gap-1.5 text-gray-600">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+              <span className="w-2 h-2 rounded-full bg-red-500" />
               Gagal ({statusSummaryPercentages.gagal}%)
             </span>
           </div>
@@ -1134,33 +1137,40 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Specific Dedicated Card: Pekerjaan Hari Ini & Terdekat (Ultra-Compact) */}
-      <div className="bg-white rounded-xl px-4 py-3 border border-gray-100 shadow-xs space-y-2.5">
-        {/* Minimalist Slim Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-2">
-          <div className="flex items-center gap-2">
-            <CalendarClock className="w-4 h-4 text-[#0D1B4A]" />
-            <h2 className="text-xs font-bold text-gray-900 tracking-tight uppercase flex items-center gap-1.5">
-              Jadwal & Penugasan Terdekat
-              {scheduleData.todayJobs.length > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              )}
-            </h2>
-            {scheduleData.todayJobs.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
-                {scheduleData.todayJobs.length} Hari Ini
-              </span>
-            )}
+      {/* Card 2: Jadwal & Penugasan Terdekat */}
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm space-y-3">
+        {/* Header of Jadwal Terdekat */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-gray-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-[#0D1B4A] flex items-center justify-center text-white shadow-sm shrink-0">
+              <CalendarClock className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2 className="text-sm sm:text-base font-extrabold text-gray-900 tracking-tight">
+                  Jadwal Terdekat
+                </h2>
+                {scheduleData.todayJobs.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {scheduleData.todayJobs.length} Hari Ini
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5 truncate">
+                Antrian tugas terdekat teknisi lapangan
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 self-start sm:self-auto shrink-0 flex-wrap">
             {/* Minimalist Tab Pills */}
             <div className="flex items-center gap-0.5 bg-gray-50 p-0.5 rounded-lg border border-gray-200/60 text-[11px] font-semibold">
               {[
                 { id: "ALL", label: `Semua (${scheduleData.displayList.length})` },
                 { id: "TODAY", label: `Hari Ini (${scheduleData.todayJobs.length})` },
                 { id: "UPCOMING", label: `Mendatang (${scheduleData.upcomingJobs.length})` },
-                { id: "WAITING", label: `Waiting (${scheduleData.waitingJobs.length})` },
+                { id: "WAITING", label: `Wait (${scheduleData.waitingJobs.length})` },
               ].map((t) => (
                 <button
                   key={t.id}
@@ -1178,17 +1188,18 @@ export default function Dashboard() {
 
             <Link
               to="/pekerjaan"
-              className="text-[11px] font-bold text-[#0D1B4A] hover:text-blue-700 flex items-center gap-0.5 transition-colors pl-1"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all group shadow-2xs"
+              title="Buka Manajemen Pekerjaan"
             >
               <span>Semua</span>
-              <ChevronRight className="w-3 h-3" />
+              <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
         </div>
 
-        {/* Ultra-Compact Single-Line Rows */}
+        {/* Compact Single-Line Rows with clean scroll container */}
         {filteredScheduleList.length > 0 ? (
-          <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden">
+          <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden max-h-[420px] overflow-y-auto">
             {filteredScheduleList.map((item) => {
               const jc =
                 item.jenis === "PEMASANGAN"
@@ -1285,11 +1296,12 @@ export default function Dashboard() {
             })}
           </div>
         ) : (
-          <div className="py-3 text-center text-gray-400 text-xs">
+          <div className="py-8 text-center text-gray-400 text-xs">
             <p>Tidak ada antrian pekerjaan pada kategori ini.</p>
           </div>
         )}
       </div>
+    </div>
 
       {/* Row 1: Weekly Trend & Leads Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
