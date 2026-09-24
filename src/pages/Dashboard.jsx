@@ -262,6 +262,10 @@ export default function Dashboard() {
     () => filteredGangguan.filter((g) => !(g.hasilFU || "").trim()).length,
     [filteredGangguan]
   );
+  const gangguanBelumSelesai = useMemo(
+    () => filteredGangguan.filter((g) => (g.hasilFU || "").trim().toLowerCase() !== "aman").length,
+    [filteredGangguan]
+  );
 
   // ODP / ODC Infrastructure Stats
   const totalOdp = odpData.length;
@@ -637,10 +641,10 @@ export default function Dashboard() {
         />
         <StatCard
           icon={AlertTriangle}
-          label="Gangguan Aktif"
+          label="Total Gangguan"
           value={totalGangguan}
-          subtext={`${gangguanBermasalah} bermasalah · ${gangguanBelumFU} belum FU`}
-          changeType={gangguanBermasalah > 0 ? "down" : "neutral"}
+          subtext={`${gangguanBelumSelesai} belum selesai · ${gangguanAman} aman`}
+          changeType={gangguanBelumSelesai > 0 ? "down" : "up"}
           bgGradient="bg-gradient-to-br from-red-500 to-rose-600"
           href="/gangguan"
         />
