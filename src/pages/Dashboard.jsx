@@ -459,27 +459,6 @@ export default function Dashboard() {
             <RefreshCw className="w-3.5 h-3.5 text-gray-500" />
             <span>Segarkan</span>
           </button>
-          <Link
-            to="/pekerjaan"
-            className="flex items-center gap-1 px-3.5 py-2 text-xs font-semibold bg-[#0D1B4A] text-white rounded-xl hover:bg-[#1a237e] transition-colors shadow-sm"
-          >
-            <Wrench className="w-3.5 h-3.5" />
-            <span>+ Pekerjaan</span>
-          </Link>
-          <Link
-            to="/pekerjaan?search=ODP"
-            className="flex items-center gap-1 px-3.5 py-2 text-xs font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-md transition-all shadow-sm"
-          >
-            <Network className="w-3.5 h-3.5" />
-            <span>+ Perbaikan ODP</span>
-          </Link>
-          <Link
-            to="/gangguan"
-            className="flex items-center gap-1 px-3.5 py-2 text-xs font-semibold bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl hover:shadow-md transition-all shadow-sm"
-          >
-            <AlertTriangle className="w-3.5 h-3.5" />
-            <span>+ Gangguan</span>
-          </Link>
         </div>
       </div>
 
