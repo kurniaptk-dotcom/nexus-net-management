@@ -374,14 +374,14 @@ export default function Pekerjaan() {
           </div>
           <button
             onClick={() => handleAdd("PERBAIKAN KHUSUS (ODP/ODC)")}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all"
+            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all"
           >
             <Wrench className="w-4 h-4" />
             + Perbaikan ODP/ODC
           </button>
           <button
             onClick={() => handleAdd("PEMASANGAN")}
-            className="flex items-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all"
+            className="flex items-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all"
           >
             <Plus className="w-4 h-4" />
             Tambah

@@ -149,7 +149,7 @@ export default function Tim() {
         </div>
         <button
           onClick={handleAdd}
-          className="flex items-center gap-2 bg-[#0D1B4A] hover:bg-[#1a237e] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-900/25 transition-all"
+          className="flex items-center gap-2 bg-[#0D1B4A] hover:bg-[#1a237e] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all"
         >
           <Plus className="w-4 h-4" />
           Tambah Tim
@@ -198,7 +198,7 @@ export default function Tim() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 text-sm font-semibold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl hover:shadow-lg hover:shadow-orange-500/25 transition-all"
+                  className="px-4 py-2.5 text-sm font-semibold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl hover:shadow-md transition-all"
                 >
                   Simpan
                 </button>

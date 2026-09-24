@@ -325,14 +325,14 @@ export default function ODP() {
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={handleOpenAddOdc}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0D1B4A] hover:bg-[#1a237e] text-white font-bold rounded-xl text-sm shadow-md hover:shadow-indigo-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0D1B4A] hover:bg-[#1a237e] text-white font-bold rounded-xl text-sm shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             <Layers className="w-4 h-4 text-purple-300" />
             <span>+ Tambah ODC</span>
           </button>
           <button
             onClick={() => handleOpenAddOdp()}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#F59E0B] hover:bg-amber-600 text-slate-900 font-bold rounded-xl text-sm shadow-md hover:shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#F59E0B] hover:bg-amber-600 text-slate-900 font-bold rounded-xl text-sm shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             <Plus className="w-4 h-4 text-slate-900" />
             <span>+ Tambah ODP</span>

@@ -95,7 +95,7 @@ export default function Leads() {
           <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Leads</h1>
           <p className="text-gray-500 text-sm mt-0.5">Tracking leads pemasangan WiFi</p>
         </div>
-        <button onClick={handleAdd} className="flex items-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all">
+        <button onClick={handleAdd} className="flex items-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all">
           <Plus className="w-4 h-4" /> Tambah Lead
         </button>
       </div>
@@ -208,7 +208,7 @@ export default function Leads() {
               </div>
               <div className="flex gap-3 justify-end pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl">Batal</button>
-                <button type="submit" className="px-4 py-2.5 text-sm font-semibold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl hover:shadow-lg hover:shadow-orange-500/25 transition-all">Simpan</button>
+                <button type="submit" className="px-4 py-2.5 text-sm font-semibold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl hover:shadow-md transition-all">Simpan</button>
               </div>
             </form>
           </div>

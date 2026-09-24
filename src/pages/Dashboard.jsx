@@ -41,8 +41,8 @@ import {
   PieChart,
   Pie,
   Cell,
-  AreaChart,
-  Area,
+  LineChart,
+  Line,
 } from "recharts";
 import {
   initialTimData,
@@ -77,7 +77,7 @@ function parseRecordDate(dStr) {
   return isNaN(d.getTime()) ? null : d;
 }
 
-function StatCard({ icon: Icon, label, value, subtext, changeType = "up", bgGradient, href }) {
+function StatCard({ icon: Icon, label, value, subtext, changeType = "up", bgColor, href }) {
   const content = (
     <div className="bg-white rounded-2xl p-5 border border-gray-100 hover:shadow-lg hover:shadow-gray-200/50 hover:border-gray-200 transition-all duration-300 group cursor-pointer relative overflow-hidden">
       <div className="flex items-start justify-between">
@@ -104,7 +104,7 @@ function StatCard({ icon: Icon, label, value, subtext, changeType = "up", bgGrad
           )}
         </div>
         <div
-          className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${bgGradient} group-hover:scale-110 shadow-sm transition-transform duration-300`}
+          className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${bgColor} group-hover:scale-110 shadow-sm transition-transform duration-300`}
         >
           <Icon className="w-6 h-6 text-white" />
         </div>
@@ -664,7 +664,7 @@ export default function Dashboard() {
           value={totalPekerjaan}
           subtext={`${selesai} selesai · ${waiting} waiting`}
           changeType="up"
-          bgGradient="bg-[#0D1B4A]"
+          bgColor="bg-[#0D1B4A]"
           href="/pekerjaan"
         />
         <StatCard
@@ -673,7 +673,7 @@ export default function Dashboard() {
           value={totalLeads}
           subtext={`${leadsKonversi} konversi (${leadsConversionRate}%)`}
           changeType="up"
-          bgGradient="bg-[#F59E0B]"
+          bgColor="bg-[#F59E0B]"
           href="/leads"
         />
         <StatCard
@@ -682,7 +682,7 @@ export default function Dashboard() {
           value={`${completionRate}%`}
           subtext={`${selesai} dari ${totalPekerjaan} tuntas`}
           changeType="up"
-          bgGradient="bg-emerald-600"
+          bgColor="bg-emerald-600"
           href="/pekerjaan"
         />
         <StatCard
@@ -691,7 +691,7 @@ export default function Dashboard() {
           value={totalGangguan}
           subtext={`${gangguanBelumSelesai} belum selesai · ${gangguanAman} aman`}
           changeType={gangguanBelumSelesai > 0 ? "down" : "up"}
-          bgGradient="bg-red-600"
+          bgColor="bg-red-600"
           href="/gangguan"
         />
         <StatCard
@@ -700,7 +700,7 @@ export default function Dashboard() {
           value={`${totalOdp} ODP`}
           subtext={`${totalOdc} ODC · ${odpLinkedCount} di pekerjaan`}
           changeType="up"
-          bgGradient="bg-indigo-600"
+          bgColor="bg-indigo-600"
           href="/odp"
         />
       </div>
@@ -710,7 +710,7 @@ export default function Dashboard() {
         {/* Header of Detail Pekerjaan */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0D1B4A] flex items-center justify-center text-white shadow-md shadow-blue-950/20">
+            <div className="w-10 h-10 rounded-xl bg-[#0D1B4A] flex items-center justify-center text-white shadow-sm">
               <Wrench className="w-5 h-5" />
             </div>
             <div>
@@ -1281,24 +1281,14 @@ export default function Dashboard() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={trendChartData}>
-              <defs>
-                <linearGradient id="gradPekerjaan" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0D1B4A" stopOpacity={0.18} />
-                  <stop offset="100%" stopColor="#0D1B4A" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gradLeads" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.18} />
-                  <stop offset="100%" stopColor="#F59E0B" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+            <LineChart data={trendChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="pekerjaan" stroke="#0D1B4A" strokeWidth={2.5} fill="url(#gradPekerjaan)" name="Pekerjaan" />
-              <Area type="monotone" dataKey="leads" stroke="#F59E0B" strokeWidth={2.5} fill="url(#gradLeads)" name="Leads" />
-            </AreaChart>
+              <Line type="monotone" dataKey="pekerjaan" stroke="#0D1B4A" strokeWidth={2.5} dot={{ r: 3, fill: "#0D1B4A" }} activeDot={{ r: 5 }} name="Pekerjaan" />
+              <Line type="monotone" dataKey="leads" stroke="#F59E0B" strokeWidth={2.5} dot={{ r: 3, fill: "#F59E0B" }} activeDot={{ r: 5 }} name="Leads" />
+            </LineChart>
           </ResponsiveContainer>
         </div>
 

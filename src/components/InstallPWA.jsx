@@ -104,7 +104,7 @@ export default function InstallPWA() {
               <div className="flex items-center gap-2 mt-3">
                 <button
                   onClick={handleInstall}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl text-xs font-semibold hover:shadow-lg hover:shadow-blue-950/20 active:scale-95 transition-all"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl text-xs font-semibold hover:shadow-md active:scale-95 transition-all"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Install Sekarang

@@ -108,7 +108,7 @@ export default function Layout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   isActive
-                    ? "bg-[#F59E0B] text-[#0D1B4A] font-bold shadow-lg shadow-orange-500/20"
+                    ? "bg-[#F59E0B] text-[#0D1B4A] font-bold shadow-sm"
                     : "text-white/70 hover:bg-white/10 hover:text-white"
                 } ${collapsed ? "justify-center px-2" : ""}`
               }

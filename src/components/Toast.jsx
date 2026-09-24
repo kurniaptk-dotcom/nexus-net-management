@@ -4,9 +4,9 @@ export default function Toast({ message, type = "info", onClose }) {
   if (!message) return null;
 
   const bgStyles = {
-    success: "bg-emerald-500 text-white shadow-emerald-500/20",
-    error: "bg-rose-600 text-white shadow-rose-500/20",
-    info: "bg-[#0D1B4A] text-white shadow-blue-900/20",
+    success: "bg-emerald-500 text-white shadow-md",
+    error: "bg-rose-600 text-white shadow-md",
+    info: "bg-[#0D1B4A] text-white shadow-md",
   };
 
   const icons = {

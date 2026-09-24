@@ -270,7 +270,7 @@ export default function Gangguan() {
           </button>
           <button
             onClick={handleOpenAdd}
-            className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-red-500/25 active:scale-95 transition-all shadow-md"
+            className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold hover:shadow-md active:scale-95 transition-all shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Gangguan</span>
@@ -284,7 +284,7 @@ export default function Gangguan() {
           onClick={() => setFilterHasil("ALL")}
           className={`p-4 rounded-2xl border text-left transition-all ${
             filterHasil === "ALL"
-              ? "bg-[#0D1B4A] text-white border-[#0D1B4A] shadow-md shadow-blue-950/20"
+              ? "bg-[#0D1B4A] text-white border-[#0D1B4A] shadow-md"
               : "bg-white text-gray-800 border-gray-100 hover:border-gray-200 shadow-sm"
           }`}
         >
@@ -301,7 +301,7 @@ export default function Gangguan() {
           onClick={() => setFilterHasil("AMAN")}
           className={`p-4 rounded-2xl border text-left transition-all ${
             filterHasil === "AMAN"
-              ? "bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20"
+              ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
               : "bg-white text-gray-800 border-emerald-100 hover:border-emerald-200 shadow-sm"
           }`}
         >
@@ -323,7 +323,7 @@ export default function Gangguan() {
           onClick={() => setFilterHasil("BERMASALAH")}
           className={`p-4 rounded-2xl border text-left transition-all ${
             filterHasil === "BERMASALAH"
-              ? "bg-red-600 text-white border-red-600 shadow-md shadow-red-600/20"
+              ? "bg-red-600 text-white border-red-600 shadow-md"
               : "bg-white text-gray-800 border-red-100 hover:border-red-200 shadow-sm"
           }`}
         >
@@ -345,7 +345,7 @@ export default function Gangguan() {
           onClick={() => setFilterHasil("NGELAG")}
           className={`p-4 rounded-2xl border text-left transition-all ${
             filterHasil === "NGELAG"
-              ? "bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20"
+              ? "bg-amber-500 text-white border-amber-500 shadow-md"
               : "bg-white text-gray-800 border-amber-100 hover:border-amber-200 shadow-sm"
           }`}
         >
@@ -717,7 +717,7 @@ export default function Gangguan() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold hover:shadow-lg hover:shadow-red-500/25 active:scale-95 transition-all shadow-md"
+                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold hover:shadow-md active:scale-95 transition-all shadow-sm"
                 >
                   {editingItem ? "Simpan Perubahan" : "Tambahkan Gangguan"}
                 </button>
@@ -747,7 +747,7 @@ export default function Gangguan() {
               </button>
               <button
                 onClick={handleDelete}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 shadow-md shadow-red-600/20 active:scale-95 transition-all"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 shadow-md active:scale-95 transition-all"
               >
                 Hapus
               </button>

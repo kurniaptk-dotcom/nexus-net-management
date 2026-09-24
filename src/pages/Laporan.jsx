@@ -248,19 +248,19 @@ export default function Laporan() {
         <h3 className="text-sm font-bold text-gray-800 mb-4">Export Data</h3>
         <div className="flex flex-wrap gap-3">
           <button onClick={() => exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odpData, "laporan-september-2026.xlsx")}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-900/25 transition-all">
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl text-sm font-semibold hover:shadow-md transition-all">
             <FileSpreadsheet className="w-4 h-4" /> Export Excel (Semua Sheet)
           </button>
           <button onClick={() => exportToCSV(summaryExport, "summary-september-2026.csv")}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/25 transition-all">
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold hover:shadow-md transition-all">
             <Download className="w-4 h-4" /> Summary CSV
           </button>
           <button onClick={() => exportToCSV(timExport, "tim-september-2026.csv")}
-            className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-amber-500/25 transition-all">
+            className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold hover:shadow-md transition-all">
             <Download className="w-4 h-4" /> Data Tim CSV
           </button>
           <button onClick={() => exportToJSON({ summary: summaryExport, tim: timExport, gangguan: gangguanExport }, "laporan-september-2026.json")}
-            className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-red-500/25 transition-all">
+            className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold hover:shadow-md transition-all">
             <Download className="w-4 h-4" /> Full JSON
           </button>
         </div>

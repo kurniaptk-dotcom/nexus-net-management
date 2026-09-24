@@ -249,7 +249,7 @@ export default function ManajemenUser() {
             setShowAddModal(true);
             setAddError("");
           }}
-          className="flex items-center justify-center gap-2 bg-[#0D1B4A] hover:bg-[#1a237e] text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md shadow-blue-950/20 hover:shadow-lg transition-all"
+          className="flex items-center justify-center gap-2 bg-[#0D1B4A] hover:bg-[#1a237e] text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all"
         >
           <Plus className="w-4 h-4" />
           <span>Tambah Akun Baru</span>
@@ -569,7 +569,7 @@ export default function ManajemenUser() {
                 <button
                   type="submit"
                   disabled={savingAdd}
-                  className="px-5 py-2.5 text-xs font-semibold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl shadow-md transition-all disabled:opacity-50"
+                  className="px-5 py-2.5 text-xs font-semibold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
                 >
                   {savingAdd ? "Menyimpan..." : "Simpan Akun"}
                 </button>
@@ -684,7 +684,7 @@ export default function ManajemenUser() {
                 type="button"
                 disabled={deletingLoading}
                 onClick={confirmDeleteUser}
-                className="flex-1 py-2.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md shadow-rose-600/20 transition-all disabled:opacity-50"
+                className="flex-1 py-2.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
               >
                 {deletingLoading ? "Menghapus..." : "Hapus Akun"}
               </button>
