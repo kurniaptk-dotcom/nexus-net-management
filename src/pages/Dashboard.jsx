@@ -25,6 +25,10 @@ import {
   TrendingUp,
   Wifi,
   Activity,
+  MapPin,
+  CalendarClock,
+  CalendarCheck,
+  Sparkles,
 } from "lucide-react";
 import {
   BarChart,
@@ -147,6 +151,7 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState("2026-09-24");
   const [customStartDate, setCustomStartDate] = useState("2026-09-01");
   const [customEndDate, setCustomEndDate] = useState("2026-09-24");
+  const [scheduleTab, setScheduleTab] = useState("ALL");
 
   const isDateInRange = (dateStr) => {
     if (timeFilter === "ALL") return true;
@@ -405,6 +410,80 @@ export default function Dashboard() {
       .filter((g) => (g.hasilFU || "").trim().toLowerCase() === "bermasalah" || !(g.hasilFU || "").trim())
       .slice(0, 5);
   }, [filteredGangguan]);
+
+  // Pekerjaan Hari Ini & Jadwal Terdekat
+  const todayRefStr = selectedDate || "2026-09-24";
+  const refToday = useMemo(() => parseRecordDate(todayRefStr) || new Date(), [todayRefStr]);
+
+  const scheduleData = useMemo(() => {
+    const todayTime = new Date(refToday.getFullYear(), refToday.getMonth(), refToday.getDate()).getTime();
+
+    const mapped = (pekerjaanData || []).map((p) => {
+      const d = parseRecordDate(p.tanggal);
+      const itemTime = d ? new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() : null;
+      const isToday = itemTime !== null && itemTime === todayTime;
+      const isUpcoming = itemTime !== null && itemTime > todayTime;
+      const isPast = itemTime !== null && itemTime < todayTime;
+      const isWaiting = p.status === "WAITING LIST";
+      const isScheduled = p.status === "DIJADWALKAN";
+
+      let diffDays = null;
+      if (itemTime !== null) {
+        diffDays = Math.round((itemTime - todayTime) / (1000 * 60 * 60 * 24));
+      }
+
+      return {
+        ...p,
+        parsedDate: d,
+        itemTime,
+        diffDays,
+        isToday,
+        isUpcoming,
+        isPast,
+        isWaiting,
+        isScheduled,
+      };
+    });
+
+    const todayJobs = mapped.filter((p) => p.isToday);
+    const upcomingJobs = mapped
+      .filter((p) => p.isUpcoming && p.status !== "GAGAL")
+      .sort((a, b) => (a.itemTime || 0) - (b.itemTime || 0));
+    const waitingJobs = mapped.filter((p) => p.isWaiting);
+
+    const prioritized = [
+      ...todayJobs.filter((p) => p.status !== "SELESAI"),
+      ...upcomingJobs.filter((p) => p.status !== "SELESAI"),
+      ...todayJobs.filter((p) => p.status === "SELESAI"),
+      ...waitingJobs.filter((p) => !todayJobs.some((t) => t.id === p.id) && !upcomingJobs.some((u) => u.id === p.id)),
+      ...upcomingJobs.filter((p) => p.status === "SELESAI"),
+      ...mapped.filter((p) => p.isPast && p.status !== "SELESAI").sort((a, b) => (b.itemTime || 0) - (a.itemTime || 0)),
+    ];
+
+    const seen = new Set();
+    const uniqueList = prioritized.filter((item) => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+
+    const activeTeams = new Set(uniqueList.map((p) => p.tim).filter(Boolean)).size;
+
+    return {
+      todayJobs,
+      upcomingJobs,
+      waitingJobs,
+      displayList: uniqueList,
+      activeTeamsCount: activeTeams,
+    };
+  }, [pekerjaanData, refToday]);
+
+  const filteredScheduleList = useMemo(() => {
+    if (scheduleTab === "TODAY") return scheduleData.todayJobs;
+    if (scheduleTab === "UPCOMING") return scheduleData.upcomingJobs;
+    if (scheduleTab === "WAITING") return scheduleData.waitingJobs;
+    return scheduleData.displayList.slice(0, 6);
+  }, [scheduleData, scheduleTab]);
 
   const filterLabel = useMemo(() => {
     switch (timeFilter) {
@@ -1017,6 +1096,262 @@ export default function Dashboard() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Specific Dedicated Card: Pekerjaan Hari Ini atau Pekerjaan Terdekat */}
+      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-5">
+        {/* Header with Title, Live Badge & Tabs */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0D1B4A] to-indigo-800 flex items-center justify-center text-white shadow-md shadow-blue-950/20">
+              <CalendarClock className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base font-extrabold text-gray-900 tracking-tight">
+                  Pekerjaan Hari Ini & Jadwal Terdekat
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  {scheduleData.todayJobs.length} Tugas Hari Ini
+                </span>
+                {scheduleData.upcomingJobs.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                    {scheduleData.upcomingJobs.length} Mendatang
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Agenda penugasan operasional teknisi hari ini dan antrian pekerjaan terdekat yang siap dieksekusi
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl border border-gray-200/70 text-xs font-semibold">
+              <button
+                onClick={() => setScheduleTab("ALL")}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  scheduleTab === "ALL"
+                    ? "bg-[#0D1B4A] text-white shadow-xs font-bold"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                }`}
+              >
+                Semua Terdekat ({scheduleData.displayList.length})
+              </button>
+              <button
+                onClick={() => setScheduleTab("TODAY")}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  scheduleTab === "TODAY"
+                    ? "bg-[#0D1B4A] text-white shadow-xs font-bold"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                }`}
+              >
+                Hari Ini ({scheduleData.todayJobs.length})
+              </button>
+              <button
+                onClick={() => setScheduleTab("UPCOMING")}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  scheduleTab === "UPCOMING"
+                    ? "bg-[#0D1B4A] text-white shadow-xs font-bold"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                }`}
+              >
+                Mendatang ({scheduleData.upcomingJobs.length})
+              </button>
+              <button
+                onClick={() => setScheduleTab("WAITING")}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  scheduleTab === "WAITING"
+                    ? "bg-[#0D1B4A] text-white shadow-xs font-bold"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                }`}
+              >
+                Waiting List ({scheduleData.waitingJobs.length})
+              </button>
+            </div>
+
+            <Link
+              to="/pekerjaan"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all group"
+            >
+              <span>Semua Jadwal</span>
+              <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Quick Operational KPI Pills */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Tugas Hari Ini</p>
+              <p className="text-xl font-extrabold text-emerald-950 mt-0.5">{scheduleData.todayJobs.length} Pekerjaan</p>
+            </div>
+            <div className="w-8 h-8 rounded-lg bg-emerald-200/60 text-emerald-800 flex items-center justify-center">
+              <CalendarCheck className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-blue-700">Jadwal Mendatang</p>
+              <p className="text-xl font-extrabold text-blue-950 mt-0.5">{scheduleData.upcomingJobs.length} Pekerjaan</p>
+            </div>
+            <div className="w-8 h-8 rounded-lg bg-blue-200/60 text-blue-800 flex items-center justify-center">
+              <Clock className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-100 flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700">Antrian Waiting</p>
+              <p className="text-xl font-extrabold text-amber-950 mt-0.5">{scheduleData.waitingJobs.length} Antrian</p>
+            </div>
+            <div className="w-8 h-8 rounded-lg bg-amber-200/60 text-amber-800 flex items-center justify-center">
+              <Clock className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="p-3 bg-purple-50/60 rounded-xl border border-purple-100 flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-purple-700">Tim Bertugas</p>
+              <p className="text-xl font-extrabold text-purple-950 mt-0.5">{scheduleData.activeTeamsCount} Tim Lapangan</p>
+            </div>
+            <div className="w-8 h-8 rounded-lg bg-purple-200/60 text-purple-800 flex items-center justify-center">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+        </div>
+
+        {/* Schedule Cards Grid */}
+        {filteredScheduleList.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {filteredScheduleList.map((item) => {
+              const jc =
+                item.jenis === "PEMASANGAN"
+                  ? { bg: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500" }
+                  : item.jenis === "PERBAIKAN"
+                  ? { bg: "bg-orange-50 text-orange-700 border-orange-200", dot: "bg-orange-500" }
+                  : item.jenis === "PERBAIKAN KHUSUS (ODP/ODC)"
+                  ? { bg: "bg-purple-50 text-purple-700 border-purple-200", dot: "bg-purple-500" }
+                  : { bg: "bg-rose-50 text-rose-700 border-rose-200", dot: "bg-rose-500" };
+
+              const sc =
+                item.status === "SELESAI"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : item.status === "DIJADWALKAN"
+                  ? "bg-blue-50 text-blue-700 border-blue-200"
+                  : item.status === "GAGAL"
+                  ? "bg-red-50 text-red-700 border-red-200"
+                  : "bg-amber-50 text-amber-700 border-amber-200";
+
+              return (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-xl p-4 border border-gray-200/80 hover:border-gray-300 hover:shadow-md transition-all flex flex-col justify-between group relative overflow-hidden"
+                >
+                  <div>
+                    {/* Top Timing & Status Badges */}
+                    <div className="flex items-center justify-between gap-2 mb-2.5">
+                      {item.isToday ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          HARI INI
+                        </span>
+                      ) : item.diffDays === 1 ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                          BESOK
+                        </span>
+                      ) : item.diffDays > 1 ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                          {item.diffDays} Hari Lagi
+                        </span>
+                      ) : item.isWaiting ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          Waiting List
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600">
+                          {item.tanggal}
+                        </span>
+                      )}
+
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ${sc}`}>
+                        {item.status}
+                      </span>
+                    </div>
+
+                    {/* Customer & Category */}
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <h4 className="font-extrabold text-gray-900 text-sm tracking-tight group-hover:text-blue-900 transition-colors">
+                        {item.pelanggan}
+                      </h4>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 border ${jc.bg}`}>
+                        {item.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" ? "ODP/ODC" : item.jenis}
+                      </span>
+                    </div>
+
+                    {/* Address with MapPin */}
+                    <p className="text-xs text-gray-500 flex items-start gap-1.5 mb-2.5 line-clamp-2">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
+                      <span>{item.alamat || "Alamat belum diatur"}</span>
+                    </p>
+
+                    {/* ODP details if available */}
+                    {item.odp && (
+                      <div className="mb-2.5 px-2.5 py-1.5 rounded-lg bg-blue-50/70 border border-blue-100 flex items-center justify-between text-[11px]">
+                        <span className="text-blue-700 font-semibold flex items-center gap-1.5 truncate">
+                          <Network className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          <span className="truncate">{item.odp}</span>
+                        </span>
+                        {item.userTerdampak ? (
+                          <span className="text-[10px] font-extrabold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded shrink-0">
+                            {item.userTerdampak} Terdampak
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {/* Notes / Keterangan */}
+                    {item.keterangan && (
+                      <p className="text-[11px] text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100 mb-2.5 line-clamp-2 italic">
+                        &quot;{item.keterangan}&quot;
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Footer: Team & Action Link */}
+                  <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <span className="text-gray-600 font-semibold flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-gray-400" />
+                      {item.tim || "Belum Ditugaskan"}
+                    </span>
+                    <Link
+                      to={`/pekerjaan?search=${encodeURIComponent(item.pelanggan)}`}
+                      className="font-bold text-[#0D1B4A] hover:text-blue-600 flex items-center gap-1 transition-colors"
+                    >
+                      <span>Detail</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-8 text-center bg-gray-50/60 rounded-xl border border-gray-100">
+            <CalendarCheck className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm font-bold text-gray-700">Tidak ada jadwal pekerjaan pada tab ini</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Semua agenda sudah tuntas atau belum ada penugasan baru.
+            </p>
+            <button
+              onClick={() => setScheduleTab("ALL")}
+              className="mt-3 px-3 py-1.5 bg-[#0D1B4A] text-white rounded-lg text-xs font-bold hover:bg-blue-900 transition-colors"
+            >
+              Tampilkan Semua Terdekat
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Row 1: Weekly Trend & Leads Distribution */}
