@@ -18,6 +18,8 @@ import {
   Users,
   Layers,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Calendar,
   Filter,
   RotateCcw,
@@ -152,6 +154,10 @@ export default function Dashboard() {
   const [customStartDate, setCustomStartDate] = useState("2026-09-01");
   const [customEndDate, setCustomEndDate] = useState("2026-09-24");
   const [scheduleTab, setScheduleTab] = useState("ALL");
+  const [showDetailPekerjaan, setShowDetailPekerjaan] = usePersistState(
+    "xnet_dashboard_show_detail_pekerjaan",
+    true
+  );
 
   const isDateInRange = (dateStr) => {
     if (timeFilter === "ALL") return true;
@@ -706,16 +712,20 @@ export default function Dashboard() {
       </div>
 
       {/* Specific Dedicated Card: Detail Pekerjaan */}
-      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-5">
+      <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm transition-all ${showDetailPekerjaan ? "p-6 space-y-5" : "p-5"}`}>
         {/* Header of Detail Pekerjaan */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0D1B4A] flex items-center justify-center text-white shadow-sm">
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${showDetailPekerjaan ? "border-b border-gray-100 pb-4" : ""}`}>
+          <div
+            onClick={() => setShowDetailPekerjaan(!showDetailPekerjaan)}
+            className="flex items-center gap-3 cursor-pointer group select-none flex-1 min-w-0"
+            title={showDetailPekerjaan ? "Klik untuk menyembunyikan detail" : "Klik untuk menampilkan detail"}
+          >
+            <div className="w-10 h-10 rounded-xl bg-[#0D1B4A] flex items-center justify-center text-white shadow-sm shrink-0 group-hover:bg-[#152a6b] transition-colors">
               <Wrench className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base font-extrabold text-gray-900 tracking-tight">
+                <h2 className="text-base font-extrabold text-gray-900 tracking-tight group-hover:text-blue-900 transition-colors">
                   Detail Pekerjaan & Status Operasional
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 ring-1 ring-blue-200">
@@ -731,16 +741,40 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <Link
-            to="/pekerjaan"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all self-start sm:self-auto group shadow-2xs"
-          >
-            <span>Buka Manajemen Pekerjaan</span>
-            <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-          </Link>
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowDetailPekerjaan(!showDetailPekerjaan)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200/90 active:bg-gray-200 rounded-xl border border-gray-200/70 transition-all shadow-2xs cursor-pointer"
+              title={showDetailPekerjaan ? "Sembunyikan card ini" : "Tampilkan isi card ini"}
+            >
+              {showDetailPekerjaan ? (
+                <>
+                  <ChevronUp className="w-3.5 h-3.5 text-gray-600" />
+                  <span>Sembunyikan</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-3.5 h-3.5 text-gray-600" />
+                  <span>Tampilkan</span>
+                </>
+              )}
+            </button>
+
+            <Link
+              to="/pekerjaan"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all group shadow-2xs"
+            >
+              <span>Buka Manajemen Pekerjaan</span>
+              <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </div>
         </div>
 
-        {/* 4 Category Cards Grid */}
+        {/* Collapsible Content */}
+        {showDetailPekerjaan && (
+          <>
+            {/* 4 Category Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Pemasangan Baru */}
           <div className="bg-white rounded-2xl p-4 border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all flex flex-col justify-between group">
@@ -1096,6 +1130,8 @@ export default function Dashboard() {
             </span>
           </div>
         </div>
+          </>
+        )}
       </div>
 
       {/* Specific Dedicated Card: Pekerjaan Hari Ini & Terdekat (Ultra-Compact) */}
