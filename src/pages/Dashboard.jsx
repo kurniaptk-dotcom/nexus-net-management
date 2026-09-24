@@ -436,97 +436,80 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Dashboard Operasional</h1>
+      {/* Unified Minimalist Header & Filter Bar (1 Baris) */}
+      <div className="bg-white rounded-2xl px-5 py-3.5 border border-gray-100 shadow-sm transition-all duration-300">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          {/* Left: Title & Status */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-xl font-black text-gray-900 tracking-tight">Dashboard Operasional</h1>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold ring-1 ring-emerald-200">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
               Realtime Sinkron
             </span>
-          </div>
-          <p className="text-gray-500 text-sm mt-1">
-            Pantauan sinkron realtime seluruh fungsi: Pekerjaan, Tim, Leads, Gangguan, dan ODP/ODC.
-          </p>
-        </div>
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            onClick={handleRefresh}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 transition-colors"
-            title="Segarkan Sinkronisasi"
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-gray-500" />
-            <span>Segarkan</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Time Filter Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm transition-all duration-300">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          {/* Left: Filter Info */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100/80 flex items-center justify-center text-[#0D1B4A] shadow-xs">
-              <CalendarDays className="w-5 h-5 text-[#0D1B4A]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Periode Data</span>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
-                  {filterLabel}
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5 font-medium">
-                {filterSummaryText}
-              </p>
-            </div>
+            <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-gray-300" />
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-gray-500">
+              <span className="text-gray-400 font-medium">Periode:</span>
+              <span className="font-bold text-[#0D1B4A] bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100/80">
+                {filterLabel}
+              </span>
+            </span>
           </div>
 
-          {/* Right: Quick Preset Buttons */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {[
-              { id: "ALL", label: "Semua Waktu", icon: Layers },
-              { id: "TODAY", label: "Hari Ini", icon: Clock },
-              { id: "WEEK", label: "7 Hari Terakhir", icon: TrendingUp },
-              { id: "MONTH", label: "Bulan Ini", icon: Calendar },
-              { id: "CUSTOM", label: "Rentang Tanggal", icon: Filter },
-            ].map((p) => {
-              const Icon = p.icon;
-              const isActive = timeFilter === p.id;
-              return (
+          {/* Right: Filter Buttons & Refresh in 1 compact row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 bg-gray-50/90 p-1 rounded-xl border border-gray-200/70">
+              {[
+                { id: "ALL", label: "Semua", icon: Layers },
+                { id: "TODAY", label: "Hari Ini", icon: Clock },
+                { id: "WEEK", label: "7 Hari", icon: TrendingUp },
+                { id: "MONTH", label: "Bulan Ini", icon: Calendar },
+                { id: "CUSTOM", label: "Rentang", icon: Filter },
+              ].map((p) => {
+                const Icon = p.icon;
+                const isActive = timeFilter === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setTimeFilter(p.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
+                      isActive
+                        ? "bg-[#0D1B4A] text-white shadow-xs"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#F59E0B]" : "text-gray-400"}`} />
+                    <span>{p.label}</span>
+                  </button>
+                );
+              })}
+
+              {timeFilter !== "ALL" && (
                 <button
-                  key={p.id}
-                  onClick={() => setTimeFilter(p.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-                    isActive
-                      ? "bg-[#0D1B4A] text-white shadow-md shadow-blue-950/20 scale-[1.02]"
-                      : "bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200/80"
-                  }`}
+                  onClick={() => setTimeFilter("ALL")}
+                  className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                  title="Reset Filter"
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#F59E0B]" : "text-gray-400"}`} />
-                  <span>{p.label}</span>
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset</span>
                 </button>
-              );
-            })}
+              )}
+            </div>
 
-            {timeFilter !== "ALL" && (
-              <button
-                onClick={() => setTimeFilter("ALL")}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors cursor-pointer"
-                title="Reset ke Semua Data"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Reset</span>
-              </button>
-            )}
+            <button
+              onClick={handleRefresh}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 transition-colors cursor-pointer shadow-2xs"
+              title="Segarkan Sinkronisasi"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-gray-500" />
+              <span className="hidden sm:inline">Segarkan</span>
+            </button>
           </div>
         </div>
 
         {/* Expandable Custom Range Controls */}
         {timeFilter === "CUSTOM" && (
-          <div className="mt-3.5 pt-3.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
-            <div className="flex flex-wrap items-center gap-3 text-xs">
+          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 animate-fadeIn text-xs">
+            <div className="flex flex-wrap items-center gap-3">
               <span className="font-bold text-gray-700">Tentukan Rentang:</span>
               <div className="flex items-center gap-2">
                 <span className="text-gray-500 font-medium">Dari:</span>
@@ -547,22 +530,35 @@ export default function Dashboard() {
                 />
               </div>
             </div>
-            <div className="text-xs text-gray-500 font-medium flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>
-                Hasil: <strong className="text-gray-800">{filteredPekerjaan.length}</strong> Pekerjaan •{" "}
-                <strong className="text-gray-800">{filteredLeads.length}</strong> Leads •{" "}
-                <strong className="text-gray-800">{filteredGangguan.length}</strong> Gangguan
-              </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const today = new Date().toISOString().split("T")[0];
+                  setCustomStartDate(today);
+                  setCustomEndDate(today);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-colors"
+              >
+                Hari Ini
+              </button>
+              <button
+                onClick={() => {
+                  setCustomStartDate("2026-09-01");
+                  setCustomEndDate("2026-09-30");
+                }}
+                className="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-colors"
+              >
+                September 2026
+              </button>
             </div>
           </div>
         )}
 
         {/* Expandable Single Day Control */}
         {timeFilter === "TODAY" && (
-          <div className="mt-3.5 pt-3.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
-            <div className="flex items-center gap-3 text-xs">
-              <span className="font-bold text-gray-700">Pilih Tanggal Hari:</span>
+          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 animate-fadeIn text-xs">
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-gray-700">Pilih Tanggal:</span>
               <input
                 type="date"
                 value={selectedDate}
@@ -576,14 +572,6 @@ export default function Dashboard() {
               >
                 Gunakan Hari Ini (24 Sep 2026)
               </button>
-            </div>
-            <div className="text-xs text-gray-500 font-medium flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>
-                Hasil: <strong className="text-gray-800">{filteredPekerjaan.length}</strong> Pekerjaan •{" "}
-                <strong className="text-gray-800">{filteredLeads.length}</strong> Leads •{" "}
-                <strong className="text-gray-800">{filteredGangguan.length}</strong> Gangguan
-              </span>
             </div>
           </div>
         )}
