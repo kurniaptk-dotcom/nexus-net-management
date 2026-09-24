@@ -5,8 +5,10 @@ import {
   Target,
   AlertTriangle,
   CheckCircle,
+  CheckCircle2,
   ArrowUpRight,
   ArrowDownRight,
+  ArrowRight,
   XCircle,
   Network,
   Clock,
@@ -21,6 +23,8 @@ import {
   RotateCcw,
   CalendarDays,
   TrendingUp,
+  Wifi,
+  Activity,
 } from "lucide-react";
 import {
   BarChart,
@@ -201,6 +205,39 @@ export default function Dashboard() {
   const dijadwalkan = useMemo(() => filteredPekerjaan.filter((d) => d.status === "DIJADWALKAN").length, [filteredPekerjaan]);
   const gagal = useMemo(() => filteredPekerjaan.filter((d) => d.status === "GAGAL").length, [filteredPekerjaan]);
   const completionRate = totalPekerjaan > 0 ? ((selesai / totalPekerjaan) * 100).toFixed(0) : "0";
+
+  // Detail Pekerjaan per Kategori Layanan
+  const detailPekerjaan = useMemo(() => {
+    const calcJenis = (jenis) => {
+      const items = filteredPekerjaan.filter((p) => p.jenis === jenis);
+      const sel = items.filter((p) => p.status === "SELESAI").length;
+      const wait = items.filter((p) => p.status === "WAITING LIST").length;
+      const dij = items.filter((p) => p.status === "DIJADWALKAN").length;
+      const gag = items.filter((p) => p.status === "GAGAL").length;
+      const tot = items.length;
+      const rate = tot > 0 ? Math.round((sel / tot) * 100) : 0;
+      const userTerdampak = items.reduce((acc, curr) => acc + (Number(curr.userTerdampak) || 0), 0);
+      return { total: tot, selesai: sel, waiting: wait, dijadwalkan: dij, gagal: gag, rate, userTerdampak };
+    };
+
+    return {
+      pemasangan: calcJenis("PEMASANGAN"),
+      perbaikan: calcJenis("PERBAIKAN"),
+      perbaikanKhusus: calcJenis("PERBAIKAN KHUSUS (ODP/ODC)"),
+      pemutusan: calcJenis("PEMUTUSAN"),
+    };
+  }, [filteredPekerjaan]);
+
+  const statusSummaryPercentages = useMemo(() => {
+    const tot = filteredPekerjaan.length;
+    if (!tot) return { selesai: 0, waiting: 0, dijadwalkan: 0, gagal: 0 };
+    return {
+      selesai: Math.round((selesai / tot) * 100),
+      waiting: Math.round((waiting / tot) * 100),
+      dijadwalkan: Math.round((dijadwalkan / tot) * 100),
+      gagal: Math.round((gagal / tot) * 100),
+    };
+  }, [filteredPekerjaan.length, selesai, waiting, dijadwalkan, gagal]);
 
   // Leads Stats
   const totalLeads = filteredLeads.length;
@@ -616,6 +653,399 @@ export default function Dashboard() {
           bgGradient="bg-gradient-to-br from-indigo-500 to-blue-600"
           href="/odp"
         />
+      </div>
+
+      {/* Specific Dedicated Card: Detail Pekerjaan */}
+      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-5">
+        {/* Header of Detail Pekerjaan */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0D1B4A] to-blue-900 flex items-center justify-center text-white shadow-md shadow-blue-950/20">
+              <Wrench className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base font-extrabold text-gray-900 tracking-tight">
+                  Detail Pekerjaan & Status Operasional
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 ring-1 ring-blue-200">
+                  {totalPekerjaan} Total Pekerjaan
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">
+                  {filterLabel}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Rincian progres, volume, dan status per kategori layanan untuk periode terpilih
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to="/pekerjaan"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all self-start sm:self-auto group shadow-2xs"
+          >
+            <span>Buka Manajemen Pekerjaan</span>
+            <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        </div>
+
+        {/* 4 Category Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Pemasangan Baru */}
+          <div className="bg-gradient-to-b from-blue-50/60 to-white rounded-2xl p-4 border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all flex flex-col justify-between group">
+            <div>
+              <div className="flex items-start justify-between">
+                <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                  <Wifi className="w-4 h-4" />
+                </div>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700">
+                  Pemasangan
+                </span>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold text-gray-500">Pemasangan Baru</p>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <p className="text-2xl font-black text-gray-900 tracking-tight">
+                    {detailPekerjaan.pemasangan.total}
+                  </p>
+                  <span className="text-xs text-gray-400">pekerjaan</span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-[11px] font-semibold mb-1">
+                  <span className="text-gray-500">Tingkat Selesai</span>
+                  <span className="text-blue-700 font-bold">{detailPekerjaan.pemasangan.rate}%</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="bg-blue-600 h-1.5 rounded-full transition-all duration-500"
+                    style={{ width: `${detailPekerjaan.pemasangan.rate}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Status Pills */}
+              <div className="grid grid-cols-2 gap-1.5 mt-3 pt-3 border-t border-blue-100/60 text-[11px]">
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Selesai
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.pemasangan.selesai}</span>
+                </div>
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Waiting
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.pemasangan.waiting}</span>
+                </div>
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Jadwal
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.pemasangan.dijadwalkan}</span>
+                </div>
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Gagal
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.pemasangan.gagal}</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              to="/pekerjaan?search=PEMASANGAN"
+              className="mt-3.5 pt-2 text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center justify-between group/link border-t border-blue-50"
+            >
+              <span>Filter Pemasangan</span>
+              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-0.5" />
+            </Link>
+          </div>
+
+          {/* Card 2: Perbaikan Reguler */}
+          <div className="bg-gradient-to-b from-orange-50/60 to-white rounded-2xl p-4 border border-orange-100 hover:border-orange-300 hover:shadow-md transition-all flex flex-col justify-between group">
+            <div>
+              <div className="flex items-start justify-between">
+                <div className="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                  <Wrench className="w-4 h-4" />
+                </div>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-orange-700">
+                  Perbaikan
+                </span>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold text-gray-500">Perbaikan Reguler</p>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <p className="text-2xl font-black text-gray-900 tracking-tight">
+                    {detailPekerjaan.perbaikan.total}
+                  </p>
+                  <span className="text-xs text-gray-400">pekerjaan</span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-[11px] font-semibold mb-1">
+                  <span className="text-gray-500">Tingkat Selesai</span>
+                  <span className="text-orange-700 font-bold">{detailPekerjaan.perbaikan.rate}%</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="bg-orange-500 h-1.5 rounded-full transition-all duration-500"
+                    style={{ width: `${detailPekerjaan.perbaikan.rate}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Status Pills */}
+              <div className="grid grid-cols-2 gap-1.5 mt-3 pt-3 border-t border-orange-100/60 text-[11px]">
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Selesai
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.perbaikan.selesai}</span>
+                </div>
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Waiting
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.perbaikan.waiting}</span>
+                </div>
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Jadwal
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.perbaikan.dijadwalkan}</span>
+                </div>
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Gagal
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.perbaikan.gagal}</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              to="/pekerjaan?search=PERBAIKAN"
+              className="mt-3.5 pt-2 text-[11px] font-bold text-orange-600 hover:text-orange-800 flex items-center justify-between group/link border-t border-orange-50"
+            >
+              <span>Filter Perbaikan</span>
+              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-0.5" />
+            </Link>
+          </div>
+
+          {/* Card 3: Perbaikan Khusus (ODP/ODC) */}
+          <div className="bg-gradient-to-b from-purple-50/60 to-white rounded-2xl p-4 border border-purple-100 hover:border-purple-300 hover:shadow-md transition-all flex flex-col justify-between group">
+            <div>
+              <div className="flex items-start justify-between">
+                <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                  <Network className="w-4 h-4" />
+                </div>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700">
+                  ODP / ODC
+                </span>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold text-gray-500">Perbaikan Khusus ODP</p>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <p className="text-2xl font-black text-gray-900 tracking-tight">
+                    {detailPekerjaan.perbaikanKhusus.total}
+                  </p>
+                  <span className="text-xs text-gray-400">pekerjaan</span>
+                </div>
+              </div>
+
+              {/* Impact / User Terdampak Badge */}
+              <div className="mt-2.5 flex items-center justify-between px-2.5 py-1.5 bg-purple-50/90 rounded-xl border border-purple-100/90 text-[11px]">
+                <span className="text-purple-700 font-semibold flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-purple-600" />
+                  User Terdampak
+                </span>
+                <span className="font-extrabold text-purple-900">
+                  {detailPekerjaan.perbaikanKhusus.userTerdampak} Orang
+                </span>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-[11px] font-semibold mb-1">
+                  <span className="text-gray-500">Tingkat Selesai</span>
+                  <span className="text-purple-700 font-bold">{detailPekerjaan.perbaikanKhusus.rate}%</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="bg-purple-600 h-1.5 rounded-full transition-all duration-500"
+                    style={{ width: `${detailPekerjaan.perbaikanKhusus.rate}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Status Pills */}
+              <div className="grid grid-cols-3 gap-1.5 mt-3 pt-3 border-t border-purple-100/60 text-[11px]">
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Done
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.perbaikanKhusus.selesai}</span>
+                </div>
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Wait
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.perbaikanKhusus.waiting}</span>
+                </div>
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Jdwl
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.perbaikanKhusus.dijadwalkan}</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              to="/pekerjaan?search=ODP"
+              className="mt-3.5 pt-2 text-[11px] font-bold text-purple-600 hover:text-purple-800 flex items-center justify-between group/link border-t border-purple-50"
+            >
+              <span>Filter Khusus ODP</span>
+              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-0.5" />
+            </Link>
+          </div>
+
+          {/* Card 4: Pemutusan Layanan */}
+          <div className="bg-gradient-to-b from-rose-50/60 to-white rounded-2xl p-4 border border-rose-100 hover:border-rose-300 hover:shadow-md transition-all flex flex-col justify-between group">
+            <div>
+              <div className="flex items-start justify-between">
+                <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                  <XCircle className="w-4 h-4" />
+                </div>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-700">
+                  Pemutusan
+                </span>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold text-gray-500">Pemutusan Layanan</p>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <p className="text-2xl font-black text-gray-900 tracking-tight">
+                    {detailPekerjaan.pemutusan.total}
+                  </p>
+                  <span className="text-xs text-gray-400">pekerjaan</span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-[11px] font-semibold mb-1">
+                  <span className="text-gray-500">Tingkat Selesai</span>
+                  <span className="text-rose-700 font-bold">{detailPekerjaan.pemutusan.rate}%</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="bg-rose-600 h-1.5 rounded-full transition-all duration-500"
+                    style={{ width: `${detailPekerjaan.pemutusan.rate}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Status Pills */}
+              <div className="grid grid-cols-2 gap-1.5 mt-3 pt-3 border-t border-rose-100/60 text-[11px]">
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Selesai
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.pemutusan.selesai}</span>
+                </div>
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Waiting
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.pemutusan.waiting}</span>
+                </div>
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Jadwal
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.pemutusan.dijadwalkan}</span>
+                </div>
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white border border-gray-100">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Gagal
+                  </span>
+                  <span className="font-bold text-gray-800">{detailPekerjaan.pemutusan.gagal}</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              to="/pekerjaan?search=PEMUTUSAN"
+              className="mt-3.5 pt-2 text-[11px] font-bold text-rose-600 hover:text-rose-800 flex items-center justify-between group/link border-t border-rose-50"
+            >
+              <span>Filter Pemutusan</span>
+              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-0.5" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Global Distribution Status Progress Bar */}
+        <div className="p-4 bg-gray-50/70 rounded-xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center justify-between text-xs font-bold text-gray-700 mb-2">
+              <span className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-[#0D1B4A]" />
+                Komposisi Status Pekerjaan
+              </span>
+              <span className="text-gray-500 font-semibold">
+                {selesai} Selesai · {waiting} Waiting · {dijadwalkan} Dijadwalkan · {gagal} Gagal
+              </span>
+            </div>
+            {/* Segmented bar */}
+            <div className="w-full h-3 bg-gray-200/80 rounded-full overflow-hidden flex shadow-inner">
+              <div
+                className="bg-emerald-500 transition-all duration-500"
+                style={{ width: `${statusSummaryPercentages.selesai}%` }}
+                title={`Selesai: ${selesai} (${statusSummaryPercentages.selesai}%)`}
+              />
+              <div
+                className="bg-amber-400 transition-all duration-500"
+                style={{ width: `${statusSummaryPercentages.waiting}%` }}
+                title={`Waiting List: ${waiting} (${statusSummaryPercentages.waiting}%)`}
+              />
+              <div
+                className="bg-blue-500 transition-all duration-500"
+                style={{ width: `${statusSummaryPercentages.dijadwalkan}%` }}
+                title={`Dijadwalkan: ${dijadwalkan} (${statusSummaryPercentages.dijadwalkan}%)`}
+              />
+              <div
+                className="bg-red-500 transition-all duration-500"
+                style={{ width: `${statusSummaryPercentages.gagal}%` }}
+                title={`Gagal: ${gagal} (${statusSummaryPercentages.gagal}%)`}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 sm:gap-4 text-xs font-semibold shrink-0 flex-wrap">
+            <span className="flex items-center gap-1.5 text-gray-600">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              Selesai ({statusSummaryPercentages.selesai}%)
+            </span>
+            <span className="flex items-center gap-1.5 text-gray-600">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+              Waiting ({statusSummaryPercentages.waiting}%)
+            </span>
+            <span className="flex items-center gap-1.5 text-gray-600">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+              Jadwal ({statusSummaryPercentages.dijadwalkan}%)
+            </span>
+            <span className="flex items-center gap-1.5 text-gray-600">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+              Gagal ({statusSummaryPercentages.gagal}%)
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Row 1: Weekly Trend & Leads Distribution */}
