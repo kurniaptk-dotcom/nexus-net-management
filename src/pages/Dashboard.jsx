@@ -16,6 +16,10 @@ import {
   Users,
   Layers,
   ChevronRight,
+  Calendar,
+  Filter,
+  RotateCcw,
+  CalendarDays,
   TrendingUp,
 } from "lucide-react";
 import {
@@ -43,6 +47,27 @@ import {
 import { usePersistState } from "../hooks/usePersistState";
 
 const PIE_COLORS = ["#0D1B4A", "#F59E0B", "#F97316", "#10B981", "#6366F1", "#EC4899"];
+
+function parseRecordDate(dStr) {
+  if (!dStr) return null;
+  const s = String(dStr).trim();
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  // D-M-YY or DD-MM-YYYY (e.g. 21-7-26 or 21-07-2026)
+  const match = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$/);
+  if (match) {
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    let year = parseInt(match[3], 10);
+    if (year < 100) year += 2000;
+    return new Date(year, month, day);
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
 
 function StatCard({ icon: Icon, label, value, subtext, changeType = "up", bgGradient, href }) {
   const content = (
@@ -111,38 +136,94 @@ export default function Dashboard() {
   const [odpData] = usePersistState("xnet_odpodc", odpOdcList);
   const [odcList] = usePersistState("xnet_odc_list", odcMasterList);
 
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [, setRefreshKey] = useState(0);
+
+  // Time Filtering State (ALL | TODAY | WEEK | MONTH | CUSTOM)
+  const [timeFilter, setTimeFilter] = useState("ALL");
+  const [selectedDate, setSelectedDate] = useState("2026-09-24");
+  const [customStartDate, setCustomStartDate] = useState("2026-09-01");
+  const [customEndDate, setCustomEndDate] = useState("2026-09-24");
+
+  const isDateInRange = (dateStr) => {
+    if (timeFilter === "ALL") return true;
+    const d = parseRecordDate(dateStr);
+    if (!d) return false;
+
+    const targetTime = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+    if (timeFilter === "TODAY") {
+      const target = parseRecordDate(selectedDate);
+      if (!target) return false;
+      const refTime = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
+      return targetTime === refTime;
+    }
+
+    if (timeFilter === "WEEK") {
+      const end = parseRecordDate(selectedDate) || new Date();
+      const endTime = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59).getTime();
+      const startTime = endTime - 7 * 24 * 60 * 60 * 1000;
+      return targetTime >= startTime && targetTime <= endTime;
+    }
+
+    if (timeFilter === "MONTH") {
+      const ref = parseRecordDate(selectedDate) || new Date();
+      return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth();
+    }
+
+    if (timeFilter === "CUSTOM") {
+      const s = parseRecordDate(customStartDate);
+      const e = parseRecordDate(customEndDate);
+      const sTime = s ? new Date(s.getFullYear(), s.getMonth(), s.getDate()).getTime() : 0;
+      const eTime = e ? new Date(e.getFullYear(), e.getMonth(), e.getDate(), 23, 59, 59).getTime() : Infinity;
+      return targetTime >= sTime && targetTime <= eTime;
+    }
+
+    return true;
+  };
+
+  // Filtered Datasets based on Time Filter
+  const filteredPekerjaan = useMemo(() => {
+    return pekerjaanData.filter((p) => isDateInRange(p.tanggal));
+  }, [pekerjaanData, timeFilter, selectedDate, customStartDate, customEndDate]);
+
+  const filteredLeads = useMemo(() => {
+    return leadsData.filter((l) => isDateInRange(l.tanggal));
+  }, [leadsData, timeFilter, selectedDate, customStartDate, customEndDate]);
+
+  const filteredGangguan = useMemo(() => {
+    return gangguanData.filter((g) => isDateInRange(g.tanggalMulai));
+  }, [gangguanData, timeFilter, selectedDate, customStartDate, customEndDate]);
 
   // Pekerjaan Stats
-  const totalPekerjaan = pekerjaanData.length;
-  const selesai = useMemo(() => pekerjaanData.filter((d) => d.status === "SELESAI").length, [pekerjaanData]);
-  const waiting = useMemo(() => pekerjaanData.filter((d) => d.status === "WAITING LIST").length, [pekerjaanData]);
-  const dijadwalkan = useMemo(() => pekerjaanData.filter((d) => d.status === "DIJADWALKAN").length, [pekerjaanData]);
-  const gagal = useMemo(() => pekerjaanData.filter((d) => d.status === "GAGAL").length, [pekerjaanData]);
+  const totalPekerjaan = filteredPekerjaan.length;
+  const selesai = useMemo(() => filteredPekerjaan.filter((d) => d.status === "SELESAI").length, [filteredPekerjaan]);
+  const waiting = useMemo(() => filteredPekerjaan.filter((d) => d.status === "WAITING LIST").length, [filteredPekerjaan]);
+  const dijadwalkan = useMemo(() => filteredPekerjaan.filter((d) => d.status === "DIJADWALKAN").length, [filteredPekerjaan]);
+  const gagal = useMemo(() => filteredPekerjaan.filter((d) => d.status === "GAGAL").length, [filteredPekerjaan]);
   const completionRate = totalPekerjaan > 0 ? ((selesai / totalPekerjaan) * 100).toFixed(0) : "0";
 
   // Leads Stats
-  const totalLeads = leadsData.length;
-  const leadsKonversi = useMemo(() => leadsData.filter((d) => d.status === "SELESAI").length, [leadsData]);
+  const totalLeads = filteredLeads.length;
+  const leadsKonversi = useMemo(() => filteredLeads.filter((d) => d.status === "SELESAI").length, [filteredLeads]);
   const leadsConversionRate = totalLeads > 0 ? ((leadsKonversi / totalLeads) * 100).toFixed(0) : "0";
 
   // Gangguan Stats (Synced with xnet_daftar_gangguan_v2)
-  const totalGangguan = gangguanData.length;
+  const totalGangguan = filteredGangguan.length;
   const gangguanAman = useMemo(
-    () => gangguanData.filter((g) => (g.hasilFU || "").trim().toLowerCase() === "aman").length,
-    [gangguanData]
+    () => filteredGangguan.filter((g) => (g.hasilFU || "").trim().toLowerCase() === "aman").length,
+    [filteredGangguan]
   );
   const gangguanBermasalah = useMemo(
-    () => gangguanData.filter((g) => (g.hasilFU || "").trim().toLowerCase() === "bermasalah").length,
-    [gangguanData]
+    () => filteredGangguan.filter((g) => (g.hasilFU || "").trim().toLowerCase() === "bermasalah").length,
+    [filteredGangguan]
   );
   const gangguanNgelag = useMemo(
-    () => gangguanData.filter((g) => (g.hasilFU || "").trim().toLowerCase().includes("ngelag")).length,
-    [gangguanData]
+    () => filteredGangguan.filter((g) => (g.hasilFU || "").trim().toLowerCase().includes("ngelag")).length,
+    [filteredGangguan]
   );
   const gangguanBelumFU = useMemo(
-    () => gangguanData.filter((g) => !(g.hasilFU || "").trim()).length,
-    [gangguanData]
+    () => filteredGangguan.filter((g) => !(g.hasilFU || "").trim()).length,
+    [filteredGangguan]
   );
 
   // ODP / ODC Infrastructure Stats
@@ -152,12 +233,12 @@ export default function Dashboard() {
     const fromOdcList = (odcList || []).map((o) => o.nama).filter(Boolean);
     return new Set([...fromOdcList, ...fromOdp]).size;
   }, [odcList, odpData]);
-  const odpLinkedCount = useMemo(() => pekerjaanData.filter((p) => !!p.odp).length, [pekerjaanData]);
+  const odpLinkedCount = useMemo(() => filteredPekerjaan.filter((p) => !!p.odp).length, [filteredPekerjaan]);
 
   // Tim Chart Data
   const timChartData = useMemo(() => {
     return timData.map((t) => {
-      const timP = pekerjaanData.filter((p) => p.tim === t.nama);
+      const timP = filteredPekerjaan.filter((p) => p.tim === t.nama);
       return {
         name: t.nama.split(" - ")[0],
         pemasangan: timP.filter((p) => p.jenis === "PEMASANGAN" && p.status !== "GAGAL").length,
@@ -167,11 +248,11 @@ export default function Dashboard() {
         gagal: timP.filter((p) => p.status === "GAGAL").length,
       };
     });
-  }, [timData, pekerjaanData]);
+  }, [timData, filteredPekerjaan]);
 
   // Leads Sources
   const leadsBySumber = useMemo(() => {
-    const counts = leadsData.reduce((acc, l) => {
+    const counts = filteredLeads.reduce((acc, l) => {
       const src = l.sumber || "LAINNYA";
       acc[src] = (acc[src] || 0) + 1;
       return acc;
@@ -181,35 +262,48 @@ export default function Dashboard() {
       value,
     }));
     return items.length > 0 ? items : [{ name: "Belum Ada", value: 1 }];
-  }, [leadsData]);
+  }, [filteredLeads]);
 
-  // Weekly Trend
-  const weeklyData = useMemo(() => {
-    const parseDay = (dStr) => {
-      if (!dStr) return null;
-      if (dStr.includes("-")) {
-        const parts = dStr.split("-");
-        if (parts[0].length === 4) return parseInt(parts[2], 10);
-        return parseInt(parts[0], 10);
+  // Trend Chart Data (Adapts to Week or Month)
+  const trendChartData = useMemo(() => {
+    if (timeFilter === "WEEK") {
+      const end = parseRecordDate(selectedDate) || new Date();
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(end);
+        d.setDate(d.getDate() - i);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const dayNum = String(d.getDate()).padStart(2, "0");
+        const dayStr = `${y}-${m}-${dayNum}`;
+        const dayLabel = `${d.getDate()} ${d.toLocaleString("id-ID", { month: "short" })}`;
+        const jobs = filteredPekerjaan.filter((p) => p.tanggal === dayStr).length;
+        const leads = filteredLeads.filter((l) => l.tanggal === dayStr).length;
+        days.push({ name: dayLabel, pekerjaan: jobs, leads });
       }
-      return null;
+      return days;
+    }
+
+    const parseDay = (dStr) => {
+      const d = parseRecordDate(dStr);
+      return d ? d.getDate() : null;
     };
 
     const weeks = ["Minggu 1", "Minggu 2", "Minggu 3", "Minggu 4"];
     return weeks.map((name, i) => {
       const start = 1 + i * 7;
       const end = Math.min(start + 6, 31);
-      const jobsCount = pekerjaanData.filter((p) => {
+      const jobsCount = filteredPekerjaan.filter((p) => {
         const day = parseDay(p.tanggal);
         return day !== null && day >= start && day <= end;
       }).length;
-      const leadsCount = leadsData.filter((l) => {
+      const leadsCount = filteredLeads.filter((l) => {
         const day = parseDay(l.tanggal);
         return day !== null && day >= start && day <= end;
       }).length;
       return { name, pekerjaan: jobsCount, leads: leadsCount };
     });
-  }, [pekerjaanData, leadsData]);
+  }, [filteredPekerjaan, filteredLeads, timeFilter, selectedDate]);
 
   // Gangguan Categories
   const gangguanKategoriList = useMemo(() => {
@@ -220,7 +314,7 @@ export default function Dashboard() {
       "Putus / Tanpa Koneksi": 0,
       "Lainnya": 0,
     };
-    gangguanData.forEach((g) => {
+    filteredGangguan.forEach((g) => {
       const text = (g.keterangan || "").toLowerCase();
       if (text.includes("los") || text.includes("lampu merah") || text.includes("tidak ada sinyal")) {
         cats["LOS / Sinyal Hilang"]++;
@@ -235,41 +329,64 @@ export default function Dashboard() {
       }
     });
     return Object.entries(cats).filter(([, v]) => v > 0);
-  }, [gangguanData]);
+  }, [filteredGangguan]);
 
   // Kinerja per Tim
   const kinerjaPemasangan = useMemo(() => {
     return timData.map((t) => {
-      const timP = pekerjaanData.filter((p) => p.tim === t.nama && p.jenis === "PEMASANGAN");
+      const timP = filteredPekerjaan.filter((p) => p.tim === t.nama && p.jenis === "PEMASANGAN");
       const done = timP.filter((p) => p.status === "SELESAI").length;
       const total = timP.length;
       const fail = timP.filter((p) => p.status === "GAGAL").length;
       return { tim: t.nama, selesai: done, total, persen: total > 0 ? (done / total) * 100 : 0, gagal: fail };
     });
-  }, [timData, pekerjaanData]);
+  }, [timData, filteredPekerjaan]);
 
   const kinerjaPemutusan = useMemo(() => {
     return timData.map((t) => {
-      const timP = pekerjaanData.filter((p) => p.tim === t.nama && p.jenis === "PEMUTUSAN");
+      const timP = filteredPekerjaan.filter((p) => p.tim === t.nama && p.jenis === "PEMUTUSAN");
       const done = timP.filter((p) => p.status === "SELESAI").length;
       const total = timP.length;
       return { tim: t.nama, selesai: done, total, persen: total > 0 ? (done / total) * 100 : null };
     });
-  }, [timData, pekerjaanData]);
+  }, [timData, filteredPekerjaan]);
 
   // Urgent pending jobs (Waiting list / Dijadwalkan)
   const pendingJobs = useMemo(() => {
-    return pekerjaanData
+    return filteredPekerjaan
       .filter((p) => p.status === "WAITING LIST" || p.status === "DIJADWALKAN")
       .slice(0, 5);
-  }, [pekerjaanData]);
+  }, [filteredPekerjaan]);
 
   // Complaints needing attention
   const urgentGangguan = useMemo(() => {
-    return gangguanData
+    return filteredGangguan
       .filter((g) => (g.hasilFU || "").trim().toLowerCase() === "bermasalah" || !(g.hasilFU || "").trim())
       .slice(0, 5);
-  }, [gangguanData]);
+  }, [filteredGangguan]);
+
+  const filterLabel = useMemo(() => {
+    switch (timeFilter) {
+      case "TODAY":
+        return `Hari Ini (${selectedDate})`;
+      case "WEEK":
+        return "7 Hari Terakhir";
+      case "MONTH":
+        return "Bulan Ini (September 2026)";
+      case "CUSTOM":
+        return `${customStartDate || "..."} s/d ${customEndDate || "..."}`;
+      default:
+        return "Semua Waktu";
+    }
+  }, [timeFilter, selectedDate, customStartDate, customEndDate]);
+
+  const filterSummaryText = useMemo(() => {
+    const totalMatching = filteredPekerjaan.length + filteredLeads.length + filteredGangguan.length;
+    if (timeFilter === "ALL") {
+      return `Menampilkan seluruh rekapitulasi data historis (${totalMatching} total aktivitas).`;
+    }
+    return `Menampilkan data tersaring: ${filteredPekerjaan.length} pekerjaan, ${filteredLeads.length} leads, ${filteredGangguan.length} gangguan.`;
+  }, [timeFilter, filteredPekerjaan.length, filteredLeads.length, filteredGangguan.length]);
 
   const handleRefresh = () => {
     setRefreshKey((k) => k + 1);
@@ -323,6 +440,133 @@ export default function Dashboard() {
             <span>+ Gangguan</span>
           </Link>
         </div>
+      </div>
+
+      {/* Time Filter Bar */}
+      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm transition-all duration-300">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Left: Filter Info */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100/80 flex items-center justify-center text-[#0D1B4A] shadow-xs">
+              <CalendarDays className="w-5 h-5 text-[#0D1B4A]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Periode Data</span>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
+                  {filterLabel}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5 font-medium">
+                {filterSummaryText}
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Quick Preset Buttons */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {[
+              { id: "ALL", label: "Semua Waktu", icon: Layers },
+              { id: "TODAY", label: "Hari Ini", icon: Clock },
+              { id: "WEEK", label: "7 Hari Terakhir", icon: TrendingUp },
+              { id: "MONTH", label: "Bulan Ini", icon: Calendar },
+              { id: "CUSTOM", label: "Rentang Tanggal", icon: Filter },
+            ].map((p) => {
+              const Icon = p.icon;
+              const isActive = timeFilter === p.id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setTimeFilter(p.id)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? "bg-[#0D1B4A] text-white shadow-md shadow-blue-950/20 scale-[1.02]"
+                      : "bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200/80"
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#F59E0B]" : "text-gray-400"}`} />
+                  <span>{p.label}</span>
+                </button>
+              );
+            })}
+
+            {timeFilter !== "ALL" && (
+              <button
+                onClick={() => setTimeFilter("ALL")}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors cursor-pointer"
+                title="Reset ke Semua Data"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Expandable Custom Range Controls */}
+        {timeFilter === "CUSTOM" && (
+          <div className="mt-3.5 pt-3.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <span className="font-bold text-gray-700">Tentukan Rentang:</span>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 font-medium">Dari:</span>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="px-3 py-1.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none text-xs font-semibold text-gray-800"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 font-medium">Sampai:</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="px-3 py-1.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none text-xs font-semibold text-gray-800"
+                />
+              </div>
+            </div>
+            <div className="text-xs text-gray-500 font-medium flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>
+                Hasil: <strong className="text-gray-800">{filteredPekerjaan.length}</strong> Pekerjaan •{" "}
+                <strong className="text-gray-800">{filteredLeads.length}</strong> Leads •{" "}
+                <strong className="text-gray-800">{filteredGangguan.length}</strong> Gangguan
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Expandable Single Day Control */}
+        {timeFilter === "TODAY" && (
+          <div className="mt-3.5 pt-3.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+            <div className="flex items-center gap-3 text-xs">
+              <span className="font-bold text-gray-700">Pilih Tanggal Hari:</span>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-3 py-1.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none text-xs font-semibold text-gray-800"
+              />
+              <button
+                type="button"
+                onClick={() => setSelectedDate("2026-09-24")}
+                className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+              >
+                Gunakan Hari Ini (24 Sep 2026)
+              </button>
+            </div>
+            <div className="text-xs text-gray-500 font-medium flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>
+                Hasil: <strong className="text-gray-800">{filteredPekerjaan.length}</strong> Pekerjaan •{" "}
+                <strong className="text-gray-800">{filteredLeads.length}</strong> Leads •{" "}
+                <strong className="text-gray-800">{filteredGangguan.length}</strong> Gangguan
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 5 Dynamic Stat Cards */}
@@ -382,9 +626,13 @@ export default function Dashboard() {
             <div>
               <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-[#0D1B4A]" />
-                Tren Aktivitas Mingguan
+                {timeFilter === "WEEK"
+                  ? "Tren Aktivitas 7 Hari Terakhir"
+                  : timeFilter === "TODAY"
+                  ? "Tren Aktivitas Hari Ini"
+                  : "Tren Aktivitas Periode"}
               </h3>
-              <p className="text-xs text-gray-400 mt-0.5">Perbandingan volume pekerjaan vs leads per minggu</p>
+              <p className="text-xs text-gray-400 mt-0.5">Perbandingan volume pekerjaan vs leads pada periode terpilih</p>
             </div>
             <div className="flex items-center gap-4 text-xs font-semibold">
               <span className="flex items-center gap-1.5">
@@ -396,7 +644,7 @@ export default function Dashboard() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={weeklyData}>
+            <AreaChart data={trendChartData}>
               <defs>
                 <linearGradient id="gradPekerjaan" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#0D1B4A" stopOpacity={0.18} />
