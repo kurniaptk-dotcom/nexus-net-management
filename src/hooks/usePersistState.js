@@ -84,6 +84,22 @@ function toSnake(row) {
   return out;
 }
 
+// One-time automatic reset of local mock data caches to start with clean real data
+const RESET_STORAGE_KEY = "xnet_reset_to_real_data_v2";
+if (typeof window !== "undefined" && !localStorage.getItem(RESET_STORAGE_KEY)) {
+  const keysToReset = [
+    "xnet_pekerjaan",
+    "xnet_leads",
+    "xnet_gangguan",
+    "xnet_daftar_gangguan_v2",
+    "xnet_tim",
+    "xnet_odpodc",
+    "xnet_odc_list",
+  ];
+  keysToReset.forEach((k) => localStorage.removeItem(k));
+  localStorage.setItem(RESET_STORAGE_KEY, "done");
+}
+
 export function usePersistState(key, initialValue) {
   const table = TABLE_MAP[key];
 
@@ -127,7 +143,7 @@ export function usePersistState(key, initialValue) {
     (async () => {
       try {
         const rows = await db.fetchAll(table);
-        if (cancelled || !rows || !rows.length) return;
+        if (cancelled || !rows) return;
         const camelRows = rows.map(toCamel);
         
         setState((current) => {
