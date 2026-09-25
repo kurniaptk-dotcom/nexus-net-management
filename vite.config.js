@@ -15,15 +15,16 @@ export default defineConfig({
         'apple-touch-icon.png',
         'pwa-192x192.png',
         'pwa-512x512.png',
+        'pwa-maskable-512x512.png',
       ],
       manifest: {
         name: 'Nexus Net Management',
         short_name: 'NexusNet',
         description: 'Sistem Manajemen Lapangan dan Operasional WiFi Nexus Net',
         theme_color: '#0D1B4A',
-        background_color: '#0D1B4A',
+        background_color: '#FFFFFF',
         display: 'standalone',
-        orientation: 'portrait',
+        orientation: 'any',
         scope: '/',
         start_url: '/',
         icons: [
