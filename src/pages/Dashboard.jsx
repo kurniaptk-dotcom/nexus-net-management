@@ -716,7 +716,7 @@ export default function Dashboard() {
         {/* Card 1: Detail Pekerjaan */}
         <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm transition-all ${showDetailPekerjaan ? "p-5 sm:p-6 space-y-4" : "p-4 sm:p-5"}`}>
           {/* Header of Detail Pekerjaan */}
-          <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${showDetailPekerjaan ? "border-b border-gray-100 pb-3 sm:pb-4" : ""}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div
               onClick={() => setShowDetailPekerjaan(!showDetailPekerjaan)}
               className="flex items-center gap-3 cursor-pointer group select-none flex-1 min-w-0"
@@ -728,7 +728,7 @@ export default function Dashboard() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-sm sm:text-base font-extrabold text-gray-900 tracking-tight group-hover:text-blue-900 transition-colors">
-                    Detail Pekerjaan & Status
+                    Detail Pekerjaan
                   </h2>
                   <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-blue-50 text-blue-700 ring-1 ring-blue-200">
                     {totalPekerjaan} Total
@@ -738,7 +738,7 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5 truncate">
-                  Rincian progres, volume, dan status per kategori layanan
+                  Rincian progres, volume, dan status per kategori
                 </p>
               </div>
             </div>
@@ -768,11 +768,45 @@ export default function Dashboard() {
                 className="inline-flex items-center gap-1 px-3 py-1.5 sm:py-2 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all group shadow-2xs"
                 title="Buka Manajemen Pekerjaan"
               >
-                <span className="hidden sm:inline">Buka</span>
+                <span>Buka</span>
                 <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </div>
           </div>
+
+          {/* Compact Summary Chips when collapsed */}
+          {!showDetailPekerjaan && (
+            <div className="pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-blue-50/70 border border-blue-100">
+                <span className="text-gray-600 font-medium flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-600" />
+                  Pasang
+                </span>
+                <strong className="text-gray-900 font-bold">{detailPekerjaan.pemasangan.total}</strong>
+              </div>
+              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-orange-50/70 border border-orange-100">
+                <span className="text-gray-600 font-medium flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-orange-500" />
+                  Perbaikan
+                </span>
+                <strong className="text-gray-900 font-bold">{detailPekerjaan.perbaikan.total}</strong>
+              </div>
+              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-purple-50/70 border border-purple-100">
+                <span className="text-gray-600 font-medium flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-purple-600" />
+                  ODP
+                </span>
+                <strong className="text-gray-900 font-bold">{detailPekerjaan.perbaikanKhusus.total}</strong>
+              </div>
+              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-rose-50/70 border border-rose-100">
+                <span className="text-gray-600 font-medium flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-rose-600" />
+                  Putus
+                </span>
+                <strong className="text-gray-900 font-bold">{detailPekerjaan.pemutusan.total}</strong>
+              </div>
+            </div>
+          )}
 
           {/* Collapsible Content */}
           {showDetailPekerjaan && (
@@ -1140,18 +1174,18 @@ export default function Dashboard() {
       {/* Card 2: Jadwal & Penugasan Terdekat */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm space-y-3">
         {/* Header of Jadwal Terdekat */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-gray-100 pb-3">
-          <div className="flex items-center gap-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+          <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#0D1B4A] flex items-center justify-center text-white shadow-sm shrink-0">
               <CalendarClock className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-sm sm:text-base font-extrabold text-gray-900 tracking-tight">
                   Jadwal Terdekat
                 </h2>
                 {scheduleData.todayJobs.length > 0 && (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     {scheduleData.todayJobs.length} Hari Ini
                   </span>
@@ -1163,37 +1197,37 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 self-start sm:self-auto shrink-0 flex-wrap">
-            {/* Minimalist Tab Pills */}
-            <div className="flex items-center gap-0.5 bg-gray-50 p-0.5 rounded-lg border border-gray-200/60 text-[11px] font-semibold">
-              {[
-                { id: "ALL", label: `Semua (${scheduleData.displayList.length})` },
-                { id: "TODAY", label: `Hari Ini (${scheduleData.todayJobs.length})` },
-                { id: "UPCOMING", label: `Mendatang (${scheduleData.upcomingJobs.length})` },
-                { id: "WAITING", label: `Wait (${scheduleData.waitingJobs.length})` },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setScheduleTab(t.id)}
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
-                    scheduleTab === t.id
-                      ? "bg-[#0D1B4A] text-white shadow-2xs"
-                      : "text-gray-500 hover:text-gray-900 hover:bg-white"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+          <Link
+            to="/pekerjaan"
+            className="inline-flex items-center gap-1 px-3 py-1.5 sm:py-2 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all self-start sm:self-auto group shadow-2xs shrink-0"
+            title="Buka Manajemen Pekerjaan"
+          >
+            <span>Buka</span>
+            <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        </div>
 
-            <Link
-              to="/pekerjaan"
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all group shadow-2xs"
-              title="Buka Manajemen Pekerjaan"
-            >
-              <span>Semua</span>
-              <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-            </Link>
+        {/* Tab Pills Filter Row */}
+        <div className="flex items-center justify-between gap-2 bg-gray-50 p-1 rounded-xl border border-gray-100 text-xs font-semibold">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+            {[
+              { id: "ALL", label: `Semua (${scheduleData.displayList.length})` },
+              { id: "TODAY", label: `Hari Ini (${scheduleData.todayJobs.length})` },
+              { id: "UPCOMING", label: `Mendatang (${scheduleData.upcomingJobs.length})` },
+              { id: "WAITING", label: `Waiting (${scheduleData.waitingJobs.length})` },
+            ].map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setScheduleTab(t.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  scheduleTab === t.id
+                    ? "bg-[#0D1B4A] text-white shadow-2xs"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-white"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
 
