@@ -49,7 +49,12 @@ export default function Leads() {
   });
 
   const filtered = data.filter((item) => {
-    const matchSearch = item.nama.toLowerCase().includes(search.toLowerCase()) || item.telepon.includes(search);
+    const q = (search || "").toLowerCase().trim();
+    const matchSearch =
+      !q ||
+      (item.nama && item.nama.toLowerCase().includes(q)) ||
+      (item.telepon && String(item.telepon).toLowerCase().includes(q)) ||
+      (item.alamat && item.alamat.toLowerCase().includes(q));
     const matchSumber = filterSumber === "ALL" || item.sumber === filterSumber;
     return matchSearch && matchSumber;
   });

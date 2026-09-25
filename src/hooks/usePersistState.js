@@ -85,7 +85,7 @@ function toSnake(row) {
 }
 
 // One-time automatic reset of local mock data caches to start with clean real data
-const RESET_STORAGE_KEY = "xnet_reset_to_real_data_v2";
+const RESET_STORAGE_KEY = "xnet_reset_to_real_data_v3";
 if (typeof window !== "undefined" && !localStorage.getItem(RESET_STORAGE_KEY)) {
   const keysToReset = [
     "xnet_pekerjaan",

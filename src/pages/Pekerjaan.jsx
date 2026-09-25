@@ -99,8 +99,8 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd }) {
           </button>
         </div>
       </div>
-      <h4 className="font-bold text-gray-800 text-sm mb-1">{item.pelanggan}</h4>
-      <p className="text-xs text-gray-400 mb-2 line-clamp-2">{item.alamat}</p>
+      <h4 className="font-bold text-gray-800 text-sm mb-1">{item.pelanggan || "Tanpa Nama"}</h4>
+      <p className="text-xs text-gray-400 mb-2 line-clamp-2">{item.alamat || "Alamat belum diatur"}</p>
       {item.odp && (
         <div className="flex items-center gap-1.5 text-[11px] font-medium text-blue-700 bg-blue-50/80 px-2 py-1 rounded-lg mb-2 border border-blue-100/80">
           <Network className="w-3.5 h-3.5 text-blue-500 shrink-0" />
@@ -120,9 +120,9 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd }) {
       ) : null}
       <div className="flex items-center justify-between">
         <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#0D1B4A]/5 text-[#0D1B4A] font-bold">
-          {item.tim.split(" - ")[0]}
+          {item.tim ? item.tim.split(" - ")[0] : "-"}
         </span>
-        <span className="text-[10px] text-gray-400 font-medium">{item.tanggal}</span>
+        <span className="text-[10px] text-gray-400 font-medium">{item.tanggal || "-"}</span>
       </div>
       {item.keterangan && (
         <p className="text-[11px] text-gray-400 mt-2.5 pt-2.5 border-t border-gray-100 line-clamp-1">
@@ -191,10 +191,13 @@ export default function Pekerjaan() {
   }, [odpData]);
 
   const filtered = data.filter((item) => {
+    const q = (search || "").toLowerCase().trim();
     const matchSearch =
-      item.pelanggan.toLowerCase().includes(search.toLowerCase()) ||
-      item.alamat.toLowerCase().includes(search.toLowerCase()) ||
-      (item.odp && item.odp.toLowerCase().includes(search.toLowerCase()));
+      !q ||
+      (item.pelanggan && item.pelanggan.toLowerCase().includes(q)) ||
+      (item.alamat && item.alamat.toLowerCase().includes(q)) ||
+      (item.odp && item.odp.toLowerCase().includes(q)) ||
+      (item.keterangan && item.keterangan.toLowerCase().includes(q));
     const matchJenis = filterJenis === "ALL" || item.jenis === filterJenis;
     const matchStatus = filterStatus === "ALL" || item.status === filterStatus;
     const matchTim = filterTim === "ALL" || item.tim === filterTim;
@@ -542,12 +545,12 @@ export default function Pekerjaan() {
                     <td className="px-5 py-3 text-gray-400 font-medium">{i + 1}</td>
                     <td className="px-5 py-3">
                       <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#0D1B4A]/5 text-[#0D1B4A] font-bold">
-                        {item.tim.split(" - ")[0]}
+                        {item.tim ? item.tim.split(" - ")[0] : "-"}
                       </span>
                     </td>
                     <td className="px-5 py-3"><JenisBadge jenis={item.jenis} /></td>
-                    <td className="px-5 py-3 font-bold text-gray-800">{item.pelanggan}</td>
-                    <td className="px-5 py-3 text-gray-500 max-w-[200px] truncate">{item.alamat}</td>
+                    <td className="px-5 py-3 font-bold text-gray-800">{item.pelanggan || "Tanpa Nama"}</td>
+                    <td className="px-5 py-3 text-gray-500 max-w-[200px] truncate">{item.alamat || "-"}</td>
                     <td className="px-5 py-3">
                       {item.odp ? (
                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">

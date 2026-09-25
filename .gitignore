@@ -26,3 +26,4 @@ dist-ssr
 auto-ai-marketplace/
 .vercel
 .env*
+*.xlsx

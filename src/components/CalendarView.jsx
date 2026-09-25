@@ -287,8 +287,8 @@ export default function CalendarView({ data }) {
                           {item.status}
                         </span>
                       </div>
-                      <p className="text-sm font-bold text-gray-800 truncate">{item.pelanggan}</p>
-                      <p className="text-xs text-gray-400 truncate">{item.alamat}</p>
+                      <p className="text-sm font-bold text-gray-800 truncate">{item.pelanggan || "Tanpa Nama"}</p>
+                      <p className="text-xs text-gray-400 truncate">{item.alamat || "Alamat belum diatur"}</p>
                       {item.odp && (
                         <p className="text-[11px] font-medium text-blue-600 mt-0.5 truncate">
                           📍 {item.odp}
@@ -296,7 +296,7 @@ export default function CalendarView({ data }) {
                       )}
                     </div>
                     <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
-                      {item.tim.split(" - ")[0]}
+                      {item.tim ? item.tim.split(" - ")[0] : "-"}
                     </span>
                   </div>
                 );

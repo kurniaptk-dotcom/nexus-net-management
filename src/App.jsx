@@ -11,6 +11,7 @@ import ODP from "./pages/ODP";
 import Laporan from "./pages/Laporan";
 import ManajemenUser from "./pages/ManajemenUser";
 import InstallPWA from "./components/InstallPWA";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -55,12 +56,14 @@ function AppRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-        <InstallPWA />
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+          <InstallPWA />
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
