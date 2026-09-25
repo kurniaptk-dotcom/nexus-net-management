@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   Wrench,
   Target,
   AlertTriangle,
+  Check,
   CheckCircle,
   CheckCircle2,
   ArrowUpRight,
@@ -57,6 +58,21 @@ import {
 import { usePersistState } from "../hooks/usePersistState";
 
 const PIE_COLORS = ["#0D1B4A", "#F59E0B", "#F97316", "#10B981", "#6366F1", "#EC4899"];
+
+const MONTH_OPTIONS = [
+  { value: 0, label: "Januari" },
+  { value: 1, label: "Februari" },
+  { value: 2, label: "Maret" },
+  { value: 3, label: "April" },
+  { value: 4, label: "Mei" },
+  { value: 5, label: "Juni" },
+  { value: 6, label: "Juli" },
+  { value: 7, label: "Agustus" },
+  { value: 8, label: "September" },
+  { value: 9, label: "Oktober" },
+  { value: 10, label: "November" },
+  { value: 11, label: "Desember" },
+];
 
 function parseRecordDate(dStr) {
   if (!dStr) return null;
@@ -178,6 +194,28 @@ export default function Dashboard() {
     true
   );
 
+  // Month Filtering Dropdown State
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth()); // 0-11
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
+  const monthDropdownRef = useRef(null);
+
+  // Close month dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (monthDropdownRef.current && !monthDropdownRef.current.contains(e.target)) {
+        setMonthDropdownOpen(false);
+      }
+    }
+    if (monthDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [monthDropdownOpen]);
+
   const isDateInRange = (dateStr) => {
     if (timeFilter === "ALL") return true;
     const d = parseRecordDate(dateStr);
@@ -200,8 +238,7 @@ export default function Dashboard() {
     }
 
     if (timeFilter === "MONTH") {
-      const ref = parseRecordDate(selectedDate) || new Date();
-      return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth();
+      return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth;
     }
 
     if (timeFilter === "CUSTOM") {
@@ -218,15 +255,15 @@ export default function Dashboard() {
   // Filtered Datasets based on Time Filter
   const filteredPekerjaan = useMemo(() => {
     return pekerjaanData.filter((p) => isDateInRange(p.tanggal));
-  }, [pekerjaanData, timeFilter, selectedDate, customStartDate, customEndDate]);
+  }, [pekerjaanData, timeFilter, selectedDate, customStartDate, customEndDate, selectedMonth, selectedYear]);
 
   const filteredLeads = useMemo(() => {
     return leadsData.filter((l) => isDateInRange(l.tanggal));
-  }, [leadsData, timeFilter, selectedDate, customStartDate, customEndDate]);
+  }, [leadsData, timeFilter, selectedDate, customStartDate, customEndDate, selectedMonth, selectedYear]);
 
   const filteredGangguan = useMemo(() => {
     return gangguanData.filter((g) => isDateInRange(g.tanggalMulai));
-  }, [gangguanData, timeFilter, selectedDate, customStartDate, customEndDate]);
+  }, [gangguanData, timeFilter, selectedDate, customStartDate, customEndDate, selectedMonth, selectedYear]);
 
   // Pekerjaan Stats
   const totalPekerjaan = filteredPekerjaan.length;
@@ -522,13 +559,13 @@ export default function Dashboard() {
       case "WEEK":
         return "7 Hari Terakhir";
       case "MONTH":
-        return "Bulan Ini (September 2026)";
+        return `Bulan ${MONTH_OPTIONS[selectedMonth]?.label || ""} ${selectedYear}`;
       case "CUSTOM":
         return `${customStartDate || "..."} s/d ${customEndDate || "..."}`;
       default:
         return "Semua Waktu";
     }
-  }, [timeFilter, selectedDate, customStartDate, customEndDate]);
+  }, [timeFilter, selectedDate, customStartDate, customEndDate, selectedMonth, selectedYear]);
 
   const filterSummaryText = useMemo(() => {
     const totalMatching = filteredPekerjaan.length + filteredLeads.length + filteredGangguan.length;
@@ -567,30 +604,143 @@ export default function Dashboard() {
           {/* Right: Filter Buttons & Refresh in 1 compact row */}
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1 bg-gray-50/90 p-1 rounded-xl border border-gray-200/70">
-              {[
-                { id: "ALL", label: "Semua", icon: Layers },
-                { id: "TODAY", label: "Hari Ini", icon: Clock },
-                { id: "WEEK", label: "7 Hari", icon: TrendingUp },
-                { id: "MONTH", label: "Bulan Ini", icon: Calendar },
-                { id: "CUSTOM", label: "Rentang", icon: Filter },
-              ].map((p) => {
-                const Icon = p.icon;
-                const isActive = timeFilter === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => setTimeFilter(p.id)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
-                      isActive
-                        ? "bg-[#0D1B4A] text-white shadow-xs"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-white"
+              <button
+                onClick={() => setTimeFilter("ALL")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
+                  timeFilter === "ALL"
+                    ? "bg-[#0D1B4A] text-white shadow-xs"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                }`}
+              >
+                <Layers className={`w-3.5 h-3.5 ${timeFilter === "ALL" ? "text-[#F59E0B]" : "text-gray-400"}`} />
+                <span>Semua</span>
+              </button>
+
+              <button
+                onClick={() => setTimeFilter("TODAY")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
+                  timeFilter === "TODAY"
+                    ? "bg-[#0D1B4A] text-white shadow-xs"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                }`}
+              >
+                <Clock className={`w-3.5 h-3.5 ${timeFilter === "TODAY" ? "text-[#F59E0B]" : "text-gray-400"}`} />
+                <span>Hari Ini</span>
+              </button>
+
+              <button
+                onClick={() => setTimeFilter("WEEK")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
+                  timeFilter === "WEEK"
+                    ? "bg-[#0D1B4A] text-white shadow-xs"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                }`}
+              >
+                <TrendingUp className={`w-3.5 h-3.5 ${timeFilter === "WEEK" ? "text-[#F59E0B]" : "text-gray-400"}`} />
+                <span>7 Hari</span>
+              </button>
+
+              {/* Month Filter Dropdown Button */}
+              <div className="relative" ref={monthDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTimeFilter("MONTH");
+                    setMonthDropdownOpen((prev) => !prev);
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
+                    timeFilter === "MONTH"
+                      ? "bg-[#0D1B4A] text-white shadow-xs"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                  }`}
+                  title="Pilih Bulan Operasional"
+                >
+                  <Calendar className={`w-3.5 h-3.5 ${timeFilter === "MONTH" ? "text-[#F59E0B]" : "text-gray-400"}`} />
+                  <span>{timeFilter === "MONTH" ? `${MONTH_OPTIONS[selectedMonth]?.label} ${selectedYear}` : "Bulan"}</span>
+                  <ChevronDown
+                    className={`w-3 h-3 transition-transform duration-200 ${
+                      monthDropdownOpen ? "rotate-180 text-amber-400" : timeFilter === "MONTH" ? "text-gray-300" : "text-gray-400"
                     }`}
-                  >
-                    <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#F59E0B]" : "text-gray-400"}`} />
-                    <span>{p.label}</span>
-                  </button>
-                );
-              })}
+                  />
+                </button>
+
+                {/* Popover Menu Dropdown Pilihan Bulan */}
+                {monthDropdownOpen && (
+                  <div className="absolute top-full right-0 sm:left-0 sm:right-auto mt-1.5 z-50 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 p-2.5 animate-in fade-in zoom-in-95">
+                    <div className="flex items-center justify-between px-1.5 pb-2 mb-1.5 border-b border-gray-100 text-xs font-bold text-gray-700">
+                      <span>Pilihan Bulan</span>
+                      <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs font-bold bg-gray-50 border border-gray-200 rounded-lg px-2 py-0.5 text-gray-800 cursor-pointer focus:ring-1 focus:ring-[#0D1B4A] outline-none"
+                      >
+                        {[2024, 2025, 2026, 2027].map((y) => (
+                          <option key={y} value={y}>
+                            {y}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 max-h-56 overflow-y-auto">
+                      {MONTH_OPTIONS.map((m) => {
+                        const isSelected = selectedMonth === m.value && timeFilter === "MONTH";
+                        const isCurrent = m.value === new Date().getMonth() && selectedYear === new Date().getFullYear();
+                        return (
+                          <button
+                            key={m.value}
+                            type="button"
+                            onClick={() => {
+                              setSelectedMonth(m.value);
+                              setTimeFilter("MONTH");
+                              setMonthDropdownOpen(false);
+                            }}
+                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold text-left transition-colors cursor-pointer ${
+                              isSelected
+                                ? "bg-[#0D1B4A] text-white shadow-2xs"
+                                : "text-gray-700 hover:bg-blue-50 hover:text-[#0D1B4A]"
+                            }`}
+                          >
+                            <span className="truncate">{m.label}</span>
+                            {isSelected ? (
+                              <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            ) : isCurrent ? (
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" title="Bulan Sekarang" />
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cur = new Date();
+                          setSelectedMonth(cur.getMonth());
+                          setSelectedYear(cur.getFullYear());
+                          setTimeFilter("MONTH");
+                          setMonthDropdownOpen(false);
+                        }}
+                        className="w-full text-center py-1.5 text-[11px] font-bold text-blue-700 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                      >
+                        Pilih Bulan Sekarang ({MONTH_OPTIONS[new Date().getMonth()].label} {new Date().getFullYear()})
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setTimeFilter("CUSTOM")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
+                  timeFilter === "CUSTOM"
+                    ? "bg-[#0D1B4A] text-white shadow-xs"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                }`}
+              >
+                <Filter className={`w-3.5 h-3.5 ${timeFilter === "CUSTOM" ? "text-[#F59E0B]" : "text-gray-400"}`} />
+                <span>Rentang</span>
+              </button>
 
               {timeFilter !== "ALL" && (
                 <button
@@ -659,6 +809,53 @@ export default function Dashboard() {
               >
                 September 2026
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Expandable Month Selection Control */}
+        {timeFilter === "MONTH" && (
+          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 animate-fadeIn text-xs">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="font-bold text-gray-700">Pilih Bulan & Tahun:</span>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                  className="px-3 py-1.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none text-xs font-semibold text-gray-800 cursor-pointer shadow-2xs"
+                >
+                  {MONTH_OPTIONS.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="px-3 py-1.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none text-xs font-semibold text-gray-800 cursor-pointer shadow-2xs"
+                >
+                  {[2024, 2025, 2026, 2027].map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const now = new Date();
+                  setSelectedMonth(now.getMonth());
+                  setSelectedYear(now.getFullYear());
+                }}
+                className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+              >
+                Gunakan Bulan Sekarang ({MONTH_OPTIONS[new Date().getMonth()].label} {new Date().getFullYear()})
+              </button>
+            </div>
+            <div className="text-gray-400 text-[11px]">
+              Menampilkan data periode: <span className="font-bold text-gray-700">{MONTH_OPTIONS[selectedMonth].label} {selectedYear}</span>
             </div>
           </div>
         )}
