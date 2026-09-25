@@ -46,6 +46,7 @@ import {
   Cell,
   LineChart,
   Line,
+  ComposedChart,
 } from "recharts";
 import {
   initialTimData,
@@ -145,14 +146,14 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-[#0D1B4A] text-white px-4 py-3 rounded-xl shadow-xl text-sm border border-white/10">
-        <p className="font-bold mb-1 text-gray-200">{label}</p>
+        <p className="font-bold mb-1.5 text-gray-200 border-b border-white/10 pb-1">{label}</p>
         {payload.map((item, i) => (
-          <p key={i} className="text-white/80 text-xs py-0.5 flex items-center justify-between gap-3">
+          <p key={i} className="text-white/80 text-xs py-0.5 flex items-center justify-between gap-4">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-              {item.name}:
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color || item.fill }} />
+              <span>{item.name}:</span>
             </span>
-            <span className="font-bold text-white">{item.value}</span>
+            <span className="font-bold text-white text-sm">{item.value}</span>
           </p>
         ))}
       </div>
@@ -193,7 +194,7 @@ export default function Dashboard() {
     "xnet_dashboard_show_detail_pekerjaan",
     true
   );
-  const [trendViewType, setTrendViewType] = useState("detail");
+  const [trendChartMode, setTrendChartMode] = useState("composed");
 
   // Month Filtering Dropdown State
   const now = new Date();
@@ -373,7 +374,7 @@ export default function Dashboard() {
     return items.length > 0 ? items : [{ name: "Belum Ada", value: 1 }];
   }, [filteredLeads]);
 
-  // Trend Chart Data (Adapts to Week or Month)
+  // Trend Chart Data (3 Data Pokok: Pemasangan, Pemutusan, Leads)
   const trendChartData = useMemo(() => {
     if (timeFilter === "WEEK") {
       const end = parseRecordDate(selectedDate) || new Date();
@@ -388,17 +389,12 @@ export default function Dashboard() {
         const dayLabel = `${d.getDate()} ${d.toLocaleString("id-ID", { month: "short" })}`;
         const dayJobs = filteredPekerjaan.filter((p) => p.tanggal === dayStr);
         const pemasangan = dayJobs.filter((p) => p.jenis === "PEMASANGAN").length;
-        const perbaikan = dayJobs.filter((p) => p.jenis === "PERBAIKAN").length;
         const pemutusan = dayJobs.filter((p) => p.jenis === "PEMUTUSAN").length;
-        const perbaikanKhusus = dayJobs.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)").length;
         const leads = filteredLeads.filter((l) => l.tanggal === dayStr).length;
         days.push({
           name: dayLabel,
           pemasangan,
-          perbaikan,
           pemutusan,
-          perbaikanKhusus,
-          pekerjaan: dayJobs.length,
           leads,
         });
       }
@@ -419,9 +415,7 @@ export default function Dashboard() {
         return day !== null && day >= start && day <= end;
       });
       const pemasangan = weekJobs.filter((p) => p.jenis === "PEMASANGAN").length;
-      const perbaikan = weekJobs.filter((p) => p.jenis === "PERBAIKAN").length;
       const pemutusan = weekJobs.filter((p) => p.jenis === "PEMUTUSAN").length;
-      const perbaikanKhusus = weekJobs.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)").length;
       const leadsCount = filteredLeads.filter((l) => {
         const day = parseDay(l.tanggal);
         return day !== null && day >= start && day <= end;
@@ -430,14 +424,20 @@ export default function Dashboard() {
       return {
         name,
         pemasangan,
-        perbaikan,
         pemutusan,
-        perbaikanKhusus,
-        pekerjaan: weekJobs.length,
         leads: leadsCount,
       };
     });
   }, [filteredPekerjaan, filteredLeads, timeFilter, selectedDate]);
+
+  // Mini KPI Summary untuk Trend 3 Data
+  const trendSummary = useMemo(() => {
+    const totalPasang = trendChartData.reduce((acc, curr) => acc + (curr.pemasangan || 0), 0);
+    const totalPutus = trendChartData.reduce((acc, curr) => acc + (curr.pemutusan || 0), 0);
+    const totalLeads = trendChartData.reduce((acc, curr) => acc + (curr.leads || 0), 0);
+    const netGrowth = totalPasang - totalPutus;
+    return { totalPasang, totalPutus, totalLeads, netGrowth };
+  }, [trendChartData]);
 
   // Gangguan Categories
   const gangguanKategoriList = useMemo(() => {
@@ -1319,101 +1319,184 @@ export default function Dashboard() {
 
       {/* Row 1: Weekly Trend & Leads Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Weekly Trend */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <div>
-              <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#0D1B4A]" />
-                {timeFilter === "WEEK"
-                  ? "Tren Aktivitas 7 Hari Terakhir"
-                  : timeFilter === "TODAY"
-                  ? "Tren Aktivitas Hari Ini"
-                  : "Tren Aktivitas Periode"}
-              </h3>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {trendViewType === "detail"
-                  ? "Rincian volume pemasangan, perbaikan, pemutusan, dan leads"
-                  : "Perbandingan volume total pekerjaan vs leads"}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5">
-              {/* Toggle View */}
-              <div className="bg-gray-100 p-0.5 rounded-lg flex items-center text-[10px] font-bold">
-                <button
-                  onClick={() => setTrendViewType("detail")}
-                  className={`px-2 py-0.5 rounded-md transition-all ${
-                    trendViewType === "detail"
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-800"
-                  }`}
-                >
-                  Detail
-                </button>
-                <button
-                  onClick={() => setTrendViewType("total")}
-                  className={`px-2 py-0.5 rounded-md transition-all ${
-                    trendViewType === "total"
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-800"
-                  }`}
-                >
-                  Total
-                </button>
+        {/* Weekly Trend (3 Data: Pemasangan, Pemutusan, Leads) */}
+        <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+              <div>
+                <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-[#0D1B4A]" />
+                  {timeFilter === "WEEK"
+                    ? "Tren Pemasangan, Pemutusan & Leads (7 Hari)"
+                    : timeFilter === "TODAY"
+                    ? "Tren Pemasangan, Pemutusan & Leads (Hari Ini)"
+                    : "Tren Pemasangan, Pemutusan & Leads"}
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Perbandingan volume pemasangan baru, pemutusan, dan perolehan leads
+                </p>
               </div>
 
-              {trendViewType === "detail" ? (
-                <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-[#2563EB]" /> Pasang
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Mini KPI Badges */}
+                <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold mr-1">
+                  <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100">
+                    Pasang: <b>{trendSummary.totalPasang}</b>
                   </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-[#F97316]" /> Perbaikan
+                  <span className="px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-100">
+                    Putus: <b>{trendSummary.totalPutus}</b>
                   </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-[#DC2626]" /> Putus
+                  <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-100">
+                    Leads: <b>{trendSummary.totalLeads}</b>
                   </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" /> ODP
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-[#F59E0B]" /> Leads
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 text-xs font-semibold">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#0D1B4A]" /> Pekerjaan
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" /> Leads
+                  <span
+                    className={`px-2 py-0.5 rounded-md border ${
+                      trendSummary.netGrowth >= 0
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                        : "bg-rose-50 text-rose-700 border-rose-100"
+                    }`}
+                  >
+                    Net: <b>{trendSummary.netGrowth >= 0 ? `+${trendSummary.netGrowth}` : trendSummary.netGrowth}</b>
                   </span>
                 </div>
-              )}
+
+                {/* Toggle Mode */}
+                <div className="bg-gray-100 p-0.5 rounded-lg flex items-center text-[10px] font-bold">
+                  <button
+                    onClick={() => setTrendChartMode("composed")}
+                    className={`px-2 py-0.5 rounded-md transition-all ${
+                      trendChartMode === "composed"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-500 hover:text-gray-800"
+                    }`}
+                  >
+                    Kombinasi
+                  </button>
+                  <button
+                    onClick={() => setTrendChartMode("line")}
+                    className={`px-2 py-0.5 rounded-md transition-all ${
+                      trendChartMode === "line"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-500 hover:text-gray-800"
+                    }`}
+                  >
+                    Garis
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Legend & Indicator */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3 px-1 text-xs">
+              <div className="flex items-center gap-3.5 text-xs font-semibold">
+                <span className="flex items-center gap-1.5 text-gray-700">
+                  <span className="w-2.5 h-2.5 rounded bg-[#2563EB]" />
+                  Pemasangan
+                </span>
+                <span className="flex items-center gap-1.5 text-gray-700">
+                  <span className="w-2.5 h-2.5 rounded bg-[#DC2626]" />
+                  Pemutusan
+                </span>
+                <span className="flex items-center gap-1.5 text-gray-700">
+                  <span className="w-3.5 h-1 rounded bg-[#F59E0B]" />
+                  Leads
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-400">
+                {trendChartMode === "composed"
+                  ? "Batang: Pasang & Putus | Garis: Leads"
+                  : "Grafik Garis Komparatif"}
+              </p>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={trendChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              {trendViewType === "detail" ? (
-                <>
-                  <Line type="monotone" dataKey="pemasangan" stroke="#2563EB" strokeWidth={2.5} dot={{ r: 3, fill: "#2563EB" }} activeDot={{ r: 5 }} name="Pemasangan" />
-                  <Line type="monotone" dataKey="perbaikan" stroke="#F97316" strokeWidth={2.5} dot={{ r: 3, fill: "#F97316" }} activeDot={{ r: 5 }} name="Perbaikan" />
-                  <Line type="monotone" dataKey="pemutusan" stroke="#DC2626" strokeWidth={2.5} dot={{ r: 3, fill: "#DC2626" }} activeDot={{ r: 5 }} name="Pemutusan" />
-                  <Line type="monotone" dataKey="perbaikanKhusus" stroke="#8B5CF6" strokeWidth={2} strokeDasharray="3 3" dot={{ r: 3, fill: "#8B5CF6" }} activeDot={{ r: 5 }} name="Khusus ODP" />
-                  <Line type="monotone" dataKey="leads" stroke="#F59E0B" strokeWidth={2.5} dot={{ r: 3, fill: "#F59E0B" }} activeDot={{ r: 5 }} name="Leads" />
-                </>
-              ) : (
-                <>
-                  <Line type="monotone" dataKey="pekerjaan" stroke="#0D1B4A" strokeWidth={2.5} dot={{ r: 3, fill: "#0D1B4A" }} activeDot={{ r: 5 }} name="Pekerjaan" />
-                  <Line type="monotone" dataKey="leads" stroke="#F59E0B" strokeWidth={2.5} dot={{ r: 3, fill: "#F59E0B" }} activeDot={{ r: 5 }} name="Leads" />
-                </>
-              )}
-            </LineChart>
+
+          <ResponsiveContainer width="100%" height={240}>
+            {trendChartMode === "composed" ? (
+              <ComposedChart data={trendChartData} barGap={4}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 11, fill: "#64748B" }}
+                  axisLine={{ stroke: "#E2E8F0" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fill: "#64748B" }}
+                  axisLine={false}
+                  tickLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar
+                  dataKey="pemasangan"
+                  name="Pemasangan"
+                  fill="#2563EB"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={28}
+                />
+                <Bar
+                  dataKey="pemutusan"
+                  name="Pemutusan"
+                  fill="#DC2626"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={28}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="leads"
+                  name="Leads"
+                  stroke="#F59E0B"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: "#FFFFFF", stroke: "#F59E0B", strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: "#F59E0B", stroke: "#FFFFFF", strokeWidth: 2 }}
+                />
+              </ComposedChart>
+            ) : (
+              <LineChart data={trendChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 11, fill: "#64748B" }}
+                  axisLine={{ stroke: "#E2E8F0" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fill: "#64748B" }}
+                  axisLine={false}
+                  tickLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Line
+                  type="monotone"
+                  dataKey="pemasangan"
+                  stroke="#2563EB"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: "#2563EB" }}
+                  activeDot={{ r: 6 }}
+                  name="Pemasangan"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="pemutusan"
+                  stroke="#DC2626"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: "#DC2626" }}
+                  activeDot={{ r: 6 }}
+                  name="Pemutusan"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="leads"
+                  stroke="#F59E0B"
+                  strokeWidth={3}
+                  strokeDasharray="4 4"
+                  dot={{ r: 4, fill: "#FFFFFF", stroke: "#F59E0B", strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: "#F59E0B", stroke: "#FFFFFF", strokeWidth: 2 }}
+                  name="Leads"
+                />
+              </LineChart>
+            )}
           </ResponsiveContainer>
         </div>
 
