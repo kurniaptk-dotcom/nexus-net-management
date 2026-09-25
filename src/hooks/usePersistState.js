@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { db } from "../lib/supabase";
+import { db, supabase } from "../lib/supabase";
 
 const TABLE_MAP = {
   xnet_pekerjaan: "pekerjaan",
@@ -151,6 +151,55 @@ export function usePersistState(key, initialValue) {
       }
     })();
     return () => { cancelled = true; };
+  }, [table, key]);
+
+  // Real-time subscription to Supabase postgres_changes
+  useEffect(() => {
+    if (!table) return;
+    const channel = supabase
+      .channel(`realtime_${table}_${key}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: table },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const newItem = toCamel(payload.new);
+            setState((prev) => {
+              const list = Array.isArray(prev) ? prev : [];
+              if (list.some((r) => r.id === newItem.id)) return prev;
+              const next = [newItem, ...list];
+              localStorage.setItem(key, JSON.stringify(next));
+              window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
+              return next;
+            });
+          } else if (payload.eventType === "UPDATE") {
+            const updatedItem = toCamel(payload.new);
+            setState((prev) => {
+              const list = Array.isArray(prev) ? prev : [];
+              const next = list.map((r) => (r.id === updatedItem.id ? { ...r, ...updatedItem } : r));
+              localStorage.setItem(key, JSON.stringify(next));
+              window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
+              return next;
+            });
+          } else if (payload.eventType === "DELETE") {
+            const deletedId = payload.old?.id;
+            if (deletedId) {
+              setState((prev) => {
+                const list = Array.isArray(prev) ? prev : [];
+                const next = list.filter((r) => r.id !== deletedId);
+                localStorage.setItem(key, JSON.stringify(next));
+                window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
+                return next;
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [table, key]);
 
   // Persist to localStorage on change

@@ -79,6 +79,14 @@ function parseRecordDate(dStr) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+function getSystemTodayStr() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function StatCard({ icon: Icon, label, value, subtext, changeType = "up", bgColor, href }) {
   const content = (
     <div className="bg-white rounded-2xl p-5 border border-gray-100 hover:shadow-lg hover:shadow-gray-200/50 hover:border-gray-200 transition-all duration-300 group cursor-pointer relative overflow-hidden">
@@ -148,11 +156,22 @@ export default function Dashboard() {
 
   const [, setRefreshKey] = useState(0);
 
+  // Live real-time current date
+  const [currentSystemDate, setCurrentSystemDate] = useState(getSystemTodayStr);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const nowStr = getSystemTodayStr();
+      setCurrentSystemDate((prev) => (prev !== nowStr ? nowStr : prev));
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Time Filtering State (ALL | TODAY | WEEK | MONTH | CUSTOM)
   const [timeFilter, setTimeFilter] = useState("ALL");
-  const [selectedDate, setSelectedDate] = useState("2026-09-24");
+  const [selectedDate, setSelectedDate] = useState(currentSystemDate);
   const [customStartDate, setCustomStartDate] = useState("2026-09-01");
-  const [customEndDate, setCustomEndDate] = useState("2026-09-24");
+  const [customEndDate, setCustomEndDate] = useState(currentSystemDate);
   const [scheduleTab, setScheduleTab] = useState("ALL");
   const [showDetailPekerjaan, setShowDetailPekerjaan] = usePersistState(
     "xnet_dashboard_show_detail_pekerjaan",
@@ -418,8 +437,13 @@ export default function Dashboard() {
   }, [filteredGangguan]);
 
   // Pekerjaan Hari Ini & Jadwal Terdekat
-  const todayRefStr = selectedDate || "2026-09-24";
-  const refToday = useMemo(() => parseRecordDate(todayRefStr) || new Date(), [todayRefStr]);
+  // Menggunakan tanggal real-time sistem agar badge 'HARI INI', 'BESOK', dan hitungan tab selalu sinkron dengan hari ini
+  const refToday = useMemo(() => {
+    if (timeFilter === "TODAY" && selectedDate) {
+      return parseRecordDate(selectedDate) || new Date();
+    }
+    return parseRecordDate(currentSystemDate) || new Date();
+  }, [timeFilter, selectedDate, currentSystemDate]);
 
   const scheduleData = useMemo(() => {
     const todayTime = new Date(refToday.getFullYear(), refToday.getMonth(), refToday.getDate()).getTime();
@@ -652,10 +676,10 @@ export default function Dashboard() {
               />
               <button
                 type="button"
-                onClick={() => setSelectedDate("2026-09-24")}
+                onClick={() => setSelectedDate(getSystemTodayStr())}
                 className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
               >
-                Gunakan Hari Ini (24 Sep 2026)
+                Gunakan Hari Ini ({new Date().toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })})
               </button>
             </div>
           </div>
