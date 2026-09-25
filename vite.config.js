@@ -22,7 +22,7 @@ export default defineConfig({
         short_name: 'NexusNet',
         description: 'Sistem Manajemen Lapangan dan Operasional WiFi Nexus Net',
         theme_color: '#0D1B4A',
-        background_color: '#FFFFFF',
+        background_color: '#0D1B4A',
         display: 'standalone',
         orientation: 'any',
         scope: '/',

@@ -85,8 +85,8 @@ export default function InstallPWA() {
       {showPrompt && (
         <div className="fixed bottom-5 right-5 z-50 max-w-sm w-[calc(100vw-2.5rem)] bg-white border border-gray-100 shadow-2xl rounded-2xl p-4 transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
           <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 shadow-md p-1 overflow-hidden">
-              <img src="/pwa-192x192.png" alt="Nexus Net" className="w-full h-full object-contain rounded-lg" />
+            <div className="w-12 h-12 rounded-xl bg-[#0D1B4A] flex items-center justify-center flex-shrink-0 shadow-md">
+              <img src="/LogoNexusputihoren.png" alt="Nexus Net" className="w-8 h-8 object-contain" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
