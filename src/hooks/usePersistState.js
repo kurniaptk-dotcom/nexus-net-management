@@ -8,6 +8,7 @@ const TABLE_MAP = {
   xnet_daftar_gangguan_v2: "daftar_gangguan",
   xnet_tim: "tim",
   xnet_odpodc: "odp_odc",
+  xnet_pengajuan_pemutusan: "pengajuan_pemutusan",
 };
 
 const ALLOWED_COLUMNS = {
@@ -17,6 +18,7 @@ const ALLOWED_COLUMNS = {
   leads: ["nama", "sumber", "status", "tanggal", "telepon", "alamat"],
   tim: ["nama"],
   odp_odc: ["odc", "nama", "keterangan", "status"],
+  pengajuan_pemutusan: ["nama", "kontak", "alasan", "tanggal"],
 };
 
 function sanitizeForTable(tableName, row) {
@@ -85,7 +87,7 @@ function toSnake(row) {
 }
 
 // One-time automatic reset of local mock data caches to start with clean real data
-const RESET_STORAGE_KEY = "xnet_reset_to_real_data_v3";
+const RESET_STORAGE_KEY = "xnet_reset_to_real_data_v4";
 if (typeof window !== "undefined" && !localStorage.getItem(RESET_STORAGE_KEY)) {
   const keysToReset = [
     "xnet_pekerjaan",
@@ -95,6 +97,7 @@ if (typeof window !== "undefined" && !localStorage.getItem(RESET_STORAGE_KEY)) {
     "xnet_tim",
     "xnet_odpodc",
     "xnet_odc_list",
+    "xnet_pengajuan_pemutusan",
   ];
   keysToReset.forEach((k) => localStorage.removeItem(k));
   localStorage.setItem(RESET_STORAGE_KEY, "done");

@@ -16,8 +16,13 @@ import {
   XCircle,
   Network,
   Users,
+  UserMinus,
+  ArrowUpRight,
+  Phone,
+  FileText,
+  X,
 } from "lucide-react";
-import { pekerjaanList, timList, jenisPekerjaan, statusPekerjaan, odpOdcList } from "../data/mockData";
+import { pekerjaanList, timList, jenisPekerjaan, statusPekerjaan, odpOdcList, pengajuanPemutusanList } from "../data/mockData";
 import { generatePekerjaanNotification } from "../store/notificationStore";
 import { usePersistState } from "../hooks/usePersistState";
 import CalendarView from "../components/CalendarView";
@@ -148,6 +153,16 @@ export default function Pekerjaan() {
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterTim, setFilterTim] = useState("ALL");
   const [viewMode, setViewMode] = useState("kanban");
+  const [activeTab, setActiveTab] = useState("pekerjaan");
+  const [pengajuanData, setPengajuanData] = usePersistState("xnet_pengajuan_pemutusan", pengajuanPemutusanList);
+  const [searchPemutusan, setSearchPemutusan] = useState("");
+  const [showAddPemutusanModal, setShowAddPemutusanModal] = useState(false);
+  const [pemutusanForm, setPemutusanForm] = useState({
+    nama: "",
+    kontak: "",
+    alasan: "",
+    tanggal: new Date().toISOString().split("T")[0],
+  });
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [, setDraggedId] = useState(null);
@@ -290,6 +305,71 @@ export default function Pekerjaan() {
     setShowModal(false);
   };
 
+  const filteredPemutusan = useMemo(() => {
+    const q = (searchPemutusan || "").toLowerCase().trim();
+    if (!q) return pengajuanData || [];
+    return (pengajuanData || []).filter((item) => {
+      return (
+        (item.nama && item.nama.toLowerCase().includes(q)) ||
+        (item.kontak && item.kontak.toLowerCase().includes(q)) ||
+        (item.alasan && item.alasan.toLowerCase().includes(q)) ||
+        (item.tanggal && item.tanggal.toLowerCase().includes(q))
+      );
+    });
+  }, [pengajuanData, searchPemutusan]);
+
+  const handleDisposisiKePekerjaan = (item) => {
+    setEditingItem(null);
+    let inferredOdp = "";
+    if (item.nama && item.nama.includes("-")) {
+      inferredOdp = item.nama.split("-")[0].trim();
+    }
+    setFormData({
+      tim: timData[0]?.nama || "GATRA - AIS",
+      jenis: "PEMUTUSAN",
+      pelanggan: item.nama,
+      alamat: inferredOdp ? `Area Distribusi ${inferredOdp}` : "Alamat pelanggan",
+      odc: "",
+      odp: inferredOdp,
+      userTerdampak: "",
+      tanggalSelesai: "",
+      status: "WAITING LIST",
+      tanggal: item.tanggal || new Date().toISOString().split("T")[0],
+      keterangan: `Pengajuan Pemutusan: ${item.alasan || "-"} | Kontak: ${item.kontak || "-"}`,
+    });
+    setActiveTab("pekerjaan");
+    setShowModal(true);
+  };
+
+  const handleDeletePemutusan = (id) => {
+    if (confirm("Hapus data pengajuan pemutusan ini?")) {
+      setPengajuanData((prev) => (prev || []).filter((p) => p.id !== id));
+    }
+  };
+
+  const handleSavePemutusan = (e) => {
+    e.preventDefault();
+    if (!pemutusanForm.nama.trim()) {
+      alert("Nama pelanggan / ODP wajib diisi!");
+      return;
+    }
+    const newItem = {
+      id: Date.now(),
+      nama: pemutusanForm.nama.trim(),
+      kontak: pemutusanForm.kontak.trim(),
+      alasan: pemutusanForm.alasan.trim(),
+      tanggal: pemutusanForm.tanggal || new Date().toISOString().split("T")[0],
+    };
+    setPengajuanData((prev) => [newItem, ...(prev || [])]);
+    setShowAddPemutusanModal(false);
+    setPemutusanForm({
+      nama: "",
+      kontak: "",
+      alasan: "",
+      tanggal: new Date().toISOString().split("T")[0],
+    });
+  };
+
   const handleDragStart = (e, id) => {
     setDraggedId(id);
     e.dataTransfer.effectAllowed = "move";
@@ -336,61 +416,100 @@ export default function Pekerjaan() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Pekerjaan</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Drag & drop untuk ubah status pekerjaan</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="bg-white border border-gray-200 rounded-xl flex p-1 shadow-sm">
-            <button
-              onClick={() => setViewMode("kanban")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                viewMode === "kanban"
-                  ? "bg-[#0D1B4A] text-white shadow-md"
-                  : "text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              <LayoutGrid className="w-4 h-4" />
-              Board
-            </button>
-            <button
-              onClick={() => setViewMode("table")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                viewMode === "table"
-                  ? "bg-[#0D1B4A] text-white shadow-md"
-                  : "text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              <List className="w-4 h-4" />
-              Tabel
-            </button>
-            <button
-              onClick={() => setViewMode("calendar")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                viewMode === "calendar"
-                  ? "bg-[#0D1B4A] text-white shadow-md"
-                  : "text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              <CalendarDays className="w-4 h-4" />
-              Kalender
-            </button>
-          </div>
-          <button
-            onClick={() => handleAdd("PERBAIKAN KHUSUS (ODP/ODC)")}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all"
-          >
-            <Wrench className="w-4 h-4" />
-            + Perbaikan ODP/ODC
-          </button>
-          <button
-            onClick={() => handleAdd("PEMASANGAN")}
-            className="flex items-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            Tambah
-          </button>
+          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Pekerjaan & Disposisi</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Kelola antrian teknisi lapangan dan pengajuan pemutusan pelanggan</p>
         </div>
       </div>
+
+      {/* Primary Tab Switcher */}
+      <div className="flex border-b border-gray-200 gap-6">
+        <button
+          onClick={() => setActiveTab("pekerjaan")}
+          className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+            activeTab === "pekerjaan"
+              ? "border-[#0D1B4A] text-[#0D1B4A]"
+              : "border-transparent text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          <Wrench className="w-4 h-4" />
+          <span>Pekerjaan Lapangan</span>
+          <span className="ml-1 text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-extrabold">
+            {data.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("pemutusan")}
+          className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+            activeTab === "pemutusan"
+              ? "border-red-500 text-red-600"
+              : "border-transparent text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          <UserMinus className="w-4 h-4" />
+          <span>Pengajuan Pemutusan Masuk</span>
+          <span className="ml-1 text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-extrabold">
+            {pengajuanData?.length || 0}
+          </span>
+        </button>
+      </div>
+
+      {activeTab === "pekerjaan" ? (
+        <>
+          {/* Controls: View Mode & Add */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="bg-white border border-gray-200 rounded-xl flex p-1 shadow-sm">
+                <button
+                  onClick={() => setViewMode("kanban")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                    viewMode === "kanban"
+                      ? "bg-[#0D1B4A] text-white shadow-md"
+                      : "text-gray-500 hover:bg-gray-100"
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  Board
+                </button>
+                <button
+                  onClick={() => setViewMode("table")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                    viewMode === "table"
+                      ? "bg-[#0D1B4A] text-white shadow-md"
+                      : "text-gray-500 hover:bg-gray-100"
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                  Tabel
+                </button>
+                <button
+                  onClick={() => setViewMode("calendar")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                    viewMode === "calendar"
+                      ? "bg-[#0D1B4A] text-white shadow-md"
+                      : "text-gray-500 hover:bg-gray-100"
+                  }`}
+                >
+                  <CalendarDays className="w-4 h-4" />
+                  Kalender
+                </button>
+              </div>
+              <button
+                onClick={() => handleAdd("PERBAIKAN KHUSUS (ODP/ODC)")}
+                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all"
+              >
+                <Wrench className="w-4 h-4" />
+                + Perbaikan ODP/ODC
+              </button>
+              <button
+                onClick={() => handleAdd("PEMASANGAN")}
+                className="flex items-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                Tambah
+              </button>
+            </div>
+          </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
@@ -602,6 +721,118 @@ export default function Pekerjaan() {
           )}
         </div>
       )}
+    </>
+  ) : (
+    <div className="space-y-4">
+      {/* Card Summary Banner */}
+      <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl p-5 border border-red-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+            <UserMinus className="w-5 h-5 text-red-500" />
+            Antrian Pengajuan Pemutusan Pelanggan ({pengajuanData?.length || 0})
+          </h2>
+          <p className="text-xs text-gray-600 mt-1">
+            Data permohonan pemutusan riil dari pelanggan. Klik <b>"Disposisi ke Tim"</b> untuk menugaskan teknisi lapangan mencopot kabel / perangkat modem.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowAddPemutusanModal(true)}
+          className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          + Input Pengajuan Baru
+        </button>
+      </div>
+
+      {/* Search bar */}
+      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-wrap gap-3">
+        <div className="flex-1 min-w-[240px] relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Cari nama pelanggan, ODP, alasan, atau kontak..."
+            value={searchPemutusan}
+            onChange={(e) => setSearchPemutusan(e.target.value)}
+            className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-red-400 focus:border-transparent outline-none transition-all"
+          />
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50/80">
+              <tr>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">No</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Pelanggan / Target ODP</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Kontak</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Tanggal</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Alasan Pemutusan</th>
+                <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filteredPemutusan.map((item, i) => (
+                <tr key={item.id || i} className="hover:bg-red-50/20 transition-colors">
+                  <td className="px-5 py-3 text-gray-400 font-medium">{i + 1}</td>
+                  <td className="px-5 py-3">
+                    <div className="font-bold text-gray-800 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
+                      <span>{item.nama || "-"}</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3 text-gray-600 font-medium">
+                    {item.kontak ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                        <Phone className="w-3 h-3 text-gray-400" />
+                        {item.kontak}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-300">-</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-gray-500 text-xs">
+                    {item.tanggal || "-"}
+                  </td>
+                  <td className="px-5 py-3">
+                    <span className="text-xs font-medium bg-red-50 text-red-700 border border-red-100 px-2.5 py-1 rounded-lg inline-block max-w-[300px] truncate">
+                      {item.alasan || "Pengajuan pemutusan layanan"}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleDisposisiKePekerjaan(item)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0D1B4A] hover:bg-[#0D1B4A]/90 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
+                        title="Buat tiket pekerjaan pemutusan untuk teknisi"
+                      >
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                        <span>Disposisi ke Tim</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeletePemutusan(item.id)}
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                        title="Hapus Pengajuan"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {filteredPemutusan.length === 0 && (
+          <div className="text-center py-12 text-gray-400">
+            <UserMinus className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p className="font-medium text-sm">Tidak ada antrian pengajuan pemutusan</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
 
       {/* Modal */}
       {showModal && (
@@ -942,6 +1173,95 @@ export default function Pekerjaan() {
                   }`}
                 >
                   Simpan Pekerjaan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Tambah Pengajuan Pemutusan */}
+      {showAddPemutusanModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <UserMinus className="w-5 h-5 text-red-500" />
+                Tambah Pengajuan Pemutusan
+              </h3>
+              <button
+                onClick={() => setShowAddPemutusanModal(false)}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSavePemutusan} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                  Nama Pelanggan / Format ODP
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: ODP.1.2-Yusmin"
+                  value={pemutusanForm.nama}
+                  onChange={(e) => setPemutusanForm({ ...pemutusanForm, nama: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-red-400 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                  Nomor Kontak / WhatsApp
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: 08123456789"
+                  value={pemutusanForm.kontak}
+                  onChange={(e) => setPemutusanForm({ ...pemutusanForm, kontak: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-red-400 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                  Tanggal Pengajuan
+                </label>
+                <input
+                  type="date"
+                  value={pemutusanForm.tanggal}
+                  onChange={(e) => setPemutusanForm({ ...pemutusanForm, tanggal: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-red-400 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                  Alasan Pemutusan
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Contoh: Pindah rumah ke luar kota / Kendala biaya"
+                  value={pemutusanForm.alasan}
+                  onChange={(e) => setPemutusanForm({ ...pemutusanForm, alasan: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-red-400 outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddPemutusanModal(false)}
+                  className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold shadow-md shadow-red-200"
+                >
+                  Simpan Pengajuan
                 </button>
               </div>
             </form>
