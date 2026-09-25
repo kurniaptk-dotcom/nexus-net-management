@@ -712,9 +712,9 @@ export default function Dashboard() {
       </div>
 
       {/* 2 Dedicated Cards Side-by-Side: Detail Pekerjaan & Jadwal Terdekat */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Card 1: Detail Pekerjaan */}
-        <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm transition-all ${showDetailPekerjaan ? "p-5 sm:p-6 space-y-4" : "p-4 sm:p-5"}`}>
+        <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm transition-all h-full flex flex-col justify-between ${showDetailPekerjaan ? "p-5 sm:p-6 space-y-4" : "p-4 sm:p-5 space-y-3"}`}>
           {/* Header of Detail Pekerjaan */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div
@@ -1110,11 +1110,13 @@ export default function Dashboard() {
             </Link>
           </div>
         </div>
+          </>
+        )}
 
-        {/* Global Distribution Status Progress Bar */}
-        <div className="p-3.5 bg-gray-50/70 rounded-xl border border-gray-100 flex flex-col gap-3">
+        {/* Global Distribution Status Progress Bar (Always at bottom for equal height & clean balance) */}
+        <div className="p-3 bg-gray-50/80 rounded-xl border border-gray-100 flex flex-col gap-2 mt-auto">
           <div>
-            <div className="flex items-center justify-between text-xs font-bold text-gray-700 mb-2">
+            <div className="flex items-center justify-between text-xs font-bold text-gray-700 mb-1.5">
               <span className="flex items-center gap-1.5">
                 <Activity className="w-3.5 h-3.5 text-[#0D1B4A]" />
                 Komposisi Status
@@ -1167,12 +1169,10 @@ export default function Dashboard() {
             </span>
           </div>
         </div>
-          </>
-        )}
       </div>
 
       {/* Card 2: Jadwal & Penugasan Terdekat */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm space-y-3">
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm h-full flex flex-col justify-between space-y-3">
         {/* Header of Jadwal Terdekat */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
           <div className="flex items-center gap-3">
@@ -1233,7 +1233,7 @@ export default function Dashboard() {
 
         {/* Compact Single-Line Rows with clean scroll container */}
         {filteredScheduleList.length > 0 ? (
-          <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden max-h-[420px] overflow-y-auto">
+          <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden flex-1 min-h-[140px] max-h-[420px] overflow-y-auto">
             {filteredScheduleList.map((item) => {
               const jc =
                 item.jenis === "PEMASANGAN"
