@@ -15,7 +15,23 @@ export function AuthProvider({ children }) {
         console.error("fetchProfile error:", error.message);
         setProfile(null);
       } else {
-        setProfile(data);
+        // Merge with local permissions cache if DB column not yet migrated
+        let merged = { ...data };
+        try {
+          const cached = localStorage.getItem(`xnet_perms_${userId}`);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed.allowedMenus && !merged.allowed_menus) {
+              merged.allowed_menus = parsed.allowedMenus;
+            }
+            if (parsed.role && merged.role === "user" && parsed.role !== "user") {
+              merged.role = parsed.role;
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+        setProfile(merged);
       }
     } catch (err) {
       console.error("fetchProfile exception:", err);
@@ -43,23 +59,55 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  async function signUp(email, password, fullName, role = "user") {
+  async function signUp(email, password, fullName, role = "user", allowedMenus = null) {
     // Gunakan unpersisted client agar sesi admin saat ini tidak terganti oleh user baru
     const client = profile?.role === "admin" ? createUnpersistedClient() : supabase;
     const { data, error } = await client.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, role } },
+      options: { data: { full_name: fullName, role, allowed_menus: allowedMenus } },
     });
     if (error) throw error;
+
     // Insert/upsert profile directly
     if (data.user) {
-      await supabase.from("profiles").upsert({
-        id: data.user.id,
-        email,
-        full_name: fullName,
-        role,
-      });
+      try {
+        const payload = {
+          id: data.user.id,
+          email,
+          full_name: fullName,
+          role,
+        };
+        if (allowedMenus) payload.allowed_menus = allowedMenus;
+
+        const { error: upsertErr } = await supabase.from("profiles").upsert(payload);
+        if (upsertErr) {
+          console.warn("Retrying profile upsert with safe role:", upsertErr.message);
+          // Fallback if role constraint or allowed_menus column not yet migrated
+          await supabase.from("profiles").upsert({
+            id: data.user.id,
+            email,
+            full_name: fullName,
+            role: role === "admin" ? "admin" : "user",
+          });
+        }
+      } catch (err) {
+        console.warn("Profile upsert exception:", err);
+      }
+
+      // Simpan ke cache lokal permissions
+      try {
+        localStorage.setItem(
+          `xnet_perms_${data.user.id}`,
+          JSON.stringify({
+            role,
+            allowedMenus,
+            updatedAt: new Date().toISOString(),
+          })
+        );
+      } catch (e) {
+        // ignore
+      }
     }
     return data;
   }
@@ -91,10 +139,46 @@ export function AuthProvider({ children }) {
   }
 
   async function updateProfile(userId, updates) {
-    const { data, error } = await supabase.from("profiles").update(updates).eq("id", userId).select().single();
-    if (error) throw error;
-    if (userId === user?.id) setProfile(data);
-    return data;
+    let savedData = null;
+    try {
+      const { data, error } = await supabase.from("profiles").update(updates).eq("id", userId).select().single();
+      if (!error) {
+        savedData = data;
+      } else {
+        console.warn("Direct updateProfile failed, using safe fallback:", error.message);
+        const safeUpdates = { ...updates };
+        if (safeUpdates.role && safeUpdates.role !== "admin" && safeUpdates.role !== "user") {
+          safeUpdates.role = "user";
+        }
+        delete safeUpdates.allowed_menus;
+        const { data: fallbackData, error: fbError } = await supabase.from("profiles").update(safeUpdates).eq("id", userId).select().single();
+        if (fbError) throw fbError;
+        savedData = { ...fallbackData, ...updates };
+      }
+    } catch (err) {
+      throw err;
+    }
+
+    // Selalu perbarui cache lokal permissions
+    if (updates.allowed_menus || updates.role) {
+      try {
+        localStorage.setItem(
+          `xnet_perms_${userId}`,
+          JSON.stringify({
+            role: updates.role || savedData?.role,
+            allowedMenus: updates.allowed_menus || savedData?.allowed_menus,
+            updatedAt: new Date().toISOString(),
+          })
+        );
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (userId === user?.id) {
+      setProfile((prev) => ({ ...prev, ...savedData }));
+    }
+    return savedData;
   }
 
   async function resetPassword(email) {

@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -19,10 +19,13 @@ import {
   CheckCircle2,
   Smartphone,
   Download,
+  MoreHorizontal,
+  HardHat,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import NotificationPanel from "./NotificationPanel";
+import { getUserAllowedMenus, getRoleInfo } from "../lib/permissions";
 
 function Logo({ collapsed }) {
   return (
@@ -40,13 +43,16 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSearchKeyDown = (e) => {
     if (e.key === "Enter" && globalSearch.trim()) {
       navigate(`/pekerjaan?search=${encodeURIComponent(globalSearch.trim())}`);
+      setMobileSearchOpen(false);
     }
   };
 
@@ -67,16 +73,56 @@ export default function Layout() {
     }
   };
 
-  const allNavItems = [
-    { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/tim", icon: Users, label: "Tim" },
-    { to: "/pekerjaan", icon: Wrench, label: "Pekerjaan" },
-    { to: "/leads", icon: Target, label: "Leads" },
-    { to: "/gangguan", icon: AlertTriangle, label: "Gangguan" },
-    { to: "/odp", icon: Network, label: "ODP / ODC" },
-    { to: "/laporan", icon: FileText, label: "Laporan" },
-    ...(profile?.role === "admin" ? [{ to: "/users", icon: Shield, label: "Manajemen User" }] : []),
-  ];
+  const roleInfo = useMemo(() => getRoleInfo(profile?.role), [profile?.role]);
+  const allowedPaths = useMemo(() => getUserAllowedMenus(profile), [profile]);
+
+  const allNavItems = useMemo(() => {
+    const rawItems = [
+      { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+      { to: "/teknisi", icon: HardHat, label: "Portal Teknisi" },
+      { to: "/tim", icon: Users, label: "Tim" },
+      { to: "/pekerjaan", icon: Wrench, label: "Pekerjaan" },
+      { to: "/leads", icon: Target, label: "Leads" },
+      { to: "/gangguan", icon: AlertTriangle, label: "Gangguan" },
+      { to: "/odp", icon: Network, label: "ODP / ODC" },
+      { to: "/laporan", icon: FileText, label: "Laporan" },
+      ...(profile?.role === "admin" ? [{ to: "/users", icon: Shield, label: "Manajemen User" }] : []),
+    ];
+
+    if (profile?.role === "admin") return rawItems;
+    return rawItems.filter((item) => allowedPaths.includes(item.to));
+  }, [profile, allowedPaths]);
+
+  // Primary navigation for mobile bottom bar (ambil 4 menu terpenting yang diizinkan)
+  const bottomNavItems = useMemo(() => {
+    const defaultPriority = [
+      { to: "/teknisi", icon: HardHat, label: "Teknisi" },
+      { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+      { to: "/pekerjaan", icon: Wrench, label: "Pekerjaan" },
+      { to: "/gangguan", icon: AlertTriangle, label: "Gangguan" },
+      { to: "/odp", icon: Network, label: "ODP" },
+      { to: "/leads", icon: Target, label: "Leads" },
+      { to: "/tim", icon: Users, label: "Tim" },
+      { to: "/laporan", icon: FileText, label: "Laporan" },
+    ];
+    if (profile?.role === "admin") return defaultPriority.slice(0, 4);
+    const filtered = defaultPriority.filter((item) => allowedPaths.includes(item.to));
+    return filtered.slice(0, 4);
+  }, [profile, allowedPaths]);
+
+  // Current page title mapping
+  const pageTitles = {
+    "/": "Nexus Net Dashboard",
+    "/teknisi": "Portal Lapangan Teknisi",
+    "/tim": "Manajemen Tim",
+    "/pekerjaan": "Manajemen Pekerjaan",
+    "/leads": "Manajemen Leads",
+    "/gangguan": "Daftar Gangguan",
+    "/odp": "Hierarki ODP / ODC",
+    "/laporan": "Rekapitulasi Laporan",
+    "/users": "Manajemen Pengguna",
+  };
+  const currentTitle = pageTitles[location.pathname] || "Nexus Net Management";
 
   return (
     <div className="flex h-screen bg-[#F0F2F5]">
@@ -84,17 +130,26 @@ export default function Layout() {
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-[#0D1B4A] text-white transform transition-all duration-300 lg:translate-x-0 lg:static lg:inset-auto ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } ${collapsed ? "w-20" : "w-64"}`}
+        } ${collapsed ? "w-20" : "w-64 max-w-[80vw]"}`}
       >
         {/* Logo */}
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <Logo collapsed={collapsed} />
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex p-1.5 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-          >
-            <ChevronRight className={`w-4 h-4 transform transition-transform ${collapsed ? "" : "rotate-180"}`} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="hidden lg:flex p-1.5 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
+            >
+              <ChevronRight className={`w-4 h-4 transform transition-transform ${collapsed ? "" : "rotate-180"}`} />
+            </button>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-2 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors cursor-pointer"
+              title="Tutup Menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation */}
@@ -124,7 +179,7 @@ export default function Layout() {
         <div className="px-3 py-2 border-t border-white/5">
           <button
             onClick={() => window.__showPwaInstallPrompt && window.__showPwaInstallPrompt()}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-amber-400 hover:text-amber-300 text-xs font-semibold transition-all border border-amber-400/20 shadow-sm"
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-amber-400 hover:text-amber-300 text-xs font-semibold transition-all border border-amber-400/20 shadow-sm cursor-pointer"
             title="Install aplikasi ke HP atau Desktop"
           >
             <Smartphone className="w-4 h-4 flex-shrink-0" />
@@ -141,11 +196,15 @@ export default function Layout() {
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white truncate">{profile?.full_name || "User"}</p>
-                <p className="text-[11px] text-white/40 truncate">{profile?.email}</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="text-[10px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/30">
+                    {roleInfo.badgeLabel}
+                  </span>
+                </div>
               </div>
             )}
             {!collapsed && (
-              <button onClick={signOut} title="Keluar" className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-red-400 transition-colors">
+              <button onClick={signOut} title="Keluar" className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-red-400 transition-colors cursor-pointer">
                 <LogOut className="w-4 h-4" />
               </button>
             )}
@@ -156,7 +215,7 @@ export default function Layout() {
       {/* Overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -164,46 +223,129 @@ export default function Layout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top Bar */}
-        <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200/60 px-4 md:px-6 py-3 flex items-center gap-4 sticky top-0 z-30">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-xl hover:bg-gray-100 text-gray-500"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+        <header className="bg-white/90 backdrop-blur-xl border-b border-gray-200/70 px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-30">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl hover:bg-gray-100 text-gray-600 active:scale-95 transition-all cursor-pointer"
+              title="Buka Menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
 
-          <div className="flex-1">
-            <h2 className="text-lg font-bold text-gray-800">Nexus Net Dashboard</h2>
-            <p className="text-xs text-gray-400">September 2026 - WiFi Management</p>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-extrabold text-gray-900 tracking-tight truncate">
+                {currentTitle}
+              </h2>
+              <p className="text-[10px] sm:text-xs text-gray-400 truncate">
+                Nexus Net WiFi Management · September 2026
+              </p>
+            </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
-            <Search className="w-4 h-4 text-gray-400" />
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Desktop Search */}
+            <div className="hidden md:flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-1.5 border border-gray-200/60 focus-within:border-[#0D1B4A] focus-within:bg-white transition-all">
+              <Search className="w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Cari pekerjaan lalu Enter..."
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                className="bg-transparent text-xs sm:text-sm outline-none w-44 placeholder:text-gray-400"
+              />
+            </div>
+
+            {/* Mobile Search Button */}
+            <button
+              onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+              className="md:hidden p-2 rounded-xl hover:bg-gray-100 text-gray-600 active:scale-95 transition-colors cursor-pointer"
+              title="Cari"
+            >
+              <Search className="w-4.5 h-4.5" />
+            </button>
+
+            <NotificationPanel />
+
+            <button
+              onClick={() => setSettingsOpen(true)}
+              title="Pengaturan Sistem"
+              className="p-2 sm:p-2.5 rounded-xl hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
+            >
+              <Settings className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+            </button>
+          </div>
+        </header>
+
+        {/* Mobile Search Input Drawer (Dropdown) */}
+        {mobileSearchOpen && (
+          <div className="md:hidden bg-white border-b border-gray-200 px-3 py-2.5 flex items-center gap-2 shadow-md animate-fade-in z-20">
+            <Search className="w-4 h-4 text-gray-400 shrink-0" />
             <input
               type="text"
-              placeholder="Cari pekerjaan lalu Enter..."
+              placeholder="Cari pekerjaan (nama, ODP, dll) lalu Enter..."
               value={globalSearch}
               onChange={(e) => setGlobalSearch(e.target.value)}
               onKeyDown={handleSearchKeyDown}
-              className="bg-transparent text-sm outline-none w-48 placeholder:text-gray-400"
+              autoFocus
+              className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#0D1B4A]"
             />
+            <button
+              onClick={() => setMobileSearchOpen(false)}
+              className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
+        )}
 
-          <NotificationPanel />
-
-          <button
-            onClick={() => setSettingsOpen(true)}
-            title="Pengaturan Sistem"
-            className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
-        </header>
-
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        {/* Page Content with bottom padding for mobile navigation bar */}
+        <main className="flex-1 overflow-y-auto p-3.5 sm:p-5 md:p-6 pb-24 lg:pb-6">
           <Outlet />
         </main>
+
+        {/* Mobile Bottom Navigation Bar */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200/90 px-2 py-1 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] flex items-center justify-around pb-[calc(0.25rem+env(safe-area-inset-bottom))]">
+          {bottomNavItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/"}
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
+                  isActive
+                    ? "text-[#0D1B4A] font-extrabold scale-105"
+                    : "text-gray-400 hover:text-gray-600 font-medium"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <div
+                    className={`p-1 rounded-xl transition-all ${
+                      isActive ? "bg-amber-100 text-[#0D1B4A]" : ""
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] mt-0.5 tracking-tight">{item.label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+
+          {/* More / Menu trigger in Bottom Nav */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-gray-400 hover:text-gray-700 font-medium transition-all cursor-pointer"
+          >
+            <div className="p-1 rounded-xl">
+              <MoreHorizontal className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] mt-0.5 tracking-tight">Menu</span>
+          </button>
+        </nav>
       </div>
 
       {/* Settings Modal */}

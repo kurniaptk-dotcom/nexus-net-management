@@ -164,7 +164,7 @@ export default function CalendarView({ data }) {
         {/* Day Headers */}
         <div className="grid grid-cols-7 border-b border-gray-100">
           {DAYS.map((day) => (
-            <div key={day} className="px-2 py-2.5 text-center">
+            <div key={day} className="px-1 sm:px-2 py-2 text-center">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{day}</span>
             </div>
           ))}
@@ -174,7 +174,7 @@ export default function CalendarView({ data }) {
         <div className="grid grid-cols-7">
           {calendarDays.map((cell) => {
             if (cell.empty) {
-              return <div key={cell.key} className="min-h-[80px] border-b border-r border-gray-50 bg-gray-50/30" />;
+              return <div key={cell.key} className="min-h-[55px] sm:min-h-[80px] border-b border-r border-gray-50 bg-gray-50/30" />;
             }
 
             const maxVisible = 3;
@@ -185,32 +185,45 @@ export default function CalendarView({ data }) {
               <div
                 key={cell.key}
                 onClick={() => setSelectedDate(cell.dateStr)}
-                className={`min-h-[80px] border-b border-r border-gray-50 p-1.5 cursor-pointer transition-all hover:bg-gray-50/80 ${
-                  cell.isSelected ? "bg-blue-50/50 ring-1 ring-inset ring-blue-200" : ""
+                className={`min-h-[55px] sm:min-h-[80px] border-b border-r border-gray-50 p-1 sm:p-1.5 cursor-pointer transition-all hover:bg-gray-50/80 ${
+                  cell.isSelected ? "bg-blue-50/70 ring-2 ring-inset ring-[#0D1B4A]" : ""
                 }`}
               >
                 {/* Day Number */}
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-0.5 sm:mb-1">
                   <span
-                    className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${
+                    className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full text-[11px] sm:text-xs font-bold ${
                       cell.isToday
-                        ? "bg-[#F59E0B] text-white"
+                        ? "bg-[#F59E0B] text-white shadow-2xs"
                         : cell.pekerjaan.length > 0
-                        ? "text-gray-800"
+                        ? "text-gray-900 font-extrabold"
                         : "text-gray-400"
                     }`}
                   >
                     {cell.day}
                   </span>
                   {cell.pekerjaan.length > 0 && (
-                    <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">
+                    <span className="text-[8px] sm:text-[9px] font-bold text-gray-500 bg-gray-100 px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded-full">
                       {cell.pekerjaan.length}
                     </span>
                   )}
                 </div>
 
-                {/* Pekerjaan Items */}
-                <div className="space-y-0.5">
+                {/* Mobile indicators (dots) */}
+                <div className="sm:hidden flex items-center justify-center gap-0.5 mt-1 flex-wrap">
+                  {visibleItems.map((item) => {
+                    const jc = jenisColors[item.jenis] || jenisColors.PEMASANGAN;
+                    return (
+                      <span key={item.id} className={`w-1.5 h-1.5 rounded-full ${jc.bg}`} />
+                    );
+                  })}
+                  {overflow > 0 && (
+                    <span className="text-[7px] font-bold text-gray-400 leading-none">+{overflow}</span>
+                  )}
+                </div>
+
+                {/* Desktop Pekerjaan Items (Labels) */}
+                <div className="hidden sm:block space-y-0.5">
                   {visibleItems.map((item) => {
                     const jc = jenisColors[item.jenis] || jenisColors.PEMASANGAN;
                     return (

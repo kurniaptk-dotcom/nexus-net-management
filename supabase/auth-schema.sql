@@ -8,7 +8,9 @@ CREATE TABLE IF NOT EXISTS profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email text NOT NULL,
   full_name text DEFAULT '',
-  role text NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+  role text NOT NULL DEFAULT 'user',
+  allowed_menus text[] DEFAULT ARRAY['/', '/pekerjaan', '/gangguan']::text[],
+  custom_role_title text DEFAULT '',
   created_at timestamptz DEFAULT now()
 );
 
@@ -16,8 +18,17 @@ CREATE TABLE IF NOT EXISTS profiles (
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO profiles (id, email, full_name, role)
-  VALUES (NEW.id, NEW.email, COALESCE(NEW.raw_user_meta_data->>'full_name', ''), COALESCE(NEW.raw_user_meta_data->>'role', 'user'));
+  INSERT INTO profiles (id, email, full_name, role, allowed_menus)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'user'),
+    COALESCE(
+      ARRAY(SELECT jsonb_array_elements_text(NEW.raw_user_meta_data->'allowed_menus')),
+      ARRAY['/', '/pekerjaan', '/gangguan']::text[]
+    )
+  );
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

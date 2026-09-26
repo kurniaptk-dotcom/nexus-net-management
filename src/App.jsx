@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Layout from "./components/Layout";
 import InstallPWA from "./components/InstallPWA";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { hasMenuAccess, getUserAllowedMenus } from "./lib/permissions";
+import { ShieldAlert } from "lucide-react";
 
 const Login = lazy(() => import("./pages/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -14,6 +16,7 @@ const Gangguan = lazy(() => import("./pages/Gangguan"));
 const ODP = lazy(() => import("./pages/ODP"));
 const Laporan = lazy(() => import("./pages/Laporan"));
 const ManajemenUser = lazy(() => import("./pages/ManajemenUser"));
+const TeknisiDashboard = lazy(() => import("./pages/TeknisiDashboard"));
 
 function PageLoading() {
   return (
@@ -39,6 +42,35 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+function MenuGuard({ path, children }) {
+  const { profile, loading } = useAuth();
+  if (loading) return null;
+  if (!profile) return children;
+
+  if (hasMenuAccess(profile, path)) {
+    return children;
+  }
+
+  // Not authorized: redirect to user's first allowed menu
+  const allowed = getUserAllowedMenus(profile);
+  const fallback = allowed.length > 0 && allowed[0] !== path ? allowed[0] : "/";
+  if (fallback !== path && hasMenuAccess(profile, fallback)) {
+    return <Navigate to={fallback} replace />;
+  }
+
+  return (
+    <div className="p-8 text-center bg-white rounded-3xl border border-gray-100 shadow-sm max-w-md mx-auto my-12">
+      <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">
+        <ShieldAlert className="w-7 h-7" />
+      </div>
+      <h3 className="text-lg font-bold text-gray-900">Akses Terbatas</h3>
+      <p className="text-sm text-gray-500 mt-1">
+        Akun Anda tidak memiliki izin untuk membuka menu ini. Silakan hubungi Administrator sistem.
+      </p>
+    </div>
+  );
+}
+
 function AppRoutes() {
   const { user, loading } = useAuth();
 
@@ -55,14 +87,15 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route index element={<Dashboard />} />
-          <Route path="tim" element={<Tim />} />
-          <Route path="pekerjaan" element={<Pekerjaan />} />
-          <Route path="leads" element={<Leads />} />
-          <Route path="gangguan" element={<Gangguan />} />
-          <Route path="odp" element={<ODP />} />
-          <Route path="laporan" element={<Laporan />} />
-          <Route path="users" element={<ManajemenUser />} />
+          <Route index element={<MenuGuard path="/"><Dashboard /></MenuGuard>} />
+          <Route path="teknisi" element={<MenuGuard path="/teknisi"><TeknisiDashboard /></MenuGuard>} />
+          <Route path="tim" element={<MenuGuard path="/tim"><Tim /></MenuGuard>} />
+          <Route path="pekerjaan" element={<MenuGuard path="/pekerjaan"><Pekerjaan /></MenuGuard>} />
+          <Route path="leads" element={<MenuGuard path="/leads"><Leads /></MenuGuard>} />
+          <Route path="gangguan" element={<MenuGuard path="/gangguan"><Gangguan /></MenuGuard>} />
+          <Route path="odp" element={<MenuGuard path="/odp"><ODP /></MenuGuard>} />
+          <Route path="laporan" element={<MenuGuard path="/laporan"><Laporan /></MenuGuard>} />
+          <Route path="users" element={<MenuGuard path="/users"><ManajemenUser /></MenuGuard>} />
         </Route>
       </Routes>
     </Suspense>

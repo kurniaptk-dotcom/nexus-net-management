@@ -153,6 +153,7 @@ export default function Pekerjaan() {
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterTim, setFilterTim] = useState("ALL");
   const [viewMode, setViewMode] = useState("kanban");
+  const [mobileKanbanCol, setMobileKanbanCol] = useState("ALL");
   const [activeTab, setActiveTab] = useState("pekerjaan");
   const [pengajuanData, setPengajuanData] = usePersistState("xnet_pengajuan_pemutusan", pengajuanPemutusanList);
   const [searchPemutusan, setSearchPemutusan] = useState("");
@@ -422,33 +423,33 @@ export default function Pekerjaan() {
       </div>
 
       {/* Primary Tab Switcher */}
-      <div className="flex border-b border-gray-200 gap-6">
+      <div className="flex border-b border-gray-200 gap-3 sm:gap-6 overflow-x-auto no-scrollbar whitespace-nowrap">
         <button
           onClick={() => setActiveTab("pekerjaan")}
-          className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+          className={`pb-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
             activeTab === "pekerjaan"
               ? "border-[#0D1B4A] text-[#0D1B4A]"
               : "border-transparent text-gray-400 hover:text-gray-600"
           }`}
         >
-          <Wrench className="w-4 h-4" />
+          <Wrench className="w-4 h-4 shrink-0" />
           <span>Pekerjaan Lapangan</span>
-          <span className="ml-1 text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-extrabold">
+          <span className="ml-1 text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-extrabold">
             {data.length}
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab("pemutusan")}
-          className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+          className={`pb-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
             activeTab === "pemutusan"
               ? "border-red-500 text-red-600"
               : "border-transparent text-gray-400 hover:text-gray-600"
           }`}
         >
-          <UserMinus className="w-4 h-4" />
+          <UserMinus className="w-4 h-4 shrink-0" />
           <span>Pengajuan Pemutusan Masuk</span>
-          <span className="ml-1 text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-extrabold">
+          <span className="ml-1 text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-extrabold">
             {pengajuanData?.length || 0}
           </span>
         </button>
@@ -457,271 +458,378 @@ export default function Pekerjaan() {
       {activeTab === "pekerjaan" ? (
         <>
           {/* Controls: View Mode & Add */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <div className="bg-white border border-gray-200 rounded-xl flex p-1 shadow-sm">
-                <button
-                  onClick={() => setViewMode("kanban")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                    viewMode === "kanban"
-                      ? "bg-[#0D1B4A] text-white shadow-md"
-                      : "text-gray-500 hover:bg-gray-100"
-                  }`}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                  Board
-                </button>
-                <button
-                  onClick={() => setViewMode("table")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                    viewMode === "table"
-                      ? "bg-[#0D1B4A] text-white shadow-md"
-                      : "text-gray-500 hover:bg-gray-100"
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                  Tabel
-                </button>
-                <button
-                  onClick={() => setViewMode("calendar")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                    viewMode === "calendar"
-                      ? "bg-[#0D1B4A] text-white shadow-md"
-                      : "text-gray-500 hover:bg-gray-100"
-                  }`}
-                >
-                  <CalendarDays className="w-4 h-4" />
-                  Kalender
-                </button>
-              </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
+            <div className="bg-white border border-gray-200 rounded-xl flex p-1 shadow-sm w-full sm:w-auto">
+              <button
+                onClick={() => setViewMode("kanban")}
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  viewMode === "kanban"
+                    ? "bg-[#0D1B4A] text-white shadow-md font-bold"
+                    : "text-gray-500 hover:bg-gray-100"
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Board
+              </button>
+              <button
+                onClick={() => setViewMode("table")}
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  viewMode === "table"
+                    ? "bg-[#0D1B4A] text-white shadow-md font-bold"
+                    : "text-gray-500 hover:bg-gray-100"
+                }`}
+              >
+                <List className="w-4 h-4" />
+                Tabel
+              </button>
+              <button
+                onClick={() => setViewMode("calendar")}
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  viewMode === "calendar"
+                    ? "bg-[#0D1B4A] text-white shadow-md font-bold"
+                    : "text-gray-500 hover:bg-gray-100"
+                }`}
+              >
+                <CalendarDays className="w-4 h-4" />
+                Kalender
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 onClick={() => handleAdd("PERBAIKAN KHUSUS (ODP/ODC)")}
-                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all"
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all truncate cursor-pointer active:scale-95"
               >
-                <Wrench className="w-4 h-4" />
-                + Perbaikan ODP/ODC
+                <Wrench className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span>+ ODP/ODC</span>
               </button>
               <button
                 onClick={() => handleAdd("PEMASANGAN")}
-                className="flex items-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all"
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-[#F59E0B] hover:bg-[#d97706] text-white px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all shrink-0 cursor-pointer active:scale-95"
               >
-                <Plus className="w-4 h-4" />
-                Tambah
+                <Plus className="w-4 h-4 shrink-0" />
+                <span>Tambah</span>
               </button>
             </div>
           </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-        {[
-          { label: "Total", value: stats.total, color: "text-gray-900", bg: "bg-white" },
-          { label: "Selesai", value: stats.selesai, color: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "Dijadwalkan", value: stats.dijadwalkan, color: "text-blue-600", bg: "bg-blue-50" },
-          { label: "Waiting", value: stats.waiting, color: "text-amber-600", bg: "bg-amber-50" },
-          { label: "Gagal", value: stats.gagal, color: "text-red-600", bg: "bg-red-50" },
-        ].map((s) => (
-          <div key={s.label} className={`${s.bg} rounded-2xl p-4 border border-gray-100`}>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{s.label}</p>
-            <p className={`text-2xl font-extrabold ${s.color} mt-1`}>{s.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-wrap gap-3">
-        <div className="flex-1 min-w-[200px] relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Cari pelanggan / alamat..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] focus:border-transparent outline-none transition-all"
-          />
-        </div>
-        <select
-          value={filterJenis}
-          onChange={(e) => setFilterJenis(e.target.value)}
-          className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#F59E0B] outline-none"
-        >
-          <option value="ALL">Semua Jenis</option>
-          {jenisPekerjaan.map((j) => (
-            <option key={j} value={j}>{j}</option>
-          ))}
-        </select>
-        <select
-          value={filterTim}
-          onChange={(e) => setFilterTim(e.target.value)}
-          className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#F59E0B] outline-none"
-        >
-          <option value="ALL">Semua Tim</option>
-          {timData.map((t) => (
-            <option key={t.id} value={t.nama}>{t.nama}</option>
-          ))}
-        </select>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#F59E0B] outline-none"
-        >
-          <option value="ALL">Semua Status</option>
-          {statusPekerjaan.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Kanban Board */}
-      {viewMode === "kanban" && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {KANBAN_COLUMNS.map((col) => {
-            const colItems = filtered.filter((item) => item.status === col.key);
-            const Icon = col.icon;
-            const isOver = dragOverCol === col.key;
-            return (
+          {/* Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-4">
+            {[
+              { label: "Total", value: stats.total, color: "text-gray-900", bg: "bg-white" },
+              { label: "Selesai", value: stats.selesai, color: "text-emerald-600", bg: "bg-emerald-50" },
+              { label: "Dijadwalkan", value: stats.dijadwalkan, color: "text-blue-600", bg: "bg-blue-50" },
+              { label: "Waiting", value: stats.waiting, color: "text-amber-600", bg: "bg-amber-50" },
+              { label: "Gagal", value: stats.gagal, color: "text-red-600", bg: "bg-red-50" },
+            ].map((s) => (
               <div
-                key={col.key}
-                onDragOver={(e) => handleDragOver(e, col.key)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, col.key)}
-                className={`rounded-2xl border-2 border-dashed transition-all duration-200 min-h-[400px] ${
-                  isOver
-                    ? "shadow-lg scale-[1.01]"
-                    : "border-gray-200 bg-gray-50/50"
-                }`}
-                style={isOver ? { borderColor: col.color, backgroundColor: col.color + "08" } : {}}
+                key={s.label}
+                className={`${s.bg} rounded-2xl p-3 sm:p-4 border border-gray-100 last:col-span-2 sm:last:col-span-1 shadow-2xs`}
               >
-                {/* Column Header */}
-                <div className={`px-4 py-3.5 border-b ${col.border} ${col.bg} rounded-t-2xl`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: col.color + "15" }}>
-                        <Icon className="w-4 h-4" style={{ color: col.color }} />
-                      </div>
-                      <span className="font-bold text-sm text-gray-700">{col.label}</span>
-                    </div>
-                    <span
-                      className="text-xs font-bold px-2.5 py-0.5 rounded-lg text-white"
-                      style={{ backgroundColor: col.color }}
-                    >
-                      {colItems.length}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Cards */}
-                <div className="p-3 space-y-3">
-                  {colItems.map((item) => (
-                    <KanbanCard
-                      key={item.id}
-                      item={item}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                      onDragStart={handleDragStart}
-                      onDragEnd={handleDragEnd}
-                    />
-                  ))}
-                  {colItems.length === 0 && (
-                    <div className="text-center py-10 text-gray-300">
-                      <GripVertical className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                      <p className="text-xs font-medium">Drop pekerjaan ke sini</p>
-                    </div>
-                  )}
-                </div>
+                <p className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider">{s.label}</p>
+                <p className={`text-xl sm:text-2xl font-black ${s.color} mt-0.5 sm:mt-1`}>{s.value}</p>
               </div>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
 
-      {/* Calendar View */}
-      {viewMode === "calendar" && (
-        <CalendarView data={filtered} />
-      )}
+          {/* Filters */}
+          <div className="bg-white rounded-2xl p-3 sm:p-4 border border-gray-100 shadow-sm grid grid-cols-2 sm:flex sm:flex-wrap gap-2.5 sm:gap-3">
+            <div className="col-span-2 sm:col-span-1 sm:flex-1 min-w-0 sm:min-w-[200px] relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Cari pelanggan / alamat..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 sm:pl-10 pr-3 py-2 sm:py-2.5 border border-gray-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-[#F59E0B] focus:border-transparent outline-none transition-all"
+              />
+            </div>
+            <select
+              value={filterJenis}
+              onChange={(e) => setFilterJenis(e.target.value)}
+              className="px-2.5 sm:px-3 py-2 sm:py-2.5 border border-gray-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-[#F59E0B] outline-none bg-white cursor-pointer"
+            >
+              <option value="ALL">Semua Jenis</option>
+              {jenisPekerjaan.map((j) => (
+                <option key={j} value={j}>{j}</option>
+              ))}
+            </select>
+            <select
+              value={filterTim}
+              onChange={(e) => setFilterTim(e.target.value)}
+              className="px-2.5 sm:px-3 py-2 sm:py-2.5 border border-gray-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-[#F59E0B] outline-none bg-white cursor-pointer"
+            >
+              <option value="ALL">Semua Tim</option>
+              {timData.map((t) => (
+                <option key={t.id} value={t.nama}>{t.nama}</option>
+              ))}
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="col-span-2 sm:col-span-1 px-2.5 sm:px-3 py-2 sm:py-2.5 border border-gray-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-[#F59E0B] outline-none bg-white cursor-pointer"
+            >
+              <option value="ALL">Semua Status</option>
+              {statusPekerjaan.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
 
-      {/* Table View */}
-      {viewMode === "table" && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50/80">
-                <tr>
-                  <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">No</th>
-                  <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Tim</th>
-                  <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Jenis</th>
-                  <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Pelanggan / Target</th>
-                  <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Alamat</th>
-                  <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">ODP / ODC</th>
-                  <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Terdampak</th>
-                  <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Tanggal</th>
-                  <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Status</th>
-                  <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.map((item, i) => (
-                  <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-5 py-3 text-gray-400 font-medium">{i + 1}</td>
-                    <td className="px-5 py-3">
+          {/* Kanban Board */}
+          {viewMode === "kanban" && (
+            <div>
+              {/* Mobile Column Tabs Filter */}
+              <div className="md:hidden flex items-center gap-1.5 p-1 bg-gray-100/80 rounded-xl mb-3 overflow-x-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setMobileKanbanCol("ALL")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                    mobileKanbanCol === "ALL"
+                      ? "bg-[#0D1B4A] text-white shadow-xs"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Semua Kolom
+                </button>
+                {KANBAN_COLUMNS.map((col) => {
+                  const count = filtered.filter((item) => item.status === col.key).length;
+                  return (
+                    <button
+                      key={col.key}
+                      type="button"
+                      onClick={() => setMobileKanbanCol(col.key)}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                        mobileKanbanCol === col.key
+                          ? "bg-[#0D1B4A] text-white shadow-xs"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      <span>{col.label}</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                          mobileKanbanCol === col.key ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Kanban Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {KANBAN_COLUMNS.filter(
+                  (col) => mobileKanbanCol === "ALL" || col.key === mobileKanbanCol
+                ).map((col) => {
+                  const colItems = filtered.filter((item) => item.status === col.key);
+                  const Icon = col.icon;
+                  const isOver = dragOverCol === col.key;
+                  return (
+                    <div
+                      key={col.key}
+                      onDragOver={(e) => handleDragOver(e, col.key)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, col.key)}
+                      className={`rounded-2xl border-2 border-dashed transition-all duration-200 min-h-[280px] md:min-h-[400px] ${
+                        isOver
+                          ? "shadow-lg scale-[1.01]"
+                          : "border-gray-200 bg-gray-50/50"
+                      }`}
+                      style={isOver ? { borderColor: col.color, backgroundColor: col.color + "08" } : {}}
+                    >
+                      {/* Column Header */}
+                      <div className={`px-4 py-3.5 border-b ${col.border} ${col.bg} rounded-t-2xl`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: col.color + "15" }}>
+                              <Icon className="w-4 h-4" style={{ color: col.color }} />
+                            </div>
+                            <span className="font-bold text-sm text-gray-700">{col.label}</span>
+                          </div>
+                          <span
+                            className="text-xs font-bold px-2.5 py-0.5 rounded-lg text-white"
+                            style={{ backgroundColor: col.color }}
+                          >
+                            {colItems.length}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Cards */}
+                      <div className="p-3 space-y-3">
+                        {colItems.map((item) => (
+                          <KanbanCard
+                            key={item.id}
+                            item={item}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            onDragStart={handleDragStart}
+                            onDragEnd={handleDragEnd}
+                          />
+                        ))}
+                        {colItems.length === 0 && (
+                          <div className="text-center py-10 text-gray-300">
+                            <GripVertical className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                            <p className="text-xs font-medium">Belum ada pekerjaan di kolom ini</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Calendar View */}
+          {viewMode === "calendar" && (
+            <CalendarView data={filtered} />
+          )}
+
+          {/* Table View */}
+          {viewMode === "table" && (
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+              {/* Mobile Card List View */}
+              <div className="md:hidden divide-y divide-gray-100">
+                {filtered.map((item, idx) => (
+                  <div key={item.id} className="p-3.5 space-y-2 hover:bg-gray-50/50 transition-colors">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-gray-400">#{idx + 1}</span>
+                          <h4 className="font-bold text-gray-900 text-sm truncate">{item.pelanggan || "Tanpa Nama"}</h4>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{item.alamat || "-"}</p>
+                      </div>
+                      <StatusBadge status={item.status} />
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <JenisBadge jenis={item.jenis} />
                       <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#0D1B4A]/5 text-[#0D1B4A] font-bold">
                         {item.tim ? item.tim.split(" - ")[0] : "-"}
                       </span>
-                    </td>
-                    <td className="px-5 py-3"><JenisBadge jenis={item.jenis} /></td>
-                    <td className="px-5 py-3 font-bold text-gray-800">{item.pelanggan || "Tanpa Nama"}</td>
-                    <td className="px-5 py-3 text-gray-500 max-w-[200px] truncate">{item.alamat || "-"}</td>
-                    <td className="px-5 py-3">
-                      {item.odp ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                      {item.odp && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 truncate max-w-[170px]">
                           <Network className="w-3 h-3 text-blue-500 shrink-0" />
-                          <span className="truncate max-w-[150px]">{item.odp}</span>
+                          {item.odp}
                         </span>
-                      ) : (
-                        <span className="text-xs text-gray-300">-</span>
                       )}
-                    </td>
-                    <td className="px-5 py-3">
                       {item.userTerdampak ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
                           <Users className="w-3 h-3 text-purple-600 shrink-0" />
-                          {item.userTerdampak}
+                          {item.userTerdampak} User
                         </span>
-                      ) : (
-                        <span className="text-xs text-gray-300">-</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3 text-gray-500 font-medium">{item.tanggal}</td>
-                    <td className="px-5 py-3"><StatusBadge status={item.status} /></td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center justify-center gap-1">
+                      ) : null}
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-gray-400 pt-1.5 border-t border-gray-50">
+                      <span className="font-medium">{item.tanggal || "-"}</span>
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleEdit(item)}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#0D1B4A] transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#0D1B4A] transition-colors"
+                          title="Edit"
                         >
-                          <Edit2 className="w-4 h-4" />
+                          <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDelete(item.id)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors"
+                          title="Hapus"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-          {filtered.length === 0 && (
-            <div className="text-center py-12 text-gray-400">
-              <Wrench className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Tidak ada data pekerjaan</p>
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50/80">
+                    <tr>
+                      <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">No</th>
+                      <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Tim</th>
+                      <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Jenis</th>
+                      <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Pelanggan / Target</th>
+                      <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Alamat</th>
+                      <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">ODP / ODC</th>
+                      <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Terdampak</th>
+                      <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Tanggal</th>
+                      <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Status</th>
+                      <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filtered.map((item, i) => (
+                      <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-5 py-3 text-gray-400 font-medium">{i + 1}</td>
+                        <td className="px-5 py-3">
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#0D1B4A]/5 text-[#0D1B4A] font-bold">
+                            {item.tim ? item.tim.split(" - ")[0] : "-"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3"><JenisBadge jenis={item.jenis} /></td>
+                        <td className="px-5 py-3 font-bold text-gray-800">{item.pelanggan || "Tanpa Nama"}</td>
+                        <td className="px-5 py-3 text-gray-500 max-w-[200px] truncate">{item.alamat || "-"}</td>
+                        <td className="px-5 py-3">
+                          {item.odp ? (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                              <Network className="w-3 h-3 text-blue-500 shrink-0" />
+                              <span className="truncate max-w-[150px]">{item.odp}</span>
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-300">-</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3">
+                          {item.userTerdampak ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                              <Users className="w-3 h-3 text-purple-600 shrink-0" />
+                              {item.userTerdampak}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-300">-</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3 text-gray-500 font-medium">{item.tanggal}</td>
+                        <td className="px-5 py-3"><StatusBadge status={item.status} /></td>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => handleEdit(item)}
+                              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#0D1B4A] transition-colors"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {filtered.length === 0 && (
+                <div className="text-center py-12 text-gray-400">
+                  <Wrench className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">Tidak ada data pekerjaan</p>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
-    </>
+        </>
   ) : (
     <div className="space-y-4">
       {/* Card Summary Banner */}

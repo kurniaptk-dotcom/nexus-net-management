@@ -79,6 +79,17 @@ CREATE TABLE IF NOT EXISTS daftar_gangguan (
   created_at timestamptz DEFAULT now()
 );
 
+-- 8. Tabel Profiles (User & Role Management)
+CREATE TABLE IF NOT EXISTS profiles (
+  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  full_name text DEFAULT '',
+  role text NOT NULL DEFAULT 'user',
+  allowed_menus text[] DEFAULT ARRAY['/', '/pekerjaan', '/gangguan']::text[],
+  custom_role_title text DEFAULT '',
+  created_at timestamptz DEFAULT now()
+);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE tim ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pekerjaan ENABLE ROW LEVEL SECURITY;
@@ -87,6 +98,7 @@ ALTER TABLE gangguan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE odp_odc ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pengajuan_pemutusan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daftar_gangguan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 -- Policies: Allow all operations for anon (public app)
 CREATE POLICY "Allow all on tim" ON tim FOR ALL USING (true) WITH CHECK (true);
@@ -96,6 +108,44 @@ CREATE POLICY "Allow all on gangguan" ON gangguan FOR ALL USING (true) WITH CHEC
 CREATE POLICY "Allow all on odp_odc" ON odp_odc FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all on pengajuan_pemutusan" ON pengajuan_pemutusan FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all on daftar_gangguan" ON daftar_gangguan FOR ALL USING (true) WITH CHECK (true);
+
+-- Policies for profiles
+CREATE POLICY "Users can read own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Admin can read all profiles" ON profiles FOR SELECT USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "Admin can insert profiles" ON profiles FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "Admin can update profiles" ON profiles FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "Admin can delete profiles" ON profiles FOR DELETE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- Trigger auto-create profile
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO profiles (id, email, full_name, role, allowed_menus)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'user'),
+    COALESCE(
+      ARRAY(SELECT jsonb_array_elements_text(NEW.raw_user_meta_data->'allowed_menus')),
+      ARRAY['/', '/pekerjaan', '/gangguan']::text[]
+    )
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
 -- Seed data: Tim
 INSERT INTO tim (nama) VALUES

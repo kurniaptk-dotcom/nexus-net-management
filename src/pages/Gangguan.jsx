@@ -425,7 +425,111 @@ export default function Gangguan() {
 
       {/* Main Table: Exact Columns as Spreadsheet */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile Ticket Cards View */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {filtered.length === 0 ? (
+            <div className="px-6 py-12 text-center text-gray-400">
+              <AlertTriangle className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+              <p className="font-semibold text-gray-600">Tidak ada data gangguan ditemukan</p>
+              <p className="text-xs text-gray-400 mt-1">Coba gunakan kata kunci pencarian yang lain.</p>
+            </div>
+          ) : (
+            filtered.map((item, index) => {
+              const badge = getStatusBadge(item.hasilFU);
+              const waUrl = formatWaLink(item.kontak, item.nama, item.keterangan);
+
+              return (
+                <div key={item.id} className={`p-4 space-y-3 transition-colors ${badge.rowClass}`}>
+                  {/* Card Header: No, Nama, Status */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                      <span className="text-[11px] font-bold text-gray-400 mt-0.5">#{index + 1}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                              item.hasilFU === "Aman"
+                                ? "bg-emerald-500"
+                                : item.hasilFU === "Bermasalah"
+                                ? "bg-red-500 ring-2 ring-red-200"
+                                : item.hasilFU?.includes("Ngelag")
+                                ? "bg-amber-400"
+                                : "bg-gray-300"
+                            }`}
+                          />
+                          <h4 className="font-bold text-gray-900 text-sm truncate">{item.nama}</h4>
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-0.5 font-mono">
+                          Mulai: {item.tanggalMulai || "-"} · FU: {item.followUp || "-"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Quick status selector */}
+                    <select
+                      value={item.hasilFU || ""}
+                      onChange={(e) => handleQuickStatusChange(item.id, e.target.value)}
+                      className={`px-2 py-1 rounded-xl border text-[11px] outline-none cursor-pointer transition-all shadow-2xs shrink-0 ${badge.className}`}
+                    >
+                      <option value="">(Belum FU)</option>
+                      <option value="Aman">🟢 Aman</option>
+                      <option value="Bermasalah">🔴 Masalah</option>
+                      <option value="Kadang Ngelag">🟡 Ngelag</option>
+                    </select>
+                  </div>
+
+                  {/* Keterangan */}
+                  <div className="bg-white/80 p-2.5 rounded-xl border border-gray-100 text-xs text-gray-700 leading-relaxed font-medium">
+                    {item.keterangan || <span className="text-gray-300 italic">Tidak ada rincian kendala</span>}
+                  </div>
+
+                  {/* Kontak & Action buttons */}
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    {item.kontak ? (
+                      <div className="flex items-center gap-2">
+                        {waUrl ? (
+                          <a
+                            href={waUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>Chat WA ({item.kontak})</span>
+                          </a>
+                        ) : (
+                          <span className="text-xs font-mono text-gray-600 font-semibold">{item.kontak}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-300 text-xs italic">Tanpa No. HP</span>
+                    )}
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleOpenEdit(item)}
+                        className="p-2 rounded-xl text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(item)}
+                        className="p-2 rounded-xl text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        title="Hapus"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-[#FFF8E7] border-b border-amber-200/80 text-amber-950">
               <tr>

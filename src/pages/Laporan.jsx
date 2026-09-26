@@ -244,41 +244,41 @@ export default function Laporan() {
       </div>
 
       {/* Export */}
-      <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-        <h3 className="text-sm font-bold text-gray-800 mb-4">Export Data</h3>
-        <div className="flex flex-wrap gap-3">
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm">
+        <h3 className="text-sm font-bold text-gray-800 mb-3 sm:mb-4">Export Data</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 sm:gap-3">
           <button onClick={() => exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odpData, "laporan-september-2026.xlsx")}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl text-sm font-semibold hover:shadow-md transition-all">
-            <FileSpreadsheet className="w-4 h-4" /> Export Excel (Semua Sheet)
+            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all">
+            <FileSpreadsheet className="w-4 h-4 shrink-0" /> <span>Export Excel (Semua Sheet)</span>
           </button>
           <button onClick={() => exportToCSV(summaryExport, "summary-september-2026.csv")}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold hover:shadow-md transition-all">
-            <Download className="w-4 h-4" /> Summary CSV
+            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all">
+            <Download className="w-4 h-4 shrink-0" /> <span>Summary CSV</span>
           </button>
           <button onClick={() => exportToCSV(timExport, "tim-september-2026.csv")}
-            className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold hover:shadow-md transition-all">
-            <Download className="w-4 h-4" /> Data Tim CSV
+            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all">
+            <Download className="w-4 h-4 shrink-0" /> <span>Data Tim CSV</span>
           </button>
           <button onClick={() => exportToJSON({ summary: summaryExport, tim: timExport, gangguan: gangguanExport }, "laporan-september-2026.json")}
-            className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold hover:shadow-md transition-all">
-            <Download className="w-4 h-4" /> Full JSON
+            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all">
+            <Download className="w-4 h-4 shrink-0" /> <span>Full JSON</span>
           </button>
         </div>
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
         {[
           { label: "Pekerjaan", value: pekerjaanData.length, icon: Wrench, bg: "bg-white" },
           { label: "Leads", value: leadsData.length, icon: Target, bg: "bg-amber-50" },
           { label: "Selesai", value: totalSelesai, icon: BarChart3, bg: "bg-emerald-50" },
           { label: "Gangguan", value: gangguanDataState.length, icon: AlertTriangle, bg: "bg-red-50" },
           { label: "Tim", value: timData.length, icon: Users, bg: "bg-blue-50" },
-        ].map((s) => (
-          <div key={s.label} className={`${s.bg} rounded-2xl p-4 border border-gray-100`}>
-            <s.icon className="w-5 h-5 text-gray-400 mb-2" />
-            <p className="text-2xl font-extrabold text-gray-900">{s.value}</p>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-0.5">{s.label}</p>
+        ].map((s, idx) => (
+          <div key={s.label} className={`${s.bg} rounded-2xl p-3.5 sm:p-4 border border-gray-100 ${idx === 4 ? "col-span-2 sm:col-span-1" : ""}`}>
+            <s.icon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mb-1.5 sm:mb-2" />
+            <p className="text-xl sm:text-2xl font-extrabold text-gray-900">{s.value}</p>
+            <p className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider mt-0.5">{s.label}</p>
           </div>
         ))}
       </div>
