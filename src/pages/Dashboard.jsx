@@ -46,6 +46,8 @@ import {
   Cell,
   LineChart,
   Line,
+  AreaChart,
+  Area,
   ComposedChart,
 } from "recharts";
 import {
@@ -150,7 +152,10 @@ const CustomTooltip = ({ active, payload, label }) => {
         {payload.map((item, i) => (
           <p key={i} className="text-white/80 text-xs py-0.5 flex items-center justify-between gap-4">
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color || item.fill }} />
+              <span
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ backgroundColor: item.stroke || item.color || item.fill }}
+              />
               <span>{item.name}:</span>
             </span>
             <span className="font-bold text-white text-sm">{item.value}</span>
@@ -194,6 +199,7 @@ export default function Dashboard() {
     "xnet_dashboard_show_detail_pekerjaan",
     true
   );
+  const [includeLeadsTrend, setIncludeLeadsTrend] = useState(false);
 
   // Month Filtering Dropdown State
   const now = new Date();
@@ -1318,7 +1324,7 @@ export default function Dashboard() {
 
       {/* Row 1: Weekly Trend & Leads Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Weekly Trend (3 Data: Pemasangan, Pemutusan, Leads) */}
+        {/* Weekly Trend (Fokus: Pemasangan vs Pemutusan) */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
@@ -1326,36 +1332,53 @@ export default function Dashboard() {
                 <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-[#0D1B4A]" />
                   {timeFilter === "WEEK"
-                    ? "Tren Pemasangan, Pemutusan & Leads (7 Hari)"
+                    ? "Tren Pemasangan vs Pemutusan (7 Hari)"
                     : timeFilter === "TODAY"
-                    ? "Tren Pemasangan, Pemutusan & Leads (Hari Ini)"
-                    : "Tren Pemasangan, Pemutusan & Leads"}
+                    ? "Tren Pemasangan vs Pemutusan (Hari Ini)"
+                    : "Tren Pemasangan vs Pemutusan"}
                 </h3>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Statistik grafik garis perbandingan volume pemasangan baru, pemutusan, dan leads
+                  Analisis perbandingan volume instalasi baru pelanggan vs pemutusan layanan
                 </p>
               </div>
 
-              {/* Mini KPI Badges */}
-              <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
-                <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100">
-                  Pasang: <b>{trendSummary.totalPasang}</b>
-                </span>
-                <span className="px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-100">
-                  Putus: <b>{trendSummary.totalPutus}</b>
-                </span>
-                <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-100">
-                  Leads: <b>{trendSummary.totalLeads}</b>
-                </span>
-                <span
-                  className={`px-2 py-0.5 rounded-md border ${
-                    trendSummary.netGrowth >= 0
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                      : "bg-rose-50 text-rose-700 border-rose-100"
+              {/* Mini KPI Badges & Leads Toggle */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold">
+                  <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100">
+                    Pasang: <b>{trendSummary.totalPasang}</b>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-100">
+                    Putus: <b>{trendSummary.totalPutus}</b>
+                  </span>
+                  {includeLeadsTrend && (
+                    <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-100 animate-fadeIn">
+                      Leads: <b>{trendSummary.totalLeads}</b>
+                    </span>
+                  )}
+                  <span
+                    className={`px-2 py-0.5 rounded-md border ${
+                      trendSummary.netGrowth >= 0
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                        : "bg-rose-50 text-rose-700 border-rose-100"
+                    }`}
+                  >
+                    Net: <b>{trendSummary.netGrowth >= 0 ? `+${trendSummary.netGrowth}` : trendSummary.netGrowth}</b>
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIncludeLeadsTrend(!includeLeadsTrend)}
+                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border transition-all ${
+                    includeLeadsTrend
+                      ? "bg-amber-50 text-amber-800 border-amber-300 shadow-sm"
+                      : "bg-gray-50 text-gray-500 border-gray-200 hover:text-gray-700 hover:bg-gray-100"
                   }`}
+                  title="Tampilkan / sembunyikan kurva leads"
                 >
-                  Net: <b>{trendSummary.netGrowth >= 0 ? `+${trendSummary.netGrowth}` : trendSummary.netGrowth}</b>
-                </span>
+                  {includeLeadsTrend ? "✓ Leads Aktif" : "+ Opsi Leads"}
+                </button>
               </div>
             </div>
 
@@ -1363,22 +1386,38 @@ export default function Dashboard() {
             <div className="flex flex-wrap items-center gap-4 mb-3 px-1 text-xs font-semibold">
               <span className="flex items-center gap-1.5 text-gray-700">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#2563EB]" />
-                Pemasangan
+                Pemasangan Baru
               </span>
               <span className="flex items-center gap-1.5 text-gray-700">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#DC2626]" />
-                Pemutusan
+                Pemutusan Layanan
               </span>
-              <span className="flex items-center gap-1.5 text-gray-700">
-                <span className="w-3 h-0.5 border-b-2 border-dashed border-[#F59E0B]" />
-                <span className="w-2 h-2 rounded-full border-2 border-[#F59E0B] bg-white -ml-2 mr-0.5" />
-                Leads
-              </span>
+              {includeLeadsTrend && (
+                <span className="flex items-center gap-1.5 text-amber-700">
+                  <span className="w-3 h-0.5 border-b-2 border-dashed border-[#F59E0B]" />
+                  <span className="w-2 h-2 rounded-full border-2 border-[#F59E0B] bg-white -ml-2 mr-0.5" />
+                  Leads (Calon Pelanggan)
+                </span>
+              )}
             </div>
           </div>
 
           <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={trendChartData}>
+            <AreaChart data={trendChartData}>
+              <defs>
+                <linearGradient id="gradientPasang" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#2563EB" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#2563EB" stopOpacity={0.0} />
+                </linearGradient>
+                <linearGradient id="gradientPutus" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#DC2626" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#DC2626" stopOpacity={0.0} />
+                </linearGradient>
+                <linearGradient id="gradientLeads" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#F59E0B" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis
                 dataKey="name"
@@ -1393,35 +1432,43 @@ export default function Dashboard() {
                 allowDecimals={false}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="pemasangan"
-                stroke="#2563EB"
-                strokeWidth={2.5}
-                dot={{ r: 4, fill: "#2563EB" }}
-                activeDot={{ r: 6 }}
                 name="Pemasangan"
+                stroke="#2563EB"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#gradientPasang)"
+                dot={{ r: 4.5, fill: "#2563EB", stroke: "#FFFFFF", strokeWidth: 2 }}
+                activeDot={{ r: 7 }}
               />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="pemutusan"
-                stroke="#DC2626"
-                strokeWidth={2.5}
-                dot={{ r: 4, fill: "#DC2626" }}
-                activeDot={{ r: 6 }}
                 name="Pemutusan"
+                stroke="#DC2626"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#gradientPutus)"
+                dot={{ r: 4.5, fill: "#DC2626", stroke: "#FFFFFF", strokeWidth: 2 }}
+                activeDot={{ r: 7 }}
               />
-              <Line
-                type="monotone"
-                dataKey="leads"
-                stroke="#F59E0B"
-                strokeWidth={2.5}
-                strokeDasharray="5 5"
-                dot={{ r: 4.5, fill: "#FFFFFF", stroke: "#F59E0B", strokeWidth: 2 }}
-                activeDot={{ r: 6, fill: "#F59E0B", stroke: "#FFFFFF", strokeWidth: 2 }}
-                name="Leads"
-              />
-            </LineChart>
+              {includeLeadsTrend && (
+                <Area
+                  type="monotone"
+                  dataKey="leads"
+                  name="Leads"
+                  stroke="#F59E0B"
+                  strokeWidth={2.5}
+                  strokeDasharray="5 5"
+                  fillOpacity={1}
+                  fill="url(#gradientLeads)"
+                  dot={{ r: 4.5, fill: "#FFFFFF", stroke: "#F59E0B", strokeWidth: 2 }}
+                  activeDot={{ r: 7, fill: "#F59E0B", stroke: "#FFFFFF", strokeWidth: 2 }}
+                />
+              )}
+            </AreaChart>
           </ResponsiveContainer>
         </div>
 
