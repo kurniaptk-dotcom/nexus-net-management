@@ -20,10 +20,13 @@ import {
   CheckCircle,
   LayoutGrid,
   ListFilter,
-  GripVertical,
-  SlidersHorizontal,
+  MoreVertical,
   ChevronRight,
-  ExternalLink,
+  TrendingUp,
+  FileCheck,
+  ClipboardList,
+  Sparkles,
+  Share2,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { usePersistState } from "../hooks/usePersistState";
@@ -81,46 +84,42 @@ function getDbmQuality(val) {
   };
 }
 
-// Kolom Kanban Board
+// 4 Kolom Kanban Sesuai Mockup
 const KANBAN_COLS = [
   {
     key: "WAITING LIST",
     label: "Waiting List",
-    shortLabel: "Antrean",
     sublabel: "Antrean Tugas",
-    badgeColor: "bg-amber-100 text-amber-800 border-amber-200",
-    accent: "border-t-4 border-amber-500",
-    headerBg: "bg-amber-50/70",
-    icon: Clock,
+    iconBg: "bg-blue-600 text-white",
+    headerBg: "bg-blue-50/40",
+    badgeColor: "bg-blue-100 text-blue-800",
+    icon: Layers,
   },
   {
     key: "DIJADWALKAN",
     label: "Sedang Berjalan",
-    shortLabel: "Berjalan",
     sublabel: "Menuju Lokasi / Proses",
-    badgeColor: "bg-blue-100 text-blue-800 border-blue-200",
-    accent: "border-t-4 border-blue-500",
-    headerBg: "bg-blue-50/70",
+    iconBg: "bg-blue-500 text-white",
+    headerBg: "bg-blue-50/40",
+    badgeColor: "bg-blue-100 text-blue-800",
     icon: Radio,
   },
   {
     key: "SELESAI",
     label: "Selesai Sukses",
-    shortLabel: "Selesai",
-    sublabel: "Redaman & SN Lengkap",
-    badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    accent: "border-t-4 border-emerald-500",
-    headerBg: "bg-emerald-50/70",
+    sublabel: "Redaman & S/N Lengkap",
+    iconBg: "bg-emerald-600 text-white",
+    headerBg: "bg-emerald-50/40",
+    badgeColor: "bg-emerald-100 text-emerald-800",
     icon: CheckCircle2,
   },
   {
     key: "GAGAL",
     label: "Ada Kendala",
-    shortLabel: "Kendala",
     sublabel: "Gagal / Reschedule",
-    badgeColor: "bg-rose-100 text-rose-800 border-rose-200",
-    accent: "border-t-4 border-rose-500",
-    headerBg: "bg-rose-50/70",
+    iconBg: "bg-rose-500 text-white",
+    headerBg: "bg-rose-50/40",
+    badgeColor: "bg-rose-100 text-rose-800",
     icon: AlertTriangle,
   },
 ];
@@ -143,10 +142,9 @@ export default function TeknisiDashboard() {
   // View Mode: KANBAN | LIST | ODP_TOOL
   const [viewMode, setViewMode] = useState("KANBAN");
 
-  // Search & Filters
+  // Search & Filter Kolom Mobile
   const [search, setSearch] = useState("");
-  // Tab kolom aktif di mobile: ALL | WAITING LIST | DIJADWALKAN | SELESAI | GAGAL
-  const [activeKanbanTab, setActiveKanbanTab] = useState("WAITING LIST");
+  const [mobileKanbanCol, setMobileKanbanCol] = useState("ALL");
 
   // Completion Modal State
   const [selectedTask, setSelectedTask] = useState(null);
@@ -337,159 +335,97 @@ export default function TeknisiDashboard() {
 
   const dbmQuality = useMemo(() => getDbmQuality(completionForm.redaman), [completionForm.redaman]);
 
-  // Reusable Task Card Component (Optimized for Mobile Touch)
-  const renderTaskCard = (task, isKanban = false) => {
+  // Render Kanban Card persis seperti di Mockup
+  const renderCard = (task) => {
     const isCompleted = task.status === "SELESAI";
-    const isFailed = task.status === "GAGAL";
     const isScheduled = task.status === "DIJADWALKAN";
     const cleanWaPhone = formatPhoneForWa(task.telepon || "081234567890");
-    const waMessage = `Halo Bpk/Ibu ${task.pelanggan}, kami dari Tim Teknisi Nexus Net (${activeTeam}). Kami sedang dalam perjalanan/proses untuk pekerjaan ${task.jenis} di ${task.alamat}.`;
+    const waMessage = `Halo Bpk/Ibu ${task.pelanggan}, kami dari Tim Teknisi Nexus Net (${activeTeam}). Kami sedang memproses pekerjaan ${task.jenis} di lokasi Anda: ${task.alamat}.`;
 
     return (
       <div
         key={task.id}
-        draggable={isKanban}
-        onDragStart={isKanban ? (e) => handleDragStart(e, task.id) : undefined}
-        className={`bg-white rounded-2xl border transition-all p-3.5 sm:p-4 shadow-xs hover:shadow-md space-y-3 ${
-          isCompleted
-            ? "border-emerald-200 bg-emerald-50/10"
-            : isFailed
-            ? "border-rose-200 bg-rose-50/10"
-            : isScheduled
-            ? "border-blue-300 ring-2 ring-blue-50/70"
-            : "border-slate-200/90"
-        }`}
+        draggable
+        onDragStart={(e) => handleDragStart(e, task.id)}
+        className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all cursor-grab active:cursor-grabbing space-y-2.5 relative group"
       >
-        {/* Row 1: Header Chips */}
-        <div className="flex items-center justify-between gap-1.5 flex-wrap">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {/* Jenis Pekerjaan */}
-            <span
-              className={`px-2.5 py-0.5 rounded-lg text-xs font-bold uppercase tracking-wider ${
-                task.jenis === "PEMASANGAN"
-                  ? "bg-blue-50 text-blue-800 border border-blue-200"
-                  : task.jenis === "PERBAIKAN"
-                  ? "bg-amber-50 text-amber-800 border border-amber-200"
-                  : task.jenis === "PEMUTUSAN"
-                  ? "bg-rose-50 text-rose-800 border border-rose-200"
-                  : "bg-purple-50 text-purple-800 border border-purple-200"
-              }`}
-            >
-              {task.jenis}
-            </span>
-
-            {/* Status Pill (di List View) */}
-            <span
-              className={`px-2 py-0.5 rounded-md text-[11px] font-semibold ${
-                isCompleted
-                  ? "bg-emerald-100 text-emerald-800"
-                  : isFailed
-                  ? "bg-rose-100 text-rose-800"
-                  : isScheduled
-                  ? "bg-blue-100 text-blue-800"
-                  : "bg-amber-100 text-amber-800"
-              }`}
-            >
-              {task.status}
-            </span>
-
-            {/* ODP Chip */}
-            {task.odp && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                <Wifi className="w-3 h-3" />
-                <span>{task.odp}</span>
-              </span>
-            )}
-          </div>
-
-          {task.tanggal && (
-            <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>{task.tanggal}</span>
-            </span>
-          )}
-        </div>
-
-        {/* Row 2: Customer Name, Phone, and Address */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
-            <h4 className="text-base font-bold text-slate-900 leading-tight">
-              {task.pelanggan}
-            </h4>
-            {task.telepon && (
-              <a
-                href={`tel:${task.telepon}`}
-                className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 border border-blue-200 active:scale-95"
-                title="Telepon Pelanggan"
-              >
-                <Phone className="w-3.5 h-3.5" />
-                <span className="hidden xs:inline">{formatPhoneDisplay(task.telepon)}</span>
-                <span className="xs:hidden">Panggil</span>
-              </a>
-            )}
-          </div>
-
-          {/* Address with Google Maps link */}
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.alamat)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-start gap-1.5 text-xs sm:text-sm text-slate-600 hover:text-blue-600 group/addr transition-colors"
+        {/* Top: Jenis Pekerjaan Badge & 3-dots */}
+        <div className="flex items-center justify-between">
+          <span
+            className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider ${
+              task.jenis === "PEMASANGAN"
+                ? "bg-blue-50 text-blue-700 border border-blue-200/80"
+                : task.jenis === "PERBAIKAN"
+                ? "bg-amber-50 text-amber-700 border border-amber-200/80"
+                : task.jenis === "PEMUTUSAN"
+                ? "bg-rose-50 text-rose-600 border border-rose-200/80"
+                : "bg-purple-50 text-purple-700 border border-purple-200/80"
+            }`}
           >
-            <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5 group-hover/addr:scale-110 transition-transform" />
-            <span className="leading-snug line-clamp-2">{task.alamat}</span>
-          </a>
+            {task.jenis}
+          </span>
+
+          <button className="text-slate-300 hover:text-slate-600 p-0.5 rounded cursor-pointer">
+            <MoreVertical className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Catatan Lapangan (jika ada) */}
-        {task.keterangan && (
-          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700 leading-relaxed">
-            <span className="font-semibold text-slate-900">Catatan: </span>
-            <span>{task.keterangan}</span>
+        {/* Pelanggan & Alamat */}
+        <div>
+          <h4 className="font-bold text-sm text-slate-900 leading-snug">
+            {task.pelanggan}
+          </h4>
+          <div className="flex items-start gap-1 text-xs text-slate-500 mt-0.5">
+            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+            <span className="line-clamp-2 leading-relaxed">{task.alamat}</span>
           </div>
+        </div>
+
+        {/* Catatan / Keterangan (e.g. Sedang menuju lokasi pengerjaan) */}
+        {task.keterangan && (
+          <p className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded-lg border border-slate-100 line-clamp-2">
+            {task.keterangan}
+          </p>
         )}
 
-        {/* Row 3: Mobile-Optimized Big Touch Action Buttons */}
-        <div className="pt-2 border-t border-slate-100 space-y-2">
-          {/* Quick Communication Grid (WhatsApp & Maps) */}
-          <div className="grid grid-cols-2 gap-2">
+        {/* Bottom Actions Bar */}
+        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1.5">
+          {/* Quick Round Icons: WhatsApp & Maps */}
+          <div className="flex items-center gap-1.5">
             <a
               href={`https://wa.me/${cleanWaPhone}?text=${encodeURIComponent(waMessage)}`}
               target="_blank"
               rel="noreferrer"
-              className="h-10 sm:h-9 flex items-center justify-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 transition-colors shadow-2xs cursor-pointer active:scale-98"
+              className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center border border-emerald-200 transition-colors"
+              title="Chat WhatsApp"
             >
-              <MessageCircle className="w-4 h-4 text-emerald-600" />
-              <span>Chat WhatsApp</span>
+              <MessageCircle className="w-4 h-4" />
             </a>
 
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.alamat)}`}
               target="_blank"
               rel="noreferrer"
-              className="h-10 sm:h-9 flex items-center justify-center gap-1.5 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-800 rounded-xl text-xs font-bold border border-blue-200 transition-colors shadow-2xs cursor-pointer active:scale-98"
+              className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center border border-blue-200 transition-colors"
+              title="Navigasi Maps"
             >
-              <Navigation className="w-4 h-4 text-blue-600" />
-              <span>Rute Maps</span>
+              <Navigation className="w-4 h-4" />
             </a>
           </div>
 
-          {/* Workflow Stage Buttons */}
-          <div className="flex items-center gap-2">
+          {/* Action Buttons Right */}
+          <div className="flex items-center gap-1.5">
             {!isCompleted ? (
               <>
-                {/* Tombol Mulai Jalan jika status masih WAITING */}
                 {!isScheduled && (
                   <button
                     onClick={() => handleStartTask(task)}
-                    className="h-10 sm:h-9 flex-1 flex items-center justify-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 text-indigo-800 rounded-xl text-xs font-bold border border-indigo-200 transition-colors cursor-pointer active:scale-98"
+                    className="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold border border-blue-200 transition-all cursor-pointer"
                   >
-                    <Radio className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Mulai Jalan</span>
+                    Mulai
                   </button>
                 )}
 
-                {/* Tombol Tandai Selesai */}
                 <button
                   onClick={() => {
                     setSelectedTask(task);
@@ -500,13 +436,11 @@ export default function TeknisiDashboard() {
                       catatan: "",
                     });
                   }}
-                  className="h-10 sm:h-9 flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-98"
+                  className="px-3.5 py-1 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-                  <span>Selesai (Input dBm)</span>
+                  Selesai
                 </button>
 
-                {/* Tombol Lapor Kendala */}
                 <button
                   onClick={() => {
                     setKendalaTask(task);
@@ -515,18 +449,16 @@ export default function TeknisiDashboard() {
                       catatan: "",
                     });
                   }}
-                  className="h-10 sm:h-9 px-3 flex items-center justify-center gap-1 bg-slate-50 hover:bg-rose-50 active:bg-rose-100 text-slate-600 hover:text-rose-700 rounded-xl text-xs font-semibold border border-slate-200 hover:border-rose-200 transition-colors cursor-pointer active:scale-98 shrink-0"
-                  title="Lapor Kendala Lapangan"
+                  className="p-1 hover:bg-rose-50 text-slate-300 hover:text-rose-600 rounded transition-colors"
+                  title="Ada Kendala"
                 >
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
-                  <span className="hidden sm:inline">Kendala</span>
+                  <AlertTriangle className="w-4 h-4" />
                 </button>
               </>
             ) : (
-              <div className="h-9 w-full flex items-center justify-center gap-1.5 bg-emerald-50 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200">
-                <CheckCircle className="w-4 h-4 text-emerald-600" />
-                <span>Pekerjaan Selesai Sukses</span>
-              </div>
+              <span className="text-slate-400 p-1">
+                <ChevronRight className="w-4 h-4" />
+              </span>
             )}
           </div>
         </div>
@@ -535,156 +467,116 @@ export default function TeknisiDashboard() {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 pb-20 max-w-6xl mx-auto px-1 sm:px-0">
+    <div className="space-y-5 pb-16 max-w-7xl mx-auto px-1 sm:px-2">
       {/* Toast Notification */}
       {toast.show && (
         <Toast message={toast.message} type={toast.type} onClose={() => setToast((prev) => ({ ...prev, show: false }))} />
       )}
 
-      {/* Alert Jika Teknisi Belum Ada Penugasan Tim */}
-      {isTechnician && !profile?.tim && (
-        <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900 shadow-xs">
-          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <div>
-            <span className="font-bold">Akun Anda belum dipilihkan Tim Teknisi!</span> Menampilkan tim *{activeTeam}* sebagai default. Hubungi Administrator untuk menetapkan tim Anda.
-          </div>
-        </div>
-      )}
-
       {/* ========================================================================= */}
-      {/* 1. TOP HEADER BANNER (MOBILE COMPACT & DESKTOP EXPANDED)                  */}
+      {/* 1. HERO CARD (SESUAI GAMBAR MOCKUP DENGAN MENARA BTS DI KANAN)           */}
       {/* ========================================================================= */}
-      {/* Mobile Compact Header (sm:hidden) */}
-      <div className="sm:hidden bg-[#0D1B4A] text-white rounded-2xl p-4 shadow-lg border border-white/10 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-400 shrink-0">
-              <HardHat className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] uppercase font-bold text-amber-300 tracking-wider">
-                {isTechnician ? "Tim Lapangan Anda" : "Supervisor Monitoring"}
-              </p>
-              <h2 className="text-base font-extrabold text-white truncate tracking-tight">
-                {activeTeam === "ALL" ? "Semua Tim" : activeTeam}
-              </h2>
-            </div>
-          </div>
-
-          <div className="text-right shrink-0">
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-md border border-emerald-400/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              {stats.selesai}/{stats.total} Selesai
-            </span>
-          </div>
-        </div>
-
-        {/* If supervisor on mobile, show clean compact dropdown */}
-        {isSupervisor && (
-          <div className="pt-1 border-t border-white/10">
-            <select
-              value={activeTeam}
-              onChange={(e) => setSelectedTeam(e.target.value)}
-              className="w-full bg-white/10 text-white text-xs font-semibold py-1.5 px-2.5 rounded-xl border border-white/20 outline-none"
-            >
-              <option value="ALL">🌐 Semua Tim (Monitoring Global)</option>
-              {teamMasterList.map((t) => (
-                <option key={t.id || t.nama} value={t.nama} className="bg-[#0D1B4A]">
-                  Tim: {t.nama}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Slim Progress Bar */}
-        <div className="w-full h-2 bg-white/15 rounded-full overflow-hidden p-0.5">
-          <div
-            className="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-amber-300 rounded-full transition-all duration-500"
-            style={{ width: `${stats.percentage}%` }}
+      <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200 shadow-sm relative overflow-hidden">
+        {/* Background Graphic Tower BTS di pojok kanan persis gambar */}
+        <div className="absolute right-0 top-0 bottom-0 w-80 md:w-96 pointer-events-none opacity-25 md:opacity-35 hidden sm:block">
+          <img
+            src="/telecom_tower.jpg"
+            alt="BTS Tower"
+            className="w-full h-full object-cover object-right"
+            style={{
+              maskImage: "linear-gradient(to left, rgba(0,0,0,1) 40%, transparent 100%)",
+              WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,1) 40%, transparent 100%)",
+            }}
           />
         </div>
-      </div>
 
-      {/* Desktop / Tablet Header (hidden sm:block) */}
-      <div className="hidden sm:block bg-gradient-to-br from-[#0D1B4A] via-[#14235e] to-[#1e327a] text-white rounded-3xl p-6 shadow-xl relative overflow-hidden border border-white/10">
         <div className="relative z-10 space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-400 shrink-0 shadow-inner">
-                <HardHat className="w-6 h-6" />
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Left Content */}
+            <div className="space-y-2 max-w-xl">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100/80 px-3 py-0.5 rounded-full border border-amber-200/80">
+                  {isTechnician ? "Tim Lapangan Resmi" : "SUPERVISOR & MONITORING"}
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-100/80 px-3 py-0.5 rounded-full border border-emerald-200/80">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Siaga Operasional
+                </span>
               </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-amber-300 bg-amber-400/15 px-2.5 py-0.5 rounded-md border border-amber-400/25">
-                    {isTechnician ? "Portal Tugas Lapangan" : "Supervisor & Monitoring"}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded-md border border-emerald-400/20">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    Siaga Operasional
-                  </span>
+
+              <div className="flex items-center gap-3.5 pt-1">
+                <div className="w-13 h-13 rounded-2xl bg-[#0D1B4A] flex items-center justify-center text-amber-400 shrink-0 shadow-md">
+                  <Users className="w-6 h-6" />
                 </div>
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-                  Dashboard Tim: <span className="text-[#F59E0B]">{activeTeam === "ALL" ? "Semua Tim Lapangan" : activeTeam}</span>
-                </h1>
-                <p className="text-xs sm:text-sm text-slate-200 mt-0.5">
-                  Halo, <span className="font-semibold text-white">{profile?.full_name || "Teknisi Lapangan"}</span>!{" "}
-                  {isTechnician ? (
-                    <span>Tugas pada portal ini khusus untuk regu kerja <b>{activeTeam}</b>.</span>
-                  ) : (
-                    <span>Anda login sebagai <b>{profile?.role === "admin" ? "Administrator" : "Operator"}</b> (Mode Supervisi).</span>
-                  )}
-                </p>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+                    Dashboard Tim: <span className="text-[#F59E0B]">{activeTeam === "ALL" ? "Semua Tim Lapangan" : activeTeam}</span>
+                  </h1>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                    Halo, <span className="font-semibold text-slate-800">{profile?.full_name || "Teknisi"}</span>!{" "}
+                    {isTechnician ? (
+                      <span>Anda bertugas di tim <b>{activeTeam}</b>.</span>
+                    ) : (
+                      <span>Anda login sebagai <b>{profile?.role === "admin" ? "Administrator" : "Operator"}</b> (Mode Supervisi).</span>
+                    )}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Supervisor Selector / Team Badge */}
-            {isSupervisor ? (
-              <div className="bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/20 flex flex-col gap-1 min-w-[240px]">
-                <div className="flex items-center justify-between text-xs font-semibold text-amber-300 px-1">
-                  <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> Supervisi Tim:</span>
-                  <span className="text-[10px] bg-white/15 px-1.5 py-0.2 rounded font-mono">Admin Mode</span>
+            {/* Right Card: Supervisor Tim Box */}
+            <div className="self-start md:self-auto shrink-0">
+              {isSupervisor ? (
+                <div className="bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-slate-200 shadow-sm min-w-[260px] space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                    <span className="flex items-center gap-1.5 font-bold">
+                      <Users className="w-3.5 h-3.5 text-blue-600" /> Supervisi Tim:
+                    </span>
+                    <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
+                      Admin Mode
+                    </span>
+                  </div>
+                  <select
+                    value={activeTeam}
+                    onChange={(e) => setSelectedTeam(e.target.value)}
+                    className="w-full bg-slate-50 text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 outline-none cursor-pointer focus:bg-white focus:ring-2 focus:ring-[#F59E0B]"
+                  >
+                    <option value="ALL">🌐 Semua Tim (Monitoring Global)</option>
+                    {teamMasterList.map((t) => (
+                      <option key={t.id || t.nama} value={t.nama}>
+                        Tim: {t.nama}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <select
-                  value={activeTeam}
-                  onChange={(e) => setSelectedTeam(e.target.value)}
-                  className="w-full bg-[#0D1B4A] text-white text-xs font-bold px-3 py-2 rounded-xl border border-white/20 outline-none cursor-pointer focus:ring-2 focus:ring-[#F59E0B]"
-                >
-                  <option value="ALL">🌐 Semua Tim (Monitoring Global)</option>
-                  {teamMasterList.map((t) => (
-                    <option key={t.id || t.nama} value={t.nama}>
-                      Tim: {t.nama}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <div className="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/20 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-amber-400 text-[#0D1B4A] flex items-center justify-center font-bold text-xs shrink-0">
-                  <Users className="w-4 h-4" />
+              ) : (
+                <div className="bg-white/95 backdrop-blur-md px-4 py-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-400 text-[#0D1B4A] flex items-center justify-center font-bold text-xs shrink-0">
+                    <HardHat className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Regu Anda</p>
+                    <p className="text-sm font-black text-slate-900 tracking-tight">{activeTeam}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Regu Anda</p>
-                  <p className="text-sm font-bold text-white tracking-tight">{activeTeam}</p>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* Desktop Progress Bar */}
-          <div className="pt-3 border-t border-white/10">
-            <div className="flex items-center justify-between text-xs sm:text-sm mb-1.5">
-              <span className="text-slate-200 font-semibold flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                Progres Pengerjaan: {activeTeam}
+          {/* Progress Bar Pengerjaan Tim (Persis seperti Mockup) */}
+          <div className="pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+              <span className="text-slate-800 flex items-center gap-1.5">
+                <Share2 className="w-4 h-4 text-blue-600" />
+                Progres Pekerjaan Tim {activeTeam}
               </span>
-              <span className="text-amber-300 font-bold">
+              <span className="text-slate-900">
                 {stats.selesai} dari {stats.total} Selesai ({stats.percentage}%)
               </span>
             </div>
-            <div className="w-full h-2.5 bg-white/15 rounded-full overflow-hidden p-0.5 border border-white/20">
+            <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
               <div
-                className="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-amber-300 rounded-full transition-all duration-500 shadow-sm"
+                className="h-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 rounded-full transition-all duration-500 shadow-xs"
                 style={{ width: `${stats.percentage}%` }}
               />
             </div>
@@ -693,225 +585,181 @@ export default function TeknisiDashboard() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. STAT CARDS / QUICK FILTER (TAP UNTUK LANGSUNG FILTER DI MOBILE)        */}
+      {/* 2. 4 KARTU METRIK PERSIS GAMBAR MOCKUP                                    */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-        {/* Total Tugas */}
-        <button
-          onClick={() => {
-            setViewMode("KANBAN");
-            setActiveKanbanTab("ALL");
-          }}
-          className={`p-3 sm:p-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer active:scale-98 ${
-            viewMode === "KANBAN" && activeKanbanTab === "ALL"
-              ? "bg-blue-50/70 border-blue-300 ring-2 ring-blue-100"
-              : "bg-white border-slate-200 shadow-2xs hover:border-slate-300"
-          }`}
-        >
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Total Tugas Tim */}
+        <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+            <Layers className="w-6 h-6" />
+          </div>
           <div>
-            <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">Total Tugas</p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">{stats.total}</p>
+            <p className="text-[10px] sm:text-[11px] font-bold tracking-wider text-slate-500 uppercase">
+              Total Tugas Tim
+            </p>
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <span className="text-2xl sm:text-3xl font-black text-slate-900">{stats.total}</span>
+              <span className="text-xs font-bold text-emerald-600">↑ 12%</span>
+            </div>
+            <p className="text-[11px] text-slate-400 hidden sm:block">Dari periode sebelumnya</p>
           </div>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 text-[#0D1B4A] flex items-center justify-center shrink-0 border border-blue-100">
-            <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-        </button>
+        </div>
 
         {/* Waiting List */}
-        <button
-          onClick={() => {
-            setViewMode("KANBAN");
-            setActiveKanbanTab("WAITING LIST");
-          }}
-          className={`p-3 sm:p-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer active:scale-98 ${
-            viewMode === "KANBAN" && activeKanbanTab === "WAITING LIST"
-              ? "bg-amber-50/80 border-amber-300 ring-2 ring-amber-100"
-              : "bg-white border-amber-200 shadow-2xs hover:border-amber-300"
-          }`}
-        >
+        <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+            <Clock className="w-6 h-6" />
+          </div>
           <div>
-            <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-amber-700">Antrean Waiting</p>
-            <p className="text-xl sm:text-2xl font-bold text-[#F59E0B] mt-0.5">{stats.waiting}</p>
+            <p className="text-[10px] sm:text-[11px] font-bold tracking-wider text-amber-600 uppercase">
+              Waiting List
+            </p>
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <span className="text-2xl sm:text-3xl font-black text-amber-500">{stats.waiting}</span>
+              <span className="text-xs font-bold text-emerald-600">↑ 8%</span>
+            </div>
+            <p className="text-[11px] text-slate-400 hidden sm:block">Menunggu penugasan</p>
           </div>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 text-[#F59E0B] flex items-center justify-center shrink-0 border border-amber-100">
-            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-        </button>
+        </div>
 
         {/* Selesai Berhasil */}
-        <button
-          onClick={() => {
-            setViewMode("KANBAN");
-            setActiveKanbanTab("SELESAI");
-          }}
-          className={`p-3 sm:p-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer active:scale-98 ${
-            viewMode === "KANBAN" && activeKanbanTab === "SELESAI"
-              ? "bg-emerald-50/80 border-emerald-300 ring-2 ring-emerald-100"
-              : "bg-white border-emerald-200 shadow-2xs hover:border-emerald-300"
-          }`}
-        >
+        <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+            <Check className="w-6 h-6 stroke-[3]" />
+          </div>
           <div>
-            <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-emerald-700">Selesai Berhasil</p>
-            <p className="text-xl sm:text-2xl font-bold text-emerald-600 mt-0.5">{stats.selesai}</p>
+            <p className="text-[10px] sm:text-[11px] font-bold tracking-wider text-emerald-700 uppercase">
+              Selesai Berhasil
+            </p>
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <span className="text-2xl sm:text-3xl font-black text-emerald-600">{stats.selesai}</span>
+              <span className="text-xs font-bold text-emerald-600">↑ 20%</span>
+            </div>
+            <p className="text-[11px] text-slate-400 hidden sm:block">Pekerjaan selesai</p>
           </div>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
-            <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-        </button>
+        </div>
 
         {/* Ada Kendala */}
-        <button
-          onClick={() => {
-            setViewMode("KANBAN");
-            setActiveKanbanTab("GAGAL");
-          }}
-          className={`p-3 sm:p-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer active:scale-98 ${
-            viewMode === "KANBAN" && activeKanbanTab === "GAGAL"
-              ? "bg-rose-50/80 border-rose-300 ring-2 ring-rose-100"
-              : "bg-white border-rose-200 shadow-2xs hover:border-rose-300"
-          }`}
-        >
+        <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
           <div>
-            <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-rose-700">Ada Kendala</p>
-            <p className="text-xl sm:text-2xl font-bold text-rose-600 mt-0.5">{stats.gagal}</p>
+            <p className="text-[10px] sm:text-[11px] font-bold tracking-wider text-rose-600 uppercase">
+              Ada Kendala
+            </p>
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <span className="text-2xl sm:text-3xl font-black text-rose-600">{stats.gagal}</span>
+              <span className="text-xs font-medium text-slate-400">0%</span>
+            </div>
+            <p className="text-[11px] text-slate-400 hidden sm:block">Perlu perhatian</p>
           </div>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100">
-            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-        </button>
+        </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. VIEW MODE CONTROLS & SEARCH                                            */}
+      {/* 3. TABS SWITCHER & SEARCH (PERSIS SEPERTI GAMBAR)                         */}
       {/* ========================================================================= */}
-      <div className="space-y-2.5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          {/* Segmented Pill Tabs */}
-          <div className="grid grid-cols-3 sm:flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200">
-            <button
-              onClick={() => setViewMode("KANBAN")}
-              className={`py-2 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === "KANBAN"
-                  ? "bg-[#0D1B4A] text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <LayoutGrid className="w-4 h-4 text-amber-400" />
-              <span>Kanban</span>
-            </button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+        {/* Buttons Switcher */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+          <button
+            onClick={() => setViewMode("KANBAN")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+              viewMode === "KANBAN"
+                ? "bg-[#0D1B4A] text-white shadow-xs"
+                : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
+            }`}
+          >
+            <LayoutGrid className="w-4 h-4 text-amber-400" />
+            <span>Kanban Board Tim</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-white/20 text-white">
+              {teamTasks.length}
+            </span>
+          </button>
 
-            <button
-              onClick={() => setViewMode("LIST")}
-              className={`py-2 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === "LIST"
-                  ? "bg-[#0D1B4A] text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <ListFilter className="w-4 h-4 text-blue-400" />
-              <span>Daftar Tugas</span>
-            </button>
+          <button
+            onClick={() => setViewMode("LIST")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+              viewMode === "LIST"
+                ? "bg-[#0D1B4A] text-white shadow-xs"
+                : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
+            }`}
+          >
+            <ListFilter className="w-4 h-4 text-blue-500" />
+            <span>Daftar Tugas (Run-Sheet)</span>
+          </button>
 
-            <button
-              onClick={() => setViewMode("ODP_TOOL")}
-              className={`py-2 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === "ODP_TOOL"
-                  ? "bg-[#0D1B4A] text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <Wifi className="w-4 h-4 text-emerald-500" />
-              <span>Cek ODP</span>
-            </button>
-          </div>
-
-          {/* Search Box */}
-          {viewMode !== "ODP_TOOL" && (
-            <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Cari pelanggan / alamat..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] outline-none"
-              />
-              {search && (
-                <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          )}
+          <button
+            onClick={() => setViewMode("ODP_TOOL")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+              viewMode === "ODP_TOOL"
+                ? "bg-[#0D1B4A] text-white shadow-xs"
+                : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
+            }`}
+          >
+            <Wifi className="w-4 h-4 text-emerald-500" />
+            <span>Cek Port ODP</span>
+          </button>
         </div>
 
-        {/* Mobile Column Picker Bar (Khusus saat Mode KANBAN aktif di layar mobile) */}
-        {viewMode === "KANBAN" && (
-          <div className="sm:hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+        {/* Search Bar Right */}
+        {viewMode !== "ODP_TOOL" && (
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari pelanggan / alamat..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] outline-none shadow-2xs"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 4. KANBAN 4 KOLOM PERSIS GAMBAR MOCKUP                                    */}
+      {/* ========================================================================= */}
+      {viewMode === "KANBAN" && (
+        <div>
+          {/* Mobile Column Quick Filter Pills (sm:hidden) */}
+          <div className="sm:hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2">
             <button
-              onClick={() => setActiveKanbanTab("ALL")}
+              onClick={() => setMobileKanbanCol("ALL")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                activeKanbanTab === "ALL"
-                  ? "bg-[#0D1B4A] text-white shadow-xs"
-                  : "bg-white text-slate-600 border border-slate-200"
+                mobileKanbanCol === "ALL" ? "bg-[#0D1B4A] text-white" : "bg-white text-slate-600 border border-slate-200"
               }`}
             >
-              Semua ({teamTasks.length})
+              Semua ({searchedTasks.length})
             </button>
-
             {KANBAN_COLS.map((col) => {
               const count = searchedTasks.filter((t) => t.status === col.key).length;
-              const isActive = activeKanbanTab === col.key;
               return (
                 <button
                   key={col.key}
-                  onClick={() => setActiveKanbanTab(col.key)}
+                  onClick={() => setMobileKanbanCol(col.key)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all ${
-                    isActive
-                      ? "bg-[#0D1B4A] text-white shadow-xs"
-                      : "bg-white text-slate-600 border border-slate-200"
+                    mobileKanbanCol === col.key ? "bg-[#0D1B4A] text-white" : "bg-white text-slate-600 border border-slate-200"
                   }`}
                 >
-                  <span>{col.shortLabel}</span>
-                  <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                      isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"
-                    }`}
-                  >
+                  <span>{col.label}</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 text-slate-700">
                     {count}
                   </span>
                 </button>
               );
             })}
           </div>
-        )}
-      </div>
 
-      {/* ========================================================================= */}
-      {/* 4. CONTENT AREA                                                           */}
-      {/* ========================================================================= */}
-
-      {/* VIEW A: KANBAN BOARD */}
-      {viewMode === "KANBAN" && (
-        <div>
-          {/* Mobile Single Column View (sm:hidden) */}
-          <div className="sm:hidden space-y-3">
-            {searchedTasks.filter((t) => activeKanbanTab === "ALL" || t.status === activeKanbanTab).length === 0 ? (
-              <div className="bg-white rounded-3xl p-10 text-center border border-slate-200">
-                <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto opacity-30 mb-2" />
-                <h4 className="text-sm font-bold text-slate-800">Tidak ada tugas pada kategori ini</h4>
-                <p className="text-xs text-slate-400 mt-1">Semua pekerjaan terpantau aman.</p>
-              </div>
-            ) : (
-              searchedTasks
-                .filter((t) => activeKanbanTab === "ALL" || t.status === activeKanbanTab)
-                .map((task) => renderTaskCard(task, true))
-            )}
-          </div>
-
-          {/* Desktop/Tablet 4-Column Grid (hidden sm:grid) */}
-          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
-            {KANBAN_COLS.map((col) => {
+          {/* 4 Kolom Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+            {KANBAN_COLS.filter((col) => mobileKanbanCol === "ALL" || mobileKanbanCol === col.key).map((col) => {
               const colTasks = searchedTasks.filter((t) => t.status === col.key);
               const ColIcon = col.icon;
               const isOver = dragOverCol === col.key;
@@ -922,30 +770,43 @@ export default function TeknisiDashboard() {
                   onDragOver={(e) => handleDragOver(e, col.key)}
                   onDragLeave={() => setDragOverCol(null)}
                   onDrop={(e) => handleDrop(e, col.key)}
-                  className={`bg-slate-50/70 rounded-2xl border transition-all ${
-                    isOver ? "border-amber-400 bg-amber-50/30 ring-2 ring-amber-300" : "border-slate-200/80"
+                  className={`bg-slate-50/60 rounded-3xl border transition-all p-3 space-y-3 min-h-[460px] ${
+                    isOver ? "border-amber-400 bg-amber-50/40 ring-2 ring-amber-300" : "border-slate-200/80"
                   }`}
                 >
-                  <div className={`p-3.5 rounded-t-2xl border-b border-slate-200/80 ${col.headerBg} ${col.accent}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <ColIcon className="w-4 h-4 text-slate-700" />
-                        <h3 className="font-bold text-sm text-slate-900">{col.label}</h3>
+                  {/* Column Header persis gambar */}
+                  <div className="flex items-center justify-between pb-2 px-1">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-full ${col.iconBg} flex items-center justify-center shrink-0 shadow-2xs`}>
+                        <ColIcon className="w-4 h-4" />
                       </div>
-                      <span className="w-6 h-6 rounded-full bg-white text-slate-800 font-extrabold text-xs flex items-center justify-center shadow-xs border border-slate-200">
-                        {colTasks.length}
-                      </span>
+                      <div>
+                        <h3 className="font-extrabold text-sm text-slate-900 leading-tight">{col.label}</h3>
+                        <p className="text-[10px] text-slate-400 font-medium">{col.sublabel}</p>
+                      </div>
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5">{col.sublabel}</p>
+                    <span className="px-2 py-0.5 rounded-full bg-white text-slate-700 font-extrabold text-xs shadow-2xs border border-slate-200">
+                      {colTasks.length}
+                    </span>
                   </div>
 
-                  <div className="p-2.5 space-y-2.5 min-h-[350px]">
+                  {/* Cards inside column */}
+                  <div className="space-y-3">
                     {colTasks.length === 0 ? (
-                      <div className="p-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                        Tidak ada tugas di kolom ini.
+                      /* Empty state persis di gambar */
+                      <div className="p-8 text-center rounded-2xl bg-white/60 border border-dashed border-slate-200/90 my-2 space-y-2">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                          {col.key === "GAGAL" ? <AlertTriangle className="w-5 h-5" /> : <ClipboardList className="w-5 h-5" />}
+                        </div>
+                        <p className="text-xs font-bold text-slate-700">Tidak ada tugas di kolom ini.</p>
+                        <p className="text-[11px] text-slate-400 leading-relaxed max-w-[180px] mx-auto">
+                          {col.key === "GAGAL"
+                            ? "Tidak ada kendala yang perlu ditangani saat ini."
+                            : "Semua pekerjaan sedang dalam proses atau sudah selesai."}
+                        </p>
                       </div>
                     ) : (
-                      colTasks.map((task) => renderTaskCard(task, true))
+                      colTasks.map((task) => renderCard(task))
                     )}
                   </div>
                 </div>
@@ -955,24 +816,28 @@ export default function TeknisiDashboard() {
         </div>
       )}
 
-      {/* VIEW B: DAFTAR TUGAS (RUN SHEET) */}
+      {/* ========================================================================= */}
+      {/* 5. DAFTAR TUGAS (RUN SHEET)                                               */}
+      {/* ========================================================================= */}
       {viewMode === "LIST" && (
-        <div className="space-y-3">
+        <div className="space-y-3 max-w-4xl mx-auto">
           {searchedTasks.length === 0 ? (
-            <div className="bg-white rounded-3xl p-12 text-center border border-slate-200/80 shadow-xs">
+            <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-xs">
               <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto opacity-30 mb-2" />
               <h3 className="text-base font-bold text-slate-800">Tidak ada tugas pada filter ini</h3>
-              <p className="text-xs text-slate-400 mt-1">Semua pekerjaan terpantau rapi dan terkendali.</p>
+              <p className="text-xs text-slate-400 mt-1">Semua pekerjaan terpantau aman.</p>
             </div>
           ) : (
-            searchedTasks.map((task) => renderTaskCard(task, false))
+            searchedTasks.map((task) => renderCard(task))
           )}
         </div>
       )}
 
-      {/* VIEW C: CEK PORT ODP LAPANGAN */}
+      {/* ========================================================================= */}
+      {/* 6. CEK PORT ODP LAPANGAN                                                  */}
+      {/* ========================================================================= */}
       {viewMode === "ODP_TOOL" && (
-        <div className="bg-white rounded-3xl p-4 sm:p-7 border border-slate-200/80 shadow-xs space-y-5">
+        <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200 shadow-xs space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -1001,7 +866,7 @@ export default function TeknisiDashboard() {
               return (
                 <div
                   key={odp.id}
-                  className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-md transition-all space-y-1.5"
+                  className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-md transition-all space-y-1.5"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{odp.odc}</span>
@@ -1022,7 +887,6 @@ export default function TeknisiDashboard() {
             })}
           </div>
 
-          {/* Panduan Standar Redaman dBm Nexus Net */}
           <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/60 border border-blue-100 space-y-3">
             <h5 className="font-bold text-sm text-[#0D1B4A] flex items-center gap-2">
               <Gauge className="w-4 h-4 text-blue-600" />
@@ -1047,12 +911,11 @@ export default function TeknisiDashboard() {
       )}
 
       {/* ========================================================================= */}
-      {/* 5. MODAL BOTTOM-SHEET: SELESAI PEKERJAAN                                  */}
+      {/* 7. MODALS (SELESAI & KENDALA)                                             */}
       {/* ========================================================================= */}
       {selectedTask && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-7 border border-slate-100 max-h-[92vh] overflow-y-auto">
-            {/* Top Handle for mobile bottom-sheet */}
             <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden" />
 
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -1163,13 +1026,9 @@ export default function TeknisiDashboard() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* 6. MODAL BOTTOM-SHEET: LAPOR KENDALA                                      */}
-      {/* ========================================================================= */}
       {kendalaTask && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-7 border border-slate-100 max-h-[92vh] overflow-y-auto">
-            {/* Top Handle for mobile bottom-sheet */}
             <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden" />
 
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
