@@ -27,6 +27,12 @@ export function AuthProvider({ children }) {
             if (parsed.role && merged.role === "user" && parsed.role !== "user") {
               merged.role = parsed.role;
             }
+            if (parsed.tim && !merged.tim) {
+              merged.tim = parsed.tim;
+            }
+          }
+          if (!merged.tim && user?.user_metadata?.tim) {
+            merged.tim = user.user_metadata.tim;
           }
         } catch (e) {
           // ignore
@@ -59,13 +65,13 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  async function signUp(email, password, fullName, role = "user", allowedMenus = null) {
+  async function signUp(email, password, fullName, role = "user", allowedMenus = null, tim = "") {
     // Gunakan unpersisted client agar sesi admin saat ini tidak terganti oleh user baru
     const client = profile?.role === "admin" ? createUnpersistedClient() : supabase;
     const { data, error } = await client.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, role, allowed_menus: allowedMenus } },
+      options: { data: { full_name: fullName, role, allowed_menus: allowedMenus, tim } },
     });
     if (error) throw error;
 
@@ -77,13 +83,14 @@ export function AuthProvider({ children }) {
           email,
           full_name: fullName,
           role,
+          tim: tim || "",
         };
         if (allowedMenus) payload.allowed_menus = allowedMenus;
 
         const { error: upsertErr } = await supabase.from("profiles").upsert(payload);
         if (upsertErr) {
           console.warn("Retrying profile upsert with safe role:", upsertErr.message);
-          // Fallback if role constraint or allowed_menus column not yet migrated
+          // Fallback if role constraint, allowed_menus or tim column not yet migrated
           await supabase.from("profiles").upsert({
             id: data.user.id,
             email,
@@ -95,13 +102,14 @@ export function AuthProvider({ children }) {
         console.warn("Profile upsert exception:", err);
       }
 
-      // Simpan ke cache lokal permissions
+      // Simpan ke cache lokal permissions & tim
       try {
         localStorage.setItem(
           `xnet_perms_${data.user.id}`,
           JSON.stringify({
             role,
             allowedMenus,
+            tim: tim || "",
             updatedAt: new Date().toISOString(),
           })
         );
@@ -151,6 +159,7 @@ export function AuthProvider({ children }) {
           safeUpdates.role = "user";
         }
         delete safeUpdates.allowed_menus;
+        delete safeUpdates.tim;
         const { data: fallbackData, error: fbError } = await supabase.from("profiles").update(safeUpdates).eq("id", userId).select().single();
         if (fbError) throw fbError;
         savedData = { ...fallbackData, ...updates };
@@ -160,19 +169,21 @@ export function AuthProvider({ children }) {
     }
 
     // Selalu perbarui cache lokal permissions
-    if (updates.allowed_menus || updates.role) {
-      try {
-        localStorage.setItem(
-          `xnet_perms_${userId}`,
-          JSON.stringify({
-            role: updates.role || savedData?.role,
-            allowedMenus: updates.allowed_menus || savedData?.allowed_menus,
-            updatedAt: new Date().toISOString(),
-          })
-        );
-      } catch (e) {
-        // ignore
-      }
+    try {
+      const existingRaw = localStorage.getItem(`xnet_perms_${userId}`);
+      const existing = existingRaw ? JSON.parse(existingRaw) : {};
+      localStorage.setItem(
+        `xnet_perms_${userId}`,
+        JSON.stringify({
+          ...existing,
+          role: updates.role || savedData?.role || existing.role,
+          allowedMenus: updates.allowed_menus || savedData?.allowed_menus || existing.allowedMenus,
+          tim: updates.tim !== undefined ? updates.tim : (savedData?.tim || existing.tim || ""),
+          updatedAt: new Date().toISOString(),
+        })
+      );
+    } catch (e) {
+      // ignore
     }
 
     if (userId === user?.id) {

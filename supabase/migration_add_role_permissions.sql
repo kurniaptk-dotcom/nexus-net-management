@@ -17,6 +17,9 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS allowed_menus text[] DEFAULT ARRAY
 -- 3. Tambahkan kolom custom_role_title jika admin memberikan nama gelar/jabatan khusus
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS custom_role_title text DEFAULT '';
 
+-- 4. Tambahkan kolom tim untuk penugasan regu teknisi lapangan
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS tim text DEFAULT '';
+
 -- 4. Berikan hak akses penuh ke semua akun admin saat ini
 UPDATE profiles
 SET allowed_menus = ARRAY['/', '/tim', '/pekerjaan', '/leads', '/gangguan', '/odp', '/laporan', '/users']::text[]

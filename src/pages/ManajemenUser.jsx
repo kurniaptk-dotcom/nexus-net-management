@@ -29,6 +29,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import Toast from "../components/Toast";
+import { initialTimData } from "../data/mockData";
+import { usePersistState } from "../hooks/usePersistState";
 import {
   SYSTEM_MENUS,
   ROLE_PRESETS,
@@ -64,6 +66,7 @@ export default function ManajemenUser() {
   const { profile, signUp, deleteUser, deleteUserCompletely, updateProfile } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [teamList] = usePersistState("xnet_tim", initialTimData);
 
   // Search & Filter
   const [search, setSearch] = useState("");
@@ -79,7 +82,8 @@ export default function ManajemenUser() {
     password: "",
     full_name: "",
     role: "teknisi",
-    allowed_menus: ["/teknisi", "/pekerjaan", "/gangguan", "/odp"],
+    allowed_menus: ["/teknisi"],
+    tim: "",
   });
   const [addError, setAddError] = useState("");
   const [savingAdd, setSavingAdd] = useState(false);
@@ -90,6 +94,7 @@ export default function ManajemenUser() {
     full_name: "",
     role: "user",
     allowed_menus: [],
+    tim: "",
   });
   const [editError, setEditError] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
@@ -172,7 +177,8 @@ export default function ManajemenUser() {
         addForm.password,
         addForm.full_name.trim(),
         addForm.role,
-        addForm.allowed_menus
+        addForm.allowed_menus,
+        addForm.tim || ""
       );
       setShowAddModal(false);
       setAddForm({
@@ -180,7 +186,8 @@ export default function ManajemenUser() {
         password: "",
         full_name: "",
         role: "teknisi",
-        allowed_menus: ["/teknisi", "/pekerjaan", "/gangguan", "/odp"],
+        allowed_menus: ["/teknisi"],
+        tim: "",
       });
       triggerToast("User baru berhasil ditambahkan!", "success");
       await fetchUsers();
@@ -195,11 +202,25 @@ export default function ManajemenUser() {
   function openEditModal(userItem) {
     const userRole = userItem.role || "user";
     const allowed = getUserAllowedMenus(userItem);
+
+    // Dapatkan tim jika tersimpan di profil atau cache lokal
+    let userTeam = userItem.tim || "";
+    if (!userTeam) {
+      try {
+        const local = localStorage.getItem(`xnet_perms_${userItem.id}`);
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (parsed.tim) userTeam = parsed.tim;
+        }
+      } catch (e) {}
+    }
+
     setEditingUser(userItem);
     setEditForm({
       full_name: userItem.full_name || "",
       role: userRole,
       allowed_menus: allowed,
+      tim: userTeam,
     });
     setEditError("");
   }
@@ -222,6 +243,7 @@ export default function ManajemenUser() {
         full_name: editForm.full_name.trim(),
         role: editForm.role,
         allowed_menus: editForm.allowed_menus,
+        tim: editForm.tim || "",
       });
 
       setUsers((prev) =>
@@ -232,12 +254,13 @@ export default function ManajemenUser() {
                 full_name: editForm.full_name.trim(),
                 role: editForm.role,
                 allowed_menus: editForm.allowed_menus,
+                tim: editForm.tim || "",
               }
             : u
         )
       );
       setEditingUser(null);
-      triggerToast("Profil dan hak akses menu berhasil diperbarui!", "success");
+      triggerToast("Profil dan penugasan tim berhasil diperbarui!", "success");
     } catch (err) {
       setEditError(err.message);
     } finally {
@@ -650,10 +673,18 @@ WHERE role = 'teknisi';`;
 
                   {/* Role & Allowed Menus */}
                   <div className="space-y-1.5 pt-1">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${rInfo.colorClass}`}>
-                      {u.role === "admin" ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
-                      {rInfo.label}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${rInfo.colorClass}`}>
+                        {u.role === "admin" ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                        {rInfo.label}
+                      </span>
+                      {u.tim && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                          <HardHat className="w-3 h-3 text-amber-600" />
+                          <span>Tim: {u.tim}</span>
+                        </span>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-1 flex-wrap pt-1">
                       {u.role === "admin" ? (
@@ -748,21 +779,29 @@ WHERE role = 'teknisi';`;
                         {u.email}
                       </td>
 
-                      {/* Role Pill */}
+                      {/* Role Pill & Assigned Team */}
                       <td className="px-5 py-3.5">
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(u)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer hover:shadow-xs ${rInfo.colorClass}`}
-                          title="Klik untuk ubah role & checklist menu"
-                        >
-                          {u.role === "admin" ? (
-                            <Shield className="w-3.5 h-3.5" />
-                          ) : (
-                            <User className="w-3.5 h-3.5" />
+                        <div className="flex flex-col gap-1 items-start">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(u)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer hover:shadow-xs ${rInfo.colorClass}`}
+                            title="Klik untuk ubah role & checklist menu"
+                          >
+                            {u.role === "admin" ? (
+                              <Shield className="w-3.5 h-3.5" />
+                            ) : (
+                              <User className="w-3.5 h-3.5" />
+                            )}
+                            <span>{rInfo.label}</span>
+                          </button>
+                          {u.tim && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                              <HardHat className="w-3 h-3 text-amber-600" />
+                              <span>Tim: {u.tim}</span>
+                            </span>
                           )}
-                          <span>{rInfo.label}</span>
-                        </button>
+                        </div>
                       </td>
 
                       {/* Checklist Akses Menu Badges */}
@@ -919,6 +958,40 @@ WHERE role = 'teknisi';`;
                 </select>
                 <p className="text-[11px] text-gray-400 mt-1">
                   Memilih role akan otomatis menyesuaikan checklist menu default di bawah ini.
+                </p>
+              </div>
+
+              {/* Penugasan Tim Teknisi */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <HardHat className="w-3.5 h-3.5 text-amber-500" />
+                    Penugasan Tim Lapangan
+                  </span>
+                  {editForm.role === "teknisi" && (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Wajib untuk Teknisi
+                    </span>
+                  )}
+                </label>
+                <select
+                  value={editForm.tim || ""}
+                  onChange={(e) => setEditForm({ ...editForm, tim: e.target.value })}
+                  className={`w-full px-3.5 py-2.5 bg-gray-50 border rounded-xl text-sm font-semibold text-gray-800 focus:bg-white focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] outline-none cursor-pointer ${
+                    editForm.role === "teknisi" && !editForm.tim ? "border-amber-400 bg-amber-50/20" : "border-gray-200"
+                  }`}
+                >
+                  <option value="">-- Tidak Ditugaskan / Bukan Teknisi --</option>
+                  {teamList.map((t) => (
+                    <option key={t.id || t.nama} value={t.nama}>
+                      Regu Lapangan: {t.nama}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  {editForm.role === "teknisi"
+                    ? "Tugas pada Portal Teknisi akun ini akan otomatis terkunci hanya untuk tim ini."
+                    : "Opsional. Pilih tim jika pengguna ini bertugas sebagai personel regu lapangan."}
                 </p>
               </div>
 
@@ -1125,6 +1198,40 @@ WHERE role = 'teknisi';`;
                     </optgroup>
                   )}
                 </select>
+              </div>
+
+              {/* Penugasan Tim Teknisi (Tambah Akun) */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <HardHat className="w-3.5 h-3.5 text-amber-500" />
+                    Penugasan Tim Lapangan
+                  </span>
+                  {addForm.role === "teknisi" && (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Wajib untuk Teknisi
+                    </span>
+                  )}
+                </label>
+                <select
+                  value={addForm.tim || ""}
+                  onChange={(e) => setAddForm({ ...addForm, tim: e.target.value })}
+                  className={`w-full px-3.5 py-2.5 bg-gray-50 border rounded-xl text-sm font-semibold text-gray-800 focus:bg-white focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] outline-none cursor-pointer ${
+                    addForm.role === "teknisi" && !addForm.tim ? "border-amber-400 bg-amber-50/20" : "border-gray-200"
+                  }`}
+                >
+                  <option value="">-- Tidak Ditugaskan / Bukan Teknisi --</option>
+                  {teamList.map((t) => (
+                    <option key={t.id || t.nama} value={t.nama}>
+                      Regu Lapangan: {t.nama}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  {addForm.role === "teknisi"
+                    ? "Tugas pada Portal Teknisi akun ini akan otomatis terkunci hanya untuk tim ini."
+                    : "Opsional. Pilih tim jika akun ini bertugas sebagai personel lapangan."}
+                </p>
               </div>
 
               {/* CHECKLIST AKSES KE MENU APA AJA */}
