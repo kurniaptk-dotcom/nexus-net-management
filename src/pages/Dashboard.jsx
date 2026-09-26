@@ -194,7 +194,6 @@ export default function Dashboard() {
     "xnet_dashboard_show_detail_pekerjaan",
     true
   );
-  const [trendChartMode, setTrendChartMode] = useState("composed");
 
   // Month Filtering Dropdown State
   const now = new Date();
@@ -1333,170 +1332,96 @@ export default function Dashboard() {
                     : "Tren Pemasangan, Pemutusan & Leads"}
                 </h3>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Perbandingan volume pemasangan baru, pemutusan, dan perolehan leads
+                  Statistik grafik garis perbandingan volume pemasangan baru, pemutusan, dan leads
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Mini KPI Badges */}
-                <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold mr-1">
-                  <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100">
-                    Pasang: <b>{trendSummary.totalPasang}</b>
-                  </span>
-                  <span className="px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-100">
-                    Putus: <b>{trendSummary.totalPutus}</b>
-                  </span>
-                  <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-100">
-                    Leads: <b>{trendSummary.totalLeads}</b>
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 rounded-md border ${
-                      trendSummary.netGrowth >= 0
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                        : "bg-rose-50 text-rose-700 border-rose-100"
-                    }`}
-                  >
-                    Net: <b>{trendSummary.netGrowth >= 0 ? `+${trendSummary.netGrowth}` : trendSummary.netGrowth}</b>
-                  </span>
-                </div>
-
-                {/* Toggle Mode */}
-                <div className="bg-gray-100 p-0.5 rounded-lg flex items-center text-[10px] font-bold">
-                  <button
-                    onClick={() => setTrendChartMode("composed")}
-                    className={`px-2 py-0.5 rounded-md transition-all ${
-                      trendChartMode === "composed"
-                        ? "bg-white text-gray-900 shadow-sm"
-                        : "text-gray-500 hover:text-gray-800"
-                    }`}
-                  >
-                    Kombinasi
-                  </button>
-                  <button
-                    onClick={() => setTrendChartMode("line")}
-                    className={`px-2 py-0.5 rounded-md transition-all ${
-                      trendChartMode === "line"
-                        ? "bg-white text-gray-900 shadow-sm"
-                        : "text-gray-500 hover:text-gray-800"
-                    }`}
-                  >
-                    Garis
-                  </button>
-                </div>
+              {/* Mini KPI Badges */}
+              <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100">
+                  Pasang: <b>{trendSummary.totalPasang}</b>
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-100">
+                  Putus: <b>{trendSummary.totalPutus}</b>
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-100">
+                  Leads: <b>{trendSummary.totalLeads}</b>
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-md border ${
+                    trendSummary.netGrowth >= 0
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                      : "bg-rose-50 text-rose-700 border-rose-100"
+                  }`}
+                >
+                  Net: <b>{trendSummary.netGrowth >= 0 ? `+${trendSummary.netGrowth}` : trendSummary.netGrowth}</b>
+                </span>
               </div>
             </div>
 
-            {/* Legend & Indicator */}
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-3 px-1 text-xs">
-              <div className="flex items-center gap-3.5 text-xs font-semibold">
-                <span className="flex items-center gap-1.5 text-gray-700">
-                  <span className="w-2.5 h-2.5 rounded bg-[#2563EB]" />
-                  Pemasangan
-                </span>
-                <span className="flex items-center gap-1.5 text-gray-700">
-                  <span className="w-2.5 h-2.5 rounded bg-[#DC2626]" />
-                  Pemutusan
-                </span>
-                <span className="flex items-center gap-1.5 text-gray-700">
-                  <span className="w-3.5 h-1 rounded bg-[#F59E0B]" />
-                  Leads
-                </span>
-              </div>
-              <p className="text-[11px] text-gray-400">
-                {trendChartMode === "composed"
-                  ? "Batang: Pasang & Putus | Garis: Leads"
-                  : "Grafik Garis Komparatif"}
-              </p>
+            {/* Legend */}
+            <div className="flex flex-wrap items-center gap-4 mb-3 px-1 text-xs font-semibold">
+              <span className="flex items-center gap-1.5 text-gray-700">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#2563EB]" />
+                Pemasangan
+              </span>
+              <span className="flex items-center gap-1.5 text-gray-700">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#DC2626]" />
+                Pemutusan
+              </span>
+              <span className="flex items-center gap-1.5 text-gray-700">
+                <span className="w-3 h-0.5 border-b-2 border-dashed border-[#F59E0B]" />
+                <span className="w-2 h-2 rounded-full border-2 border-[#F59E0B] bg-white -ml-2 mr-0.5" />
+                Leads
+              </span>
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={240}>
-            {trendChartMode === "composed" ? (
-              <ComposedChart data={trendChartData} barGap={4}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 11, fill: "#64748B" }}
-                  axisLine={{ stroke: "#E2E8F0" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "#64748B" }}
-                  axisLine={false}
-                  tickLine={false}
-                  allowDecimals={false}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar
-                  dataKey="pemasangan"
-                  name="Pemasangan"
-                  fill="#2563EB"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={28}
-                />
-                <Bar
-                  dataKey="pemutusan"
-                  name="Pemutusan"
-                  fill="#DC2626"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={28}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="leads"
-                  name="Leads"
-                  stroke="#F59E0B"
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: "#FFFFFF", stroke: "#F59E0B", strokeWidth: 2 }}
-                  activeDot={{ r: 6, fill: "#F59E0B", stroke: "#FFFFFF", strokeWidth: 2 }}
-                />
-              </ComposedChart>
-            ) : (
-              <LineChart data={trendChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 11, fill: "#64748B" }}
-                  axisLine={{ stroke: "#E2E8F0" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "#64748B" }}
-                  axisLine={false}
-                  tickLine={false}
-                  allowDecimals={false}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Line
-                  type="monotone"
-                  dataKey="pemasangan"
-                  stroke="#2563EB"
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: "#2563EB" }}
-                  activeDot={{ r: 6 }}
-                  name="Pemasangan"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="pemutusan"
-                  stroke="#DC2626"
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: "#DC2626" }}
-                  activeDot={{ r: 6 }}
-                  name="Pemutusan"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="leads"
-                  stroke="#F59E0B"
-                  strokeWidth={3}
-                  strokeDasharray="4 4"
-                  dot={{ r: 4, fill: "#FFFFFF", stroke: "#F59E0B", strokeWidth: 2 }}
-                  activeDot={{ r: 6, fill: "#F59E0B", stroke: "#FFFFFF", strokeWidth: 2 }}
-                  name="Leads"
-                />
-              </LineChart>
-            )}
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={trendChartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11, fill: "#64748B" }}
+                axisLine={{ stroke: "#E2E8F0" }}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: "#64748B" }}
+                axisLine={false}
+                tickLine={false}
+                allowDecimals={false}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Line
+                type="monotone"
+                dataKey="pemasangan"
+                stroke="#2563EB"
+                strokeWidth={2.5}
+                dot={{ r: 4, fill: "#2563EB" }}
+                activeDot={{ r: 6 }}
+                name="Pemasangan"
+              />
+              <Line
+                type="monotone"
+                dataKey="pemutusan"
+                stroke="#DC2626"
+                strokeWidth={2.5}
+                dot={{ r: 4, fill: "#DC2626" }}
+                activeDot={{ r: 6 }}
+                name="Pemutusan"
+              />
+              <Line
+                type="monotone"
+                dataKey="leads"
+                stroke="#F59E0B"
+                strokeWidth={2.5}
+                strokeDasharray="5 5"
+                dot={{ r: 4.5, fill: "#FFFFFF", stroke: "#F59E0B", strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: "#F59E0B", stroke: "#FFFFFF", strokeWidth: 2 }}
+                name="Leads"
+              />
+            </LineChart>
           </ResponsiveContainer>
         </div>
 
