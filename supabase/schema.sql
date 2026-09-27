@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   email text NOT NULL,
   full_name text DEFAULT '',
   role text NOT NULL DEFAULT 'user',
+  tim text DEFAULT '',
   allowed_menus text[] DEFAULT ARRAY['/', '/pekerjaan', '/gangguan']::text[],
   custom_role_title text DEFAULT '',
   created_at timestamptz DEFAULT now()
@@ -145,19 +146,36 @@ CREATE POLICY "Admin can delete profiles" ON profiles FOR DELETE USING (
 -- Trigger auto-create profile
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS trigger AS $$
+DECLARE
+  v_role text := 'user';
+  v_name text := '';
+  v_tim text := '';
 BEGIN
-  INSERT INTO profiles (id, email, full_name, role, allowed_menus)
+  IF NEW.raw_user_meta_data IS NOT NULL THEN
+    v_name := COALESCE(NEW.raw_user_meta_data->>'full_name', '');
+    v_role := COALESCE(NEW.raw_user_meta_data->>'role', 'user');
+    v_tim := COALESCE(NEW.raw_user_meta_data->>'tim', '');
+  END IF;
+
+  INSERT INTO profiles (id, email, full_name, role, tim)
   VALUES (
     NEW.id,
-    NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'user'),
-    COALESCE(
-      ARRAY(SELECT jsonb_array_elements_text(NEW.raw_user_meta_data->'allowed_menus')),
-      ARRAY['/', '/pekerjaan', '/gangguan']::text[]
-    )
-  );
+    COALESCE(NEW.email, ''),
+    v_name,
+    v_role,
+    v_tim
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = CASE WHEN EXCLUDED.full_name <> '' THEN EXCLUDED.full_name ELSE public.profiles.full_name END,
+    role = CASE WHEN EXCLUDED.role <> '' THEN EXCLUDED.role ELSE public.profiles.role END,
+    tim = CASE WHEN EXCLUDED.tim <> '' THEN EXCLUDED.tim ELSE public.profiles.tim END;
+
   RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Mencegah pesan 'Database error saving new user'
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

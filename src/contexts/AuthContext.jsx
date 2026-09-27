@@ -68,15 +68,38 @@ export function AuthProvider({ children }) {
   async function signUp(email, password, fullName, role = "user", allowedMenus = null, tim = "") {
     // Gunakan unpersisted client agar sesi admin saat ini tidak terganti oleh user baru
     const client = profile?.role === "admin" ? createUnpersistedClient() : supabase;
-    const { data, error } = await client.auth.signUp({
+
+    // Kirim role default aman ('user') ke auth.signUp agar trigger database Supabase
+    // tidak gagal jika database memiliki constraint role lama (seperti profiles_role_check)
+    let { data, error } = await client.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, role, allowed_menus: allowedMenus, tim } },
+      options: {
+        data: {
+          full_name: fullName,
+          role: "user",
+          tim: tim || "",
+        },
+      },
     });
-    if (error) throw error;
+
+    // Jika terjadi "Database error saving new user" (akibat trigger database Supabase bermasalah/error),
+    // lakukan retry pendaftaran tanpa options.data agar auth.users tetap berhasil dibuat
+    if (error && error.message?.includes("Database error saving new user")) {
+      console.warn("Auth trigger error detected, retrying without metadata...");
+      const retry = await client.auth.signUp({
+        email,
+        password,
+      });
+      if (retry.error) throw retry.error;
+      data = retry.data;
+      error = null;
+    } else if (error) {
+      throw error;
+    }
 
     // Insert/upsert profile directly
-    if (data.user) {
+    if (data?.user) {
       try {
         const payload = {
           id: data.user.id,
