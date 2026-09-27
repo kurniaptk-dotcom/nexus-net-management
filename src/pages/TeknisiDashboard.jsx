@@ -27,10 +27,27 @@ import {
   ClipboardList,
   Sparkles,
   Share2,
+  Coins,
+  Wallet,
+  Award,
+  Printer,
+  Settings,
+  Target,
+  FileText,
+  RotateCcw,
+  Star,
+  Info,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { usePersistState } from "../hooks/usePersistState";
 import { pekerjaanList, initialTimData, odpOdcList } from "../data/mockData";
+import {
+  DEFAULT_INCENTIVE_CONFIG,
+  formatRupiah,
+  calculateTeamIncentives,
+  calculateTaskIncentive,
+  extractDbmFromKeterangan,
+} from "../lib/incentives";
 import Toast from "../components/Toast";
 
 // Format nomor WhatsApp standar Indonesia
@@ -176,11 +193,22 @@ export default function TeknisiDashboard() {
     setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 4000);
   };
 
+  // Sistem Insentif, Fee & Bonus Teknisi
+  const [incentiveConfig, setIncentiveConfig] = usePersistState("xnet_incentive_config", DEFAULT_INCENTIVE_CONFIG);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showSlipModal, setShowSlipModal] = useState(false);
+  const [configForm, setConfigForm] = useState(incentiveConfig);
+
   // Filter tugas untuk tim aktif
   const teamTasks = useMemo(() => {
     if (activeTeam === "ALL") return pekerjaan;
     return pekerjaan.filter((p) => (p.tim || "").toUpperCase() === activeTeam.toUpperCase());
   }, [pekerjaan, activeTeam]);
+
+  // Perhitungan insentif otomatis tim aktif
+  const teamIncentives = useMemo(() => {
+    return calculateTeamIncentives(pekerjaan, activeTeam, incentiveConfig);
+  }, [pekerjaan, activeTeam, incentiveConfig]);
 
   // Pencarian
   const searchedTasks = useMemo(() => {
@@ -334,6 +362,37 @@ export default function TeknisiDashboard() {
   }, [odpList, odpQuery]);
 
   const dbmQuality = useMemo(() => getDbmQuality(completionForm.redaman), [completionForm.redaman]);
+
+  // Filter daftar pekerjaan selesai di tampilan Dompet & Insentif
+  const filteredWalletBreakdown = useMemo(() => {
+    if (!search.trim()) return teamIncentives.breakdown;
+    const q = search.toLowerCase().trim();
+    return teamIncentives.breakdown.filter(
+      (t) =>
+        (t.pelanggan || "").toLowerCase().includes(q) ||
+        (t.alamat || "").toLowerCase().includes(q) ||
+        (t.jenis || "").toLowerCase().includes(q) ||
+        (t.odp || "").toLowerCase().includes(q)
+    );
+  }, [teamIncentives.breakdown, search]);
+
+  // Handle Simpan Konfigurasi Tarif
+  const handleSaveConfig = (e) => {
+    e.preventDefault();
+    setIncentiveConfig(configForm);
+    setShowConfigModal(false);
+    triggerToast("Pengaturan tarif insentif teknisi berhasil disimpan.", "success");
+  };
+
+  // Handle Reset Konfigurasi Tarif
+  const handleResetConfig = () => {
+    if (window.confirm("Kembalikan konfigurasi tarif ke pengaturan standar?")) {
+      setConfigForm(DEFAULT_INCENTIVE_CONFIG);
+      setIncentiveConfig(DEFAULT_INCENTIVE_CONFIG);
+      setShowConfigModal(false);
+      triggerToast("Tarif insentif dikembalikan ke standar awal.", "info");
+    }
+  };
 
   // Render Kanban Card persis seperti di Mockup
   const renderCard = (task) => {
@@ -565,14 +624,24 @@ export default function TeknisiDashboard() {
 
           {/* Progress Bar Pengerjaan Tim (Persis seperti Mockup) */}
           <div className="pt-3 border-t border-slate-100">
-            <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs font-bold mb-1.5">
               <span className="text-slate-800 flex items-center gap-1.5">
                 <Share2 className="w-4 h-4 text-blue-600" />
                 Progres Pekerjaan Tim {activeTeam}
               </span>
-              <span className="text-slate-900">
-                {stats.selesai} dari {stats.total} Selesai ({stats.percentage}%)
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-slate-900">
+                  {stats.selesai} dari {stats.total} Selesai ({stats.percentage}%)
+                </span>
+                <button
+                  onClick={() => setViewMode("WALLET")}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition-colors cursor-pointer"
+                >
+                  <Coins className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Insentif: {formatRupiah(teamIncentives.grandTotal)}</span>
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
             </div>
             <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
               <div
@@ -701,10 +770,26 @@ export default function TeknisiDashboard() {
             <Wifi className="w-4 h-4 text-emerald-500" />
             <span>Cek Port ODP</span>
           </button>
+
+          {/* Tab Dompet & Insentif */}
+          <button
+            onClick={() => setViewMode("WALLET")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+              viewMode === "WALLET"
+                ? "bg-[#0D1B4A] text-white shadow-xs"
+                : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
+            }`}
+          >
+            <Coins className="w-4 h-4 text-amber-400" />
+            <span>Dompet & Insentif</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-[#0D1B4A]">
+              {formatRupiah(teamIncentives.grandTotal)}
+            </span>
+          </button>
         </div>
 
         {/* Search Bar Right */}
-        {viewMode !== "ODP_TOOL" && (
+        {viewMode !== "ODP_TOOL" && viewMode !== "WALLET" && (
           <div className="relative w-full sm:w-72">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -911,6 +996,395 @@ export default function TeknisiDashboard() {
       )}
 
       {/* ========================================================================= */}
+      {/* 6.5. DOMPET & INSENTIF TEKNISI (WALLET VIEW)                            */}
+      {/* ========================================================================= */}
+      {viewMode === "WALLET" && (
+        <div className="space-y-5">
+          {/* Header Bar Dompet */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                  <Wallet className="w-4 h-4" />
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                  Dompet & Insentif Tim: <span className="text-[#F59E0B]">{activeTeam}</span>
+                </h3>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500">
+                Akumulasi fee pokok pekerjaan, bonus redaman optik prima, dan bonus target kinerja bulanan.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {isSupervisor && (
+                <button
+                  onClick={() => {
+                    setConfigForm(incentiveConfig);
+                    setShowConfigModal(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors cursor-pointer"
+                >
+                  <Settings className="w-4 h-4 text-slate-600" />
+                  <span>Atur Tarif</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setShowSlipModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#0D1B4A] hover:bg-[#1a237e] text-white shadow-xs transition-all cursor-pointer"
+              >
+                <Printer className="w-4 h-4 text-amber-400" />
+                <span>Cetak Slip Insentif</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 4 Kartu Ringkasan Insentif */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* 1. Grand Total Insentif */}
+            <div className="bg-gradient-to-br from-[#0D1B4A] via-[#152355] to-[#1E293B] text-white p-5 rounded-3xl shadow-sm border border-blue-900/40 relative overflow-hidden flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-300">
+                  Total Estimasi Insentif
+                </span>
+                <div className="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-300 flex items-center justify-center">
+                  <Coins className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="my-2">
+                <h2 className="text-2xl sm:text-3xl font-black text-amber-400 tracking-tight">
+                  {formatRupiah(teamIncentives.grandTotal)}
+                </h2>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Akumulasi {teamIncentives.totalCompleted} tugas selesai
+                </p>
+              </div>
+              <div className="text-[10px] text-amber-200/80 bg-white/10 px-2.5 py-1 rounded-lg">
+                Siap diklaim pada penutupan periode
+              </div>
+            </div>
+
+            {/* 2. Fee Pokok Pekerjaan */}
+            <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">
+                  Fee Pokok Tugas
+                </span>
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Wrench className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="my-2">
+                <h3 className="text-2xl font-black text-slate-900">
+                  {formatRupiah(teamIncentives.totalBaseFee)}
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Dari {teamIncentives.totalCompleted} pekerjaan sukses
+                </p>
+              </div>
+              <div className="text-[10px] text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg">
+                Tarif standar per jenis tugas
+              </div>
+            </div>
+
+            {/* 3. Bonus Redaman Prima */}
+            <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
+                  Bonus Redaman Prima
+                </span>
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="my-2">
+                <h3 className="text-2xl font-black text-emerald-600">
+                  {formatRupiah(teamIncentives.totalQualityBonus)}
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {teamIncentives.primaCount} titik redaman terbaik
+                </p>
+              </div>
+              <div className="text-[10px] text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                +{formatRupiah(incentiveConfig.qualityBonus.amount)} per redaman -15 s/d -22.9 dBm
+              </div>
+            </div>
+
+            {/* 4. Bonus Target Kinerja */}
+            <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">
+                  Bonus Target Kinerja
+                </span>
+                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Award className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="my-2">
+                <h3 className="text-2xl font-black text-amber-600">
+                  {formatRupiah(teamIncentives.activeTierBonus)}
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {teamIncentives.achievedTierLabel || "Belum ada bonus tier"}
+                </p>
+              </div>
+              <div className="text-[10px] text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg">
+                Target bulanan tim teknisi
+              </div>
+            </div>
+          </div>
+
+          {/* Banner Progres Target Kinerja Bulanan */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-amber-500" />
+                <h4 className="text-sm sm:text-base font-bold text-slate-900">
+                  Progres Target Kinerja Bulanan Tim
+                </h4>
+              </div>
+              {teamIncentives.nextTier ? (
+                <span className="text-xs font-bold text-slate-600">
+                  {teamIncentives.totalCompleted} dari {teamIncentives.nextTier.targetCount} Tugas ({teamIncentives.nextTier.progressPercent}%)
+                </span>
+              ) : (
+                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  🏆 Target Maksimal Tercapai
+                </span>
+              )}
+            </div>
+
+            {teamIncentives.nextTier && (
+              <div className="space-y-1.5">
+                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500"
+                    style={{ width: `${teamIncentives.nextTier.progressPercent}%` }}
+                  />
+                </div>
+                <p className="text-xs text-slate-600">
+                  Semangat! Selesaikan <b>{teamIncentives.nextTier.remainingCount} pekerjaan lagi</b> untuk membuka{" "}
+                  <span className="font-bold text-amber-600">{teamIncentives.nextTier.label}</span> dan memperoleh bonus tambahan{" "}
+                  <span className="font-bold text-slate-900">{formatRupiah(teamIncentives.nextTier.bonusAmount)}</span>!
+                </p>
+              </div>
+            )}
+
+            {/* Daftar Level Target */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+              {incentiveConfig.tierTargets.map((tier) => {
+                const isReached = teamIncentives.totalCompleted >= tier.targetCount;
+                return (
+                  <div
+                    key={tier.id}
+                    className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between ${
+                      isReached
+                        ? "bg-amber-50/60 border-amber-300 text-amber-900"
+                        : "bg-slate-50/60 border-slate-200 text-slate-600"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+                          isReached ? "bg-amber-400 text-[#0D1B4A]" : "bg-slate-200 text-slate-400"
+                        }`}
+                      >
+                        <Award className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h5 className="font-bold text-xs sm:text-sm text-slate-900">{tier.label}</h5>
+                        <p className="text-[11px] text-slate-500">
+                          Bonus: <b className="text-emerald-700">{formatRupiah(tier.bonusAmount)}</b>
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      {isReached ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-200">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" /> Tercapai
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-slate-400 bg-white px-2.5 py-1 rounded-full border border-slate-200">
+                          {tier.targetCount - teamIncentives.totalCompleted} lagi
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Rujukan Tarif Aktif */}
+          <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-slate-700">
+            <div className="flex items-center gap-2 font-bold text-[#0D1B4A]">
+              <Info className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>Daftar Tarif Insentif Aktif:</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs">
+              <span>
+                Pemasangan: <b>{formatRupiah(incentiveConfig.tariffs.PEMASANGAN)}</b>
+              </span>
+              <span>
+                Perbaikan: <b>{formatRupiah(incentiveConfig.tariffs.PERBAIKAN)}</b>
+              </span>
+              <span>
+                Pemutusan: <b>{formatRupiah(incentiveConfig.tariffs.PEMUTUSAN)}</b>
+              </span>
+              <span>
+                ODP/ODC: <b>{formatRupiah(incentiveConfig.tariffs["PERBAIKAN KHUSUS (ODP/ODC)"])}</b>
+              </span>
+              <span className="text-emerald-700 font-bold">
+                Redaman Prima: +{formatRupiah(incentiveConfig.qualityBonus.amount)}/titik
+              </span>
+            </div>
+          </div>
+
+          {/* Rincian Item Pekerjaan yang Selesai */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h4 className="text-base font-bold text-slate-900">
+                  Rincian Pekerjaan Selesai ({filteredWalletBreakdown.length} Tugas)
+                </h4>
+                <p className="text-xs text-slate-500">
+                  Daftar seluruh pekerjaan yang telah diselesaikan beserta perolehan fee dan bonus
+                </p>
+              </div>
+
+              {/* Quick Search */}
+              <div className="relative w-full sm:w-64">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari rincian..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-[#F59E0B] outline-none"
+                />
+              </div>
+            </div>
+
+            {filteredWalletBreakdown.length === 0 ? (
+              <div className="text-center py-10 space-y-2">
+                <FileCheck className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-sm font-bold text-slate-700">Belum ada tugas selesai</p>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  Selesaikan pekerjaan di tab Kanban Board atau Daftar Tugas untuk mulai mengakumulasikan insentif tim Anda.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wider font-semibold text-[10px]">
+                        <th className="py-2.5 px-3">Pelanggan / Alamat</th>
+                        <th className="py-2.5 px-3">Jenis Tugas</th>
+                        <th className="py-2.5 px-3">Redaman Optik</th>
+                        <th className="py-2.5 px-3">Fee Pokok</th>
+                        <th className="py-2.5 px-3">Bonus Kualitas</th>
+                        <th className="py-2.5 px-3 text-right">Total Fee</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredWalletBreakdown.map((task) => (
+                        <tr key={task.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3 px-3">
+                            <p className="font-bold text-slate-900">{task.pelanggan}</p>
+                            <p className="text-[11px] text-slate-500 line-clamp-1">{task.alamat}</p>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+                              {task.jenis}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            {task.incentive.redaman !== null ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono font-bold text-slate-700">
+                                  {task.incentive.redaman} dBm
+                                </span>
+                                {task.incentive.hasQualityBonus && (
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200">
+                                    <Sparkles className="w-2.5 h-2.5" /> Prima
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 italic text-[11px]">-</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 font-semibold text-slate-700">
+                            {formatRupiah(task.incentive.baseFee)}
+                          </td>
+                          <td className="py-3 px-3">
+                            {task.incentive.qualityBonus > 0 ? (
+                              <span className="text-emerald-700 font-bold">
+                                +{formatRupiah(task.incentive.qualityBonus)}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-right font-black text-slate-900 text-sm">
+                            {formatRupiah(task.incentive.total)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Cards List */}
+                <div className="md:hidden space-y-3">
+                  {filteredWalletBreakdown.map((task) => (
+                    <div
+                      key={task.id}
+                      className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-200/70 text-slate-700">
+                          {task.jenis}
+                        </span>
+                        <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                          {formatRupiah(task.incentive.total)}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h5 className="font-bold text-sm text-slate-900">{task.pelanggan}</h5>
+                        <p className="text-xs text-slate-500 line-clamp-1">{task.alamat}</p>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between text-xs text-slate-600">
+                        <div className="flex items-center gap-1.5">
+                          <Gauge className="w-3.5 h-3.5 text-slate-400" />
+                          <span>
+                            {task.incentive.redaman !== null ? `${task.incentive.redaman} dBm` : "N/A"}
+                          </span>
+                          {task.incentive.hasQualityBonus && (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">
+                              +5rb Prima
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-slate-400 text-[11px]">
+                          Fee: {formatRupiah(task.incentive.baseFee)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* 7. MODALS (SELESAI & KENDALA)                                             */}
       {/* ========================================================================= */}
       {selectedTask && (
@@ -1095,6 +1569,408 @@ export default function TeknisiDashboard() {
                 >
                   Simpan Kendala
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 8. MODAL CETAK SLIP INSENTIF RESMI                                        */}
+      {/* ========================================================================= */}
+      {showSlipModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+          <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl p-6 sm:p-8 border border-slate-200 max-h-[95vh] overflow-y-auto print:p-0 print:border-none print:shadow-none">
+            {/* Header Slip */}
+            <div className="flex items-start justify-between pb-4 border-b-2 border-slate-900">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#0D1B4A] text-amber-400 flex items-center justify-center font-black text-xs">
+                    X
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black tracking-tight text-[#0D1B4A]">
+                    PT NEXUS NET NUSANTARA
+                  </h3>
+                </div>
+                <p className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
+                  SISTEM OPERASIONAL JARINGAN & TEKNISI FIBER OPTIK
+                </p>
+                <p className="text-xs font-bold text-slate-800 pt-1">
+                  SLIP REKAPITULASI INSENTIF PRESTASI TEKNISI
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowSlipModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer print:hidden"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Informasi Slip */}
+            <div className="grid grid-cols-2 gap-4 py-4 text-xs border-b border-slate-100">
+              <div>
+                <p className="text-slate-400 font-semibold uppercase text-[10px]">Regu / Tim Teknisi:</p>
+                <p className="font-bold text-slate-900 text-sm">{activeTeam}</p>
+                <p className="text-slate-500 text-[11px] mt-1">
+                  Pencetak: <b>{profile?.full_name || "Teknisi"}</b>
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-slate-400 font-semibold uppercase text-[10px]">Periode Perhitungan:</p>
+                <p className="font-bold text-slate-900">
+                  {new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
+                </p>
+                <p className="text-slate-400 text-[10px] mt-1">
+                  Tanggal: {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                </p>
+              </div>
+            </div>
+
+            {/* Rincian Komponen Insentif */}
+            <div className="py-4 space-y-3">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-500 text-[10px] font-bold uppercase">
+                    <th className="py-2 text-left">Komponen Insentif</th>
+                    <th className="py-2 text-center">Volume</th>
+                    <th className="py-2 text-right">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                  <tr>
+                    <td className="py-2.5">Fee Pokok Pekerjaan Selesai</td>
+                    <td className="py-2.5 text-center font-bold">{teamIncentives.totalCompleted} Tugas</td>
+                    <td className="py-2.5 text-right font-bold text-slate-900">
+                      {formatRupiah(teamIncentives.totalBaseFee)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2.5">
+                      Bonus Kualitas Redaman Prima
+                      <span className="block text-[10px] text-slate-400">
+                        Kualitas -15.0 s/d -22.9 dBm (+{formatRupiah(incentiveConfig.qualityBonus.amount)})
+                      </span>
+                    </td>
+                    <td className="py-2.5 text-center font-bold text-emerald-700">
+                      {teamIncentives.primaCount} Titik
+                    </td>
+                    <td className="py-2.5 text-right font-bold text-emerald-700">
+                      {formatRupiah(teamIncentives.totalQualityBonus)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2.5">
+                      Bonus Target Prestasi Bulanan
+                      <span className="block text-[10px] text-slate-400">
+                        {teamIncentives.achievedTierLabel || "Belum mencapai tier minimal"}
+                      </span>
+                    </td>
+                    <td className="py-2.5 text-center font-bold text-amber-700">
+                      {teamIncentives.activeTierBonus > 0 ? "1 Tier" : "-"}
+                    </td>
+                    <td className="py-2.5 text-right font-bold text-amber-700">
+                      {formatRupiah(teamIncentives.activeTierBonus)}
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-slate-900">
+                    <td colSpan={2} className="py-3 text-sm font-black text-slate-900 uppercase">
+                      Total Insentif Bersih:
+                    </td>
+                    <td className="py-3 text-right text-base font-black text-slate-900">
+                      {formatRupiah(teamIncentives.grandTotal)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Tanda Tangan */}
+            <div className="grid grid-cols-2 gap-8 pt-8 pb-4 text-center text-xs">
+              <div className="space-y-12">
+                <p className="text-slate-500 font-semibold">Penerima (Tim Teknisi):</p>
+                <div className="border-b border-slate-300 w-3/4 mx-auto" />
+                <p className="font-bold text-slate-900">({activeTeam})</p>
+              </div>
+              <div className="space-y-12">
+                <p className="text-slate-500 font-semibold">Mengetahui (Supervisor / Finance):</p>
+                <div className="border-b border-slate-300 w-3/4 mx-auto" />
+                <p className="font-bold text-slate-900">(PT NEXUS NET)</p>
+              </div>
+            </div>
+
+            {/* Tombol Aksi */}
+            <div className="flex gap-2 pt-4 border-t border-slate-100 print:hidden">
+              <button
+                type="button"
+                onClick={() => setShowSlipModal(false)}
+                className="flex-1 py-3 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex-2 py-3 text-xs font-bold bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Printer className="w-4 h-4 text-amber-400" />
+                <span>Cetak / Unduh PDF</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 9. MODAL ATUR TARIF & BONUS INSENTIF (SUPERVISOR / ADMIN ONLY)            */}
+      {/* ========================================================================= */}
+      {showConfigModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-5 sm:p-7 border border-slate-200 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+                  <Settings className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Atur Skema Insentif & Bonus</h3>
+                  <p className="text-xs text-slate-500">Konfigurasi tarif fee pokok dan bonus target teknisi</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowConfigModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveConfig} className="mt-4 space-y-4">
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Wrench className="w-3.5 h-3.5 text-blue-600" /> Tarif Fee Pokok per Pekerjaan (Rp)
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Pemasangan Baru (PSB)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={5000}
+                      value={configForm.tariffs.PEMASANGAN}
+                      onChange={(e) =>
+                        setConfigForm((prev) => ({
+                          ...prev,
+                          tariffs: { ...prev.tariffs, PEMASANGAN: Number(e.target.value) || 0 },
+                        }))
+                      }
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Perbaikan Gangguan
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={5000}
+                      value={configForm.tariffs.PERBAIKAN}
+                      onChange={(e) =>
+                        setConfigForm((prev) => ({
+                          ...prev,
+                          tariffs: { ...prev.tariffs, PERBAIKAN: Number(e.target.value) || 0 },
+                        }))
+                      }
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Pemutusan / Dismantle
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={5000}
+                      value={configForm.tariffs.PEMUTUSAN}
+                      onChange={(e) =>
+                        setConfigForm((prev) => ({
+                          ...prev,
+                          tariffs: { ...prev.tariffs, PEMUTUSAN: Number(e.target.value) || 0 },
+                        }))
+                      }
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Perbaikan Khusus ODP/ODC
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={5000}
+                      value={configForm.tariffs["PERBAIKAN KHUSUS (ODP/ODC)"]}
+                      onChange={(e) =>
+                        setConfigForm((prev) => ({
+                          ...prev,
+                          tariffs: {
+                            ...prev.tariffs,
+                            "PERBAIKAN KHUSUS (ODP/ODC)": Number(e.target.value) || 0,
+                          },
+                        }))
+                      }
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Bonus Redaman Prima */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Bonus Kualitas Redaman Prima (Rp)
+                </h4>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Nominal Tambahan per Titik (-15.0 s/d -22.9 dBm)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1000}
+                    value={configForm.qualityBonus.amount}
+                    onChange={(e) =>
+                      setConfigForm((prev) => ({
+                        ...prev,
+                        qualityBonus: { ...prev.qualityBonus, amount: Number(e.target.value) || 0 },
+                      }))
+                    }
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Target Kinerja Bulanan */}
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5 text-amber-600" /> Target Prestasi Bulanan
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <p className="text-xs font-bold text-slate-900">Target Silver</p>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">Jumlah Tugas Selesai</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={configForm.tierTargets[0]?.targetCount || 25}
+                        onChange={(e) => {
+                          const val = Number(e.target.value) || 25;
+                          setConfigForm((prev) => {
+                            const tiers = [...prev.tierTargets];
+                            tiers[0] = { ...tiers[0], targetCount: val };
+                            return { ...prev, tierTargets: tiers };
+                          });
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">Bonus Nominal (Rp)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        step={10000}
+                        value={configForm.tierTargets[0]?.bonusAmount || 100000}
+                        onChange={(e) => {
+                          const val = Number(e.target.value) || 0;
+                          setConfigForm((prev) => {
+                            const tiers = [...prev.tierTargets];
+                            tiers[0] = { ...tiers[0], bonusAmount: val };
+                            return { ...prev, tierTargets: tiers };
+                          });
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <p className="text-xs font-bold text-slate-900">Target Gold</p>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">Jumlah Tugas Selesai</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={configForm.tierTargets[1]?.targetCount || 40}
+                        onChange={(e) => {
+                          const val = Number(e.target.value) || 40;
+                          setConfigForm((prev) => {
+                            const tiers = [...prev.tierTargets];
+                            tiers[1] = { ...tiers[1], targetCount: val };
+                            return { ...prev, tierTargets: tiers };
+                          });
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">Bonus Nominal (Rp)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        step={10000}
+                        value={configForm.tierTargets[1]?.bonusAmount || 250000}
+                        onChange={(e) => {
+                          const val = Number(e.target.value) || 0;
+                          setConfigForm((prev) => {
+                            const tiers = [...prev.tierTargets];
+                            tiers[1] = { ...tiers[1], bonusAmount: val };
+                            return { ...prev, tierTargets: tiers };
+                          });
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleResetConfig}
+                  className="px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Reset Default
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowConfigModal(false)}
+                    className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-xs font-bold bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl shadow-md transition-all cursor-pointer"
+                  >
+                    Simpan Tarif
+                  </button>
+                </div>
               </div>
             </form>
           </div>
