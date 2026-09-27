@@ -90,6 +90,22 @@ CREATE TABLE IF NOT EXISTS profiles (
   created_at timestamptz DEFAULT now()
 );
 
+-- 9. Tabel Pelanggan Radius (Sinkronisasi Billing)
+CREATE TABLE IF NOT EXISTS pelanggan_radius (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id_pelanggan text UNIQUE NOT NULL,
+  nama text NOT NULL,
+  telepon text,
+  alamat text,
+  odp text,
+  paket text,
+  status text DEFAULT 'AKTIF' CHECK (status IN ('BARU', 'AKTIF', 'ISOLIR', 'PUTUS')),
+  ip_address text,
+  tgl_daftar date,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE tim ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pekerjaan ENABLE ROW LEVEL SECURITY;
@@ -99,10 +115,12 @@ ALTER TABLE odp_odc ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pengajuan_pemutusan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daftar_gangguan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pelanggan_radius ENABLE ROW LEVEL SECURITY;
 
 -- Policies: Allow all operations for anon (public app)
 CREATE POLICY "Allow all on tim" ON tim FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all on pekerjaan" ON pekerjaan FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all on pelanggan_radius" ON pelanggan_radius FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all on leads" ON leads FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all on gangguan" ON gangguan FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all on odp_odc" ON odp_odc FOR ALL USING (true) WITH CHECK (true);

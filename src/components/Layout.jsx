@@ -21,6 +21,7 @@ import {
   Download,
   MoreHorizontal,
   HardHat,
+  UserCheck,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -82,6 +83,7 @@ export default function Layout() {
       { to: "/teknisi", icon: HardHat, label: "Portal Teknisi" },
       { to: "/tim", icon: Users, label: "Tim" },
       { to: "/pekerjaan", icon: Wrench, label: "Pekerjaan" },
+      { to: "/pelanggan", icon: UserCheck, label: "Pelanggan Radius" },
       { to: "/leads", icon: Target, label: "Leads" },
       { to: "/gangguan", icon: AlertTriangle, label: "Gangguan" },
       { to: "/odp", icon: Network, label: "ODP / ODC" },
@@ -99,6 +101,7 @@ export default function Layout() {
       { to: "/teknisi", icon: HardHat, label: "Teknisi" },
       { to: "/", icon: LayoutDashboard, label: "Dashboard" },
       { to: "/pekerjaan", icon: Wrench, label: "Pekerjaan" },
+      { to: "/pelanggan", icon: UserCheck, label: "Pelanggan" },
       { to: "/gangguan", icon: AlertTriangle, label: "Gangguan" },
       { to: "/odp", icon: Network, label: "ODP" },
       { to: "/leads", icon: Target, label: "Leads" },
@@ -116,6 +119,7 @@ export default function Layout() {
     "/teknisi": "Portal Lapangan Teknisi",
     "/tim": "Manajemen Tim",
     "/pekerjaan": "Manajemen Pekerjaan",
+    "/pelanggan": "Data Pelanggan Radius (Billing Sync)",
     "/leads": "Manajemen Leads",
     "/gangguan": "Daftar Gangguan",
     "/odp": "Hierarki ODP / ODC",

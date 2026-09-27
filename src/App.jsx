@@ -17,6 +17,7 @@ const ODP = lazy(() => import("./pages/ODP"));
 const Laporan = lazy(() => import("./pages/Laporan"));
 const ManajemenUser = lazy(() => import("./pages/ManajemenUser"));
 const TeknisiDashboard = lazy(() => import("./pages/TeknisiDashboard"));
+const PelangganRadius = lazy(() => import("./pages/PelangganRadius"));
 
 function PageLoading() {
   return (
@@ -91,6 +92,7 @@ function AppRoutes() {
           <Route path="teknisi" element={<MenuGuard path="/teknisi"><TeknisiDashboard /></MenuGuard>} />
           <Route path="tim" element={<MenuGuard path="/tim"><Tim /></MenuGuard>} />
           <Route path="pekerjaan" element={<MenuGuard path="/pekerjaan"><Pekerjaan /></MenuGuard>} />
+          <Route path="pelanggan" element={<MenuGuard path="/pelanggan"><PelangganRadius /></MenuGuard>} />
           <Route path="leads" element={<MenuGuard path="/leads"><Leads /></MenuGuard>} />
           <Route path="gangguan" element={<MenuGuard path="/gangguan"><Gangguan /></MenuGuard>} />
           <Route path="odp" element={<MenuGuard path="/odp"><ODP /></MenuGuard>} />

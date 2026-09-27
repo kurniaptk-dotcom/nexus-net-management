@@ -21,8 +21,17 @@ import {
   Phone,
   FileText,
   X,
+  Zap,
 } from "lucide-react";
-import { pekerjaanList, timList, jenisPekerjaan, statusPekerjaan, odpOdcList, pengajuanPemutusanList } from "../data/mockData";
+import {
+  pekerjaanList,
+  timList,
+  jenisPekerjaan,
+  statusPekerjaan,
+  odpOdcList,
+  pengajuanPemutusanList,
+  initialPelangganRadius,
+} from "../data/mockData";
 import { generatePekerjaanNotification } from "../store/notificationStore";
 import { usePersistState } from "../hooks/usePersistState";
 import CalendarView from "../components/CalendarView";
@@ -142,6 +151,7 @@ export default function Pekerjaan() {
   const [data, setData] = usePersistState("xnet_pekerjaan", pekerjaanList);
   const [timData] = usePersistState("xnet_tim", timList);
   const [odpData] = usePersistState("xnet_odpodc", odpOdcList);
+  const [pelangganList] = usePersistState("xnet_pelanggan_radius", initialPelangganRadius);
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [prevQuery, setPrevQuery] = useState(searchParams.get("search"));
@@ -1185,9 +1195,48 @@ export default function Pekerjaan() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Pelanggan</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-sm font-semibold text-gray-700">Pelanggan</label>
+                      {pelangganList.length > 0 && !editingItem && (
+                        <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 flex items-center gap-1">
+                          <Zap className="w-3 h-3 text-blue-600" />
+                          Tersinkron Radius
+                        </span>
+                      )}
+                    </div>
+
+                    {!editingItem && (
+                      <div className="mb-2">
+                        <select
+                          onChange={(e) => {
+                            const selectedId = e.target.value;
+                            if (!selectedId) return;
+                            const cust = pelangganList.find((p) => p.id_pelanggan === selectedId);
+                            if (cust) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                pelanggan: `${cust.nama} (${cust.id_pelanggan})`,
+                                alamat: cust.alamat,
+                                odp: cust.odp || prev.odp,
+                                keterangan: prev.keterangan || `Paket: ${cust.paket}`,
+                              }));
+                            }
+                          }}
+                          className="w-full px-3.5 py-2 bg-blue-50/70 hover:bg-blue-50 border border-blue-200 rounded-xl text-xs font-semibold text-blue-900 focus:bg-white focus:ring-2 focus:ring-blue-400 outline-none cursor-pointer"
+                        >
+                          <option value="">⚡ Pilih Cepat dari Data Pelanggan Radius...</option>
+                          {pelangganList.map((p) => (
+                            <option key={p.id_pelanggan} value={p.id_pelanggan}>
+                              [{p.status}] {p.nama} - {p.id_pelanggan} ({p.odp || "No ODP"})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
                     <input
                       type="text"
+                      placeholder="Nama pelanggan atau pilih dari daftar di atas..."
                       value={formData.pelanggan}
                       onChange={(e) => setFormData({ ...formData, pelanggan: e.target.value })}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none"

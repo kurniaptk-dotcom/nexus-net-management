@@ -35,6 +35,14 @@ export const SYSTEM_MENUS = [
     category: "Operasional",
   },
   {
+    id: "pelanggan",
+    path: "/pelanggan",
+    label: "Pelanggan Radius",
+    description: "Data pelanggan tersinkron dari Billing Radius untuk penugasan cepat",
+    iconName: "Users",
+    category: "Operasional",
+  },
+  {
     id: "leads",
     path: "/leads",
     label: "Manajemen Leads",
@@ -86,7 +94,7 @@ export const ROLE_PRESETS = [
     colorClass: "bg-[#0D1B4A] text-white",
     textColor: "text-[#0D1B4A]",
     borderColor: "border-[#0D1B4A]",
-    defaultMenus: ["/", "/teknisi", "/tim", "/pekerjaan", "/leads", "/gangguan", "/odp", "/laporan", "/users"],
+    defaultMenus: ["/", "/teknisi", "/tim", "/pekerjaan", "/pelanggan", "/leads", "/gangguan", "/odp", "/laporan", "/users"],
   },
   {
     id: "user",
@@ -96,7 +104,7 @@ export const ROLE_PRESETS = [
     colorClass: "bg-amber-50 text-amber-800 ring-1 ring-amber-300",
     textColor: "text-amber-800",
     borderColor: "border-amber-300",
-    defaultMenus: ["/", "/teknisi", "/tim", "/pekerjaan", "/leads", "/gangguan", "/odp", "/laporan"],
+    defaultMenus: ["/", "/teknisi", "/tim", "/pekerjaan", "/pelanggan", "/leads", "/gangguan", "/odp", "/laporan"],
   },
   {
     id: "teknisi",
