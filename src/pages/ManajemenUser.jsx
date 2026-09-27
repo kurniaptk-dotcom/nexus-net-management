@@ -137,7 +137,23 @@ export default function ManajemenUser() {
         .select("*")
         .order("created_at", { ascending: true });
       if (error) throw error;
-      setUsers(data || []);
+
+      // Merge dengan cache izin lokal agar role teknisi & tim tetap tampil akurat
+      const merged = (data || []).map((u) => {
+        let item = { ...u };
+        try {
+          const cached = localStorage.getItem(`xnet_perms_${u.id}`);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed.role) item.role = parsed.role;
+            if (parsed.allowedMenus) item.allowed_menus = parsed.allowedMenus;
+            if (parsed.tim) item.tim = parsed.tim;
+          }
+        } catch (e) {}
+        return item;
+      });
+
+      setUsers(merged);
     } catch (err) {
       triggerToast("Gagal memuat daftar user: " + err.message, "error");
     } finally {
