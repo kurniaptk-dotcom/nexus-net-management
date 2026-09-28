@@ -20,6 +20,7 @@ import {
   Globe,
 } from "lucide-react";
 import { odpOdcList, odcMasterList } from "../data/mockData";
+import unifiedOdpOdc from "../data/unifiedOdpOdc.json";
 import { usePersistState } from "../hooks/usePersistState";
 import Toast from "../components/Toast";
 import OdpGoogleEarthMap from "../components/OdpGoogleEarthMap";
@@ -30,10 +31,41 @@ export default function ODP() {
   const [odcList, setOdcList] = usePersistState("xnet_odc_list", odcMasterList);
 
   const [viewMode, setViewMode] = useState("table"); // 'table' | 'earth'
+  const [focusedNode, setFocusedNode] = useState(null);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterOdc, setFilterOdc] = useState("ALL");
   const [expandedOdc, setExpandedOdc] = useState({});
+
+  // Auto-sinkronisasi data tabel dengan seluruh 200 titik ODP & 42 ODC dari Google Earth KML
+  useEffect(() => {
+    if (data && data.length < 50 && unifiedOdpOdc?.odpList?.length > 0) {
+      console.log("[ODP] Auto-syncing 200 real Google Earth KML points to table...");
+      const existingMap = {};
+      data.forEach((d) => {
+        const k = d.nama.replace(/\./g, " ").trim().toLowerCase();
+        existingMap[k] = d;
+      });
+
+      const merged = unifiedOdpOdc.odpList.map((item) => {
+        const k = item.nama.replace(/\./g, " ").trim().toLowerCase();
+        if (existingMap[k]) {
+          return { ...item, ...existingMap[k], lat: item.lat, lng: item.lng };
+        }
+        return item;
+      });
+
+      setData(merged);
+      if (odcList.length < 20 && unifiedOdpOdc?.odcList?.length > 0) {
+        setOdcList(unifiedOdpOdc.odcList);
+      }
+    }
+  }, [data, odcList]);
+
+  const handleJumpToMap = (item) => {
+    setFocusedNode(item);
+    setViewMode("earth");
+  };
 
   // Modals
   const [isOdpModalOpen, setIsOdpModalOpen] = useState(false);
@@ -424,6 +456,8 @@ export default function ODP() {
             odpList={data}
             onEditOdp={handleOpenEditOdp}
             onEditOdc={handleOpenEditOdc}
+            onToggleStatus={handleToggleStatus}
+            focusedNode={focusedNode}
           />
         </div>
       ) : (
@@ -676,6 +710,13 @@ export default function ODP() {
                                 </div>
 
                                 <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={() => handleJumpToMap(item)}
+                                    className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                                    title="Fokuskan di Peta Satelit"
+                                  >
+                                    <MapPin className="w-3.5 h-3.5" />
+                                  </button>
                                   <a
                                     href={`https://earth.google.com/web/search/${encodeURIComponent(item.nama + ' Pontianak')}`}
                                     target="_blank"
@@ -807,6 +848,13 @@ export default function ODP() {
                               </td>
                               <td className="px-5 py-3 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() => handleJumpToMap(item)}
+                                    className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                                    title="Fokuskan ODP ini di Peta Satelit"
+                                  >
+                                    <MapPin className="w-3.5 h-3.5" />
+                                  </button>
                                   <a
                                     href={`https://earth.google.com/web/search/${encodeURIComponent(item.nama + ' Pontianak')}`}
                                     target="_blank"

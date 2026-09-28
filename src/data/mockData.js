@@ -1,3 +1,5 @@
+import unifiedOdpOdc from "./unifiedOdpOdc.json";
+
 export const bulan = "September 2026";
 
 export const timList = [];
@@ -56,10 +58,9 @@ export const redamanTinggiList = [];
 
 export const pengajuanPemutusanList = [];
 
-// ODP/ODC LOS (kosong untuk data real)
-export const odpOdcList = [];
-
-export const odcMasterList = [];
+// ODP/ODC Master hasil sinkronisasi Google Earth KML
+export const odpOdcList = unifiedOdpOdc.odpList || [];
+export const odcMasterList = unifiedOdpOdc.odcList || [];
 
 // Data Master Pelanggan Sinkronisasi Radius Billing
 export const initialPelangganRadius = [

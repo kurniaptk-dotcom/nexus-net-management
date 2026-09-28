@@ -47,6 +47,8 @@ export default function OdpGoogleEarthMap({
   odpList = [],
   onEditOdp,
   onEditOdc,
+  onToggleStatus,
+  focusedNode = null,
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -289,8 +291,20 @@ export default function OdpGoogleEarthMap({
         iconAnchor = [18, 18];
       } else {
         // ODP / Sub-ODP
+        const cleanPtName = point.name.replace(/\./g, " ").trim().toLowerCase();
+        const matchedOdp = (odpList || []).find((o) => {
+          const cleanOName = o.nama.replace(/\./g, " ").trim().toLowerCase();
+          return cleanOName.includes(cleanPtName) || cleanPtName.includes(cleanOName.split(" - ")[0]);
+        });
+
+        const liveStatus = matchedOdp?.status || "Aman";
         const isSub = point.type === "SUB_ODP";
-        const pinBg = isSub ? "bg-teal-500" : "bg-emerald-500";
+
+        let pinBg = isSub ? "bg-teal-500" : "bg-emerald-500";
+        if (liveStatus === "Diperbaiki") {
+          pinBg = "bg-amber-500 animate-pulse border-amber-200 ring-2 ring-amber-400";
+        }
+
         html = `
           <div class="relative group cursor-pointer transition-transform hover:scale-130">
             <div class="w-6 h-6 rounded-xl ${pinBg} text-white flex items-center justify-center shadow-lg border-2 border-white">
@@ -311,14 +325,36 @@ export default function OdpGoogleEarthMap({
         iconAnchor,
       });
 
+      const cleanPtName = point.name.replace(/\./g, " ").trim().toLowerCase();
+      const matchedOdp = (odpList || []).find((o) => {
+        const cleanOName = o.nama.replace(/\./g, " ").trim().toLowerCase();
+        return cleanOName.includes(cleanPtName) || cleanPtName.includes(cleanOName.split(" - ")[0]);
+      });
+
       const marker = L.marker(coord, { icon: markerIcon });
       marker.on("click", () => {
-        setSelectedNode(point);
+        setSelectedNode({
+          ...point,
+          status: matchedOdp?.status || "Aman",
+          keterangan: matchedOdp?.keterangan || (point.type === "SUB_ODP" ? "Sub-ODP Distribusi" : "Tiang Distribusi Lapangan"),
+          matchedOdp: matchedOdp || { ...point, status: "Aman" },
+        });
       });
 
       markersLayerRef.current.addLayer(marker);
     });
-  }, [kmlData, showFiberLines, filterType, searchQuery]);
+  }, [kmlData, odpList, showFiberLines, filterType, searchQuery]);
+
+  // Efek untuk fokus ke node dari tabel (flyTo)
+  useEffect(() => {
+    if (!mapInstanceRef.current || !focusedNode) return;
+    const lat = focusedNode.lat || (focusedNode.coord && focusedNode.coord[0]);
+    const lng = focusedNode.lng || (focusedNode.coord && focusedNode.coord[1]);
+    if (lat && lng) {
+      mapInstanceRef.current.flyTo([lat, lng], 19, { duration: 1.2 });
+      setSelectedNode(focusedNode);
+    }
+  }, [focusedNode]);
 
   // Update visual garis ruler
   useEffect(() => {
@@ -696,8 +732,14 @@ export default function OdpGoogleEarthMap({
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-800 text-gray-300 uppercase tracking-wider">
                     {selectedNode.type}
                   </span>
-                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-emerald-500 text-slate-900">
-                    AKTIF GIS
+                  <span
+                    className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                      selectedNode.status === "Diperbaiki"
+                        ? "bg-amber-500 text-slate-900 animate-pulse"
+                        : "bg-emerald-500 text-slate-900"
+                    }`}
+                  >
+                    {selectedNode.status || "Aman"}
                   </span>
                 </div>
                 <h3 className="text-sm font-extrabold text-white mt-0.5">{selectedNode.name}</h3>
@@ -769,6 +811,33 @@ export default function OdpGoogleEarthMap({
               <span>Rute Maps</span>
             </a>
           </div>
+
+          {/* Quick status toggle button (Sinkronisasi Langsung ke Tabel) */}
+          {onToggleStatus && selectedNode.matchedOdp && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleStatus(selectedNode.matchedOdp);
+                  setSelectedNode((prev) => ({
+                    ...prev,
+                    status: prev.status === "Aman" ? "Diperbaiki" : "Aman",
+                    matchedOdp: {
+                      ...prev.matchedOdp,
+                      status: prev.matchedOdp.status === "Aman" ? "Diperbaiki" : "Aman",
+                    },
+                  }));
+                }}
+                className="w-full py-1.5 px-3 rounded-xl text-xs font-bold bg-gray-800 hover:bg-gray-700 text-amber-300 border border-gray-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <span>
+                  {selectedNode.status === "Aman"
+                    ? "🟡 Ubah Status: Perlu Perbaikan"
+                    : "🟢 Ubah Status: Aman (Normal)"}
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
