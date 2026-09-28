@@ -17,16 +17,19 @@ import {
   Layers,
   MapPin,
   Filter,
+  Globe,
 } from "lucide-react";
 import { odpOdcList, odcMasterList } from "../data/mockData";
 import { usePersistState } from "../hooks/usePersistState";
 import Toast from "../components/Toast";
+import OdpGoogleEarthMap from "../components/OdpGoogleEarthMap";
 
 export default function ODP() {
   const navigate = useNavigate();
   const [data, setData] = usePersistState("xnet_odpodc", odpOdcList);
   const [odcList, setOdcList] = usePersistState("xnet_odc_list", odcMasterList);
 
+  const [viewMode, setViewMode] = useState("table"); // 'table' | 'earth'
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterOdc, setFilterOdc] = useState("ALL");
@@ -322,7 +325,35 @@ export default function ODP() {
             Monitoring hierarki ODC (Induk) dan ODP (Titik Distribusi Pelanggan)
           </p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+        <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+          {/* Switcher Mode Tampilan: Tabel vs Google Earth */}
+          <div className="flex items-center p-1 bg-gray-100 rounded-2xl border border-gray-200/90 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                viewMode === "table"
+                  ? "bg-white text-gray-900 shadow-xs"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5 text-blue-600" />
+              <span>Hierarki</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("earth")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                viewMode === "earth"
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xs"
+                  : "text-gray-600 hover:text-emerald-700"
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Google Earth (Peta)</span>
+            </button>
+          </div>
+
           <button
             onClick={handleOpenAddOdc}
             className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-[#0D1B4A] hover:bg-[#1a237e] text-white font-bold rounded-xl text-xs sm:text-sm shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
@@ -359,6 +390,70 @@ export default function ODP() {
           </div>
         ))}
       </div>
+
+      {/* Tampilan Google Earth GIS Map jika viewMode === 'earth' */}
+      {viewMode === "earth" ? (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-emerald-950 via-slate-900 to-[#0D1B4A] p-4 rounded-3xl border border-emerald-500/30 text-white shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
+                <Globe className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                  <span>Peta Satelit Google Earth GIS (ODP & ODC)</span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500 text-slate-950 tracking-wider">
+                    ONLINE GIS
+                  </span>
+                </h3>
+                <p className="text-xs text-emerald-200/80 mt-0.5">
+                  Visualisasi citra satelit, sebaran tiang distribusi, jalur kabel fiber optik, dan pengukur jarak tarikan kabel dropcore.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setViewMode("table")}
+              className="self-start sm:self-auto px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all cursor-pointer border border-white/20"
+            >
+              Tampilkan Tabel &rarr;
+            </button>
+          </div>
+
+          <OdpGoogleEarthMap
+            allOdcs={allOdcs}
+            odpList={data}
+            onEditOdp={handleOpenEditOdp}
+            onEditOdc={handleOpenEditOdc}
+          />
+        </div>
+      ) : (
+        <>
+          {/* Banner Promo Google Earth di Mode Tabel */}
+          <div
+            onClick={() => setViewMode("earth")}
+            className="p-3.5 bg-gradient-to-r from-emerald-900 via-teal-900 to-[#0D1B4A] rounded-2xl border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-white shadow-md cursor-pointer hover:shadow-lg hover:scale-[1.003] transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/40 group-hover:scale-110 transition-transform shrink-0">
+                <Globe className="w-5 h-5 text-emerald-300" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-bold text-white">Lihat Sebaran ODP & ODC di Peta Google Earth</h4>
+                  <span className="px-1.5 py-0.2 rounded bg-emerald-400 text-slate-950 text-[9px] font-black uppercase">
+                    PETA SATELIT
+                  </span>
+                </div>
+                <p className="text-[11px] text-emerald-200/80 mt-0.5">
+                  Buka citra satelit resolusi tinggi, pantau jalur kabel fiber, dan ukur jarak kabel dropcore ke pelanggan.
+                </p>
+              </div>
+            </div>
+            <span className="self-start sm:self-auto px-3.5 py-1.5 bg-emerald-500 group-hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-bold transition-colors shadow shrink-0 flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5" />
+              <span>Buka Peta Satelit &rarr;</span>
+            </span>
+          </div>
 
       {/* Search and Filters */}
       <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -581,16 +676,25 @@ export default function ODP() {
                                 </div>
 
                                 <div className="flex items-center gap-1 shrink-0">
+                                  <a
+                                    href={`https://earth.google.com/web/search/${encodeURIComponent(item.nama + ' Pontianak')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-flex items-center"
+                                    title="Google Earth 3D"
+                                  >
+                                    <Globe className="w-3.5 h-3.5" />
+                                  </a>
                                   <button
                                     onClick={() => handleOpenEditOdp(item)}
-                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                                     title="Edit"
                                   >
                                     <Edit2 className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     onClick={() => setDeleteConfirm(item)}
-                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                                     title="Hapus"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -703,16 +807,25 @@ export default function ODP() {
                               </td>
                               <td className="px-5 py-3 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
+                                  <a
+                                    href={`https://earth.google.com/web/search/${encodeURIComponent(item.nama + ' Pontianak')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-flex items-center"
+                                    title="Buka Titik ODP di Google Earth 3D"
+                                  >
+                                    <Globe className="w-3.5 h-3.5" />
+                                  </a>
                                   <button
                                     onClick={() => handleOpenEditOdp(item)}
-                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                                     title="Edit ODP"
                                   >
                                     <Edit2 className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     onClick={() => setDeleteConfirm(item)}
-                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                                     title="Hapus ODP"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -733,6 +846,8 @@ export default function ODP() {
           })
         )}
       </div>
+      </>
+      )}
 
       {/* Modal Tambah / Edit ODC */}
       {isOdcModalOpen && (
