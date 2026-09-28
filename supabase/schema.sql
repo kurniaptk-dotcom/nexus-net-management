@@ -331,7 +331,23 @@ INSERT INTO odp_odc (odc, nama, keterangan, status) VALUES
 -- Salin dan jalankan blok di bawah ini di Supabase SQL Editor:
 -- ====================================================================
 /*
--- 1. Tambahkan kolom survey GIS ke tabel leads
+-- 1. Buat tabel pelanggan_radius jika belum ada
+CREATE TABLE IF NOT EXISTS pelanggan_radius (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id_pelanggan text UNIQUE NOT NULL,
+  nama text NOT NULL,
+  telepon text,
+  alamat text,
+  odp text,
+  paket text,
+  status text DEFAULT 'AKTIF' CHECK (status IN ('BARU', 'AKTIF', 'ISOLIR', 'PUTUS')),
+  ip_address text,
+  tgl_daftar date,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- 2. Tambahkan kolom survey GIS ke tabel leads
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS odp_terdekat text;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS jarak_odp int;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS lat double precision;
@@ -340,11 +356,21 @@ ALTER TABLE leads ADD COLUMN IF NOT EXISTS redaman text;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS biaya_kabel text;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS keterangan_survey text;
 
--- 2. Tambahkan kolom kapasitas port ke tabel odp_odc
+-- 3. Tambahkan kolom kapasitas port ke tabel odp_odc
 ALTER TABLE odp_odc ADD COLUMN IF NOT EXISTS port_kapasitas int DEFAULT 8;
 ALTER TABLE odp_odc ADD COLUMN IF NOT EXISTS port_terpakai int DEFAULT 0;
 
--- 3. Kunci keamanan RLS agar hanya pengguna yang login (authenticated) yang bisa mengakses
+-- 4. Aktifkan RLS
+ALTER TABLE tim ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pekerjaan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gangguan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE odp_odc ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pengajuan_pemutusan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daftar_gangguan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pelanggan_radius ENABLE ROW LEVEL SECURITY;
+
+-- 5. Kunci keamanan RLS agar hanya pengguna yang login (authenticated) yang bisa mengakses
 DROP POLICY IF EXISTS "Allow all on tim" ON tim;
 DROP POLICY IF EXISTS "Allow all on pekerjaan" ON pekerjaan;
 DROP POLICY IF EXISTS "Allow all on pelanggan_radius" ON pelanggan_radius;
@@ -353,6 +379,15 @@ DROP POLICY IF EXISTS "Allow all on gangguan" ON gangguan;
 DROP POLICY IF EXISTS "Allow all on odp_odc" ON odp_odc;
 DROP POLICY IF EXISTS "Allow all on pengajuan_pemutusan" ON pengajuan_pemutusan;
 DROP POLICY IF EXISTS "Allow all on daftar_gangguan" ON daftar_gangguan;
+
+DROP POLICY IF EXISTS "Authenticated users can access tim" ON tim;
+DROP POLICY IF EXISTS "Authenticated users can access pekerjaan" ON pekerjaan;
+DROP POLICY IF EXISTS "Authenticated users can access pelanggan_radius" ON pelanggan_radius;
+DROP POLICY IF EXISTS "Authenticated users can access leads" ON leads;
+DROP POLICY IF EXISTS "Authenticated users can access gangguan" ON gangguan;
+DROP POLICY IF EXISTS "Authenticated users can access odp_odc" ON odp_odc;
+DROP POLICY IF EXISTS "Authenticated users can access pengajuan_pemutusan" ON pengajuan_pemutusan;
+DROP POLICY IF EXISTS "Authenticated users can access daftar_gangguan" ON daftar_gangguan;
 
 CREATE POLICY "Authenticated users can access tim" ON tim FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Authenticated users can access pekerjaan" ON pekerjaan FOR ALL TO authenticated USING (true) WITH CHECK (true);
