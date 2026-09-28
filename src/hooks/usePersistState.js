@@ -9,6 +9,7 @@ const TABLE_MAP = {
   xnet_tim: "tim",
   xnet_odpodc: "odp_odc",
   xnet_pengajuan_pemutusan: "pengajuan_pemutusan",
+  xnet_pelanggan_radius: "pelanggan_radius",
 };
 
 const ALLOWED_COLUMNS = {
@@ -33,6 +34,17 @@ const ALLOWED_COLUMNS = {
   tim: ["nama"],
   odp_odc: ["odc", "nama", "keterangan", "status", "port_kapasitas", "port_terpakai"],
   pengajuan_pemutusan: ["nama", "kontak", "alasan", "tanggal"],
+  pelanggan_radius: [
+    "id_pelanggan",
+    "nama",
+    "telepon",
+    "alamat",
+    "odp",
+    "paket",
+    "status",
+    "ip_address",
+    "tgl_daftar",
+  ],
 };
 
 function sanitizeForTable(tableName, row) {
@@ -80,6 +92,11 @@ function sanitizeForTable(tableName, row) {
     const validJenis = ["PEMASANGAN", "PERBAIKAN", "PEMUTUSAN", "PERBAIKAN KHUSUS (ODP/ODC)"];
     if (clean.jenis && !validJenis.includes(clean.jenis)) {
       clean.jenis = "PEMASANGAN";
+    }
+  } else if (tableName === "pelanggan_radius") {
+    const validStatus = ["BARU", "AKTIF", "ISOLIR", "PUTUS"];
+    if (clean.status && !validStatus.includes(clean.status)) {
+      clean.status = "AKTIF";
     }
   }
 
