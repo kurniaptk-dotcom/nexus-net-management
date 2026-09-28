@@ -25,6 +25,16 @@ import {
   Building2,
   SlidersHorizontal,
   RefreshCw,
+  Target,
+  Home,
+  Share2,
+  UserPlus,
+  Sparkles,
+  Send,
+  Compass,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import defaultKmlData from "../data/kmlNetworkData.json";
 
@@ -50,6 +60,9 @@ export default function OdpGoogleEarthMap({
   onEditOdc,
   onToggleStatus,
   focusedNode = null,
+  initialCoverageMode = false,
+  initialCoverageTarget = null,
+  onSaveLead = null,
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -57,6 +70,7 @@ export default function OdpGoogleEarthMap({
   const markersLayerRef = useRef(null);
   const polylinesLayerRef = useRef(null);
   const rulerLayerRef = useRef(null);
+  const coverageLayerRef = useRef(null);
   const fileInputRef = useRef(null);
 
   // Data KML (default dari Full OLT.kml yang sudah diekstrak)
@@ -68,7 +82,7 @@ export default function OdpGoogleEarthMap({
   const [filterType, setFilterType] = useState("ALL"); // ALL, ODC, ODP, HEADEND
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedNode, setSelectedNode] = useState(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copiedText, setCopiedText] = useState("");
 
@@ -76,6 +90,21 @@ export default function OdpGoogleEarthMap({
   const [isRulerActive, setIsRulerActive] = useState(false);
   const [rulerPoints, setRulerPoints] = useState([]);
   const [rulerDistance, setRulerDistance] = useState(0);
+
+  // Coverage Checker State (Fitur #2: Feasibility & Distance Check)
+  const [isCoverageActive, setIsCoverageActive] = useState(initialCoverageMode);
+  const [coverageSearchText, setCoverageSearchText] = useState("");
+  const [isSearchingCoord, setIsSearchingCoord] = useState(false);
+  const [coverageResult, setCoverageResult] = useState(null);
+  const [showCoveragePanel, setShowCoveragePanel] = useState(true);
+  const [showAlternatives, setShowAlternatives] = useState(false);
+
+  // Refs untuk mencegah stale closure pada event listener Leaflet
+  const isRulerActiveRef = useRef(isRulerActive);
+  isRulerActiveRef.current = isRulerActive;
+  const isCoverageActiveRef = useRef(isCoverageActive);
+  isCoverageActiveRef.current = isCoverageActive;
+  const triggerCoverageAtRef = useRef(null);
 
   // Live Sync State
   const [isSyncing, setIsSyncing] = useState(false);
@@ -177,17 +206,21 @@ export default function OdpGoogleEarthMap({
     const markersLayer = L.layerGroup().addTo(map);
     const polylinesLayer = L.layerGroup().addTo(map);
     const rulerLayer = L.layerGroup().addTo(map);
+    const coverageLayer = L.layerGroup().addTo(map);
 
     tileLayerRef.current = tileLayer;
     markersLayerRef.current = markersLayer;
     polylinesLayerRef.current = polylinesLayer;
     rulerLayerRef.current = rulerLayer;
+    coverageLayerRef.current = coverageLayer;
     mapInstanceRef.current = map;
 
-    // Handle map click untuk Ruler
+    // Handle map click untuk Coverage Checker & Ruler
     map.on("click", (e) => {
       const { lat, lng } = e.latlng;
-      if (isRulerActive) {
+      if (isCoverageActiveRef.current && triggerCoverageAtRef.current) {
+        triggerCoverageAtRef.current(lat, lng);
+      } else if (isRulerActiveRef.current) {
         setRulerPoints((prev) => {
           const next = [...prev, [lat, lng]];
           if (next.length >= 2) {
@@ -420,6 +453,328 @@ export default function OdpGoogleEarthMap({
     }
   }, [rulerPoints]);
 
+  // === FITUR COVERAGE CHECKER (OTOMATIS CARI ODP TERDEKAT & FEASIBILITY) ===
+  const calculateCoverage = (lat, lng, label = "") => {
+    if (!lat || !lng) return null;
+    const points = (kmlData?.points || []).filter(
+      (p) => p.type === "ODP" || p.type === "SUB_ODP"
+    );
+    if (points.length === 0) return null;
+
+    const withDistances = points.map((odp) => {
+      const straightDist = getDistanceMeters(lat, lng, odp.lat, odp.lng);
+      const estCable = Math.round(straightDist * 1.15); // +15% kendur & tiang
+
+      const cleanPtName = odp.name.replace(/\./g, " ").trim().toLowerCase();
+      const matched = (odpList || []).find((o) => {
+        const cleanOName = o.nama.replace(/\./g, " ").trim().toLowerCase();
+        return cleanOName.includes(cleanPtName) || cleanPtName.includes(cleanOName.split(" - ")[0]);
+      });
+
+      let tier = "OUT";
+      let statusText = "Di Luar Jangkauan";
+      let tierColor = "#EF4444";
+      let tierBadge = "bg-rose-500 text-white";
+      let tierDesc =
+        "Melebihi batas aman dropcore (250m). Berisiko redaman loss tinggi. Diperlukan penambahan tiang distribusi atau pembangunan ODP baru.";
+
+      if (straightDist <= 150) {
+        tier = "IDEAL";
+        statusText = "Sangat Layak (Standar)";
+        tierColor = "#10B981";
+        tierBadge = "bg-emerald-500 text-slate-950 font-black";
+        tierDesc =
+          "Jarak sangat ideal (< 150m). Redaman optik diprediksi prima (-16 s/d -20 dBm). Siap instalasi standar 1 roll dropcore.";
+      } else if (straightDist <= 250) {
+        tier = "SURVEY";
+        statusText = "Bisa Dipasang (Perlu Survey)";
+        tierColor = "#F59E0B";
+        tierBadge = "bg-amber-500 text-slate-950 font-black";
+        tierDesc =
+          "Jarak menengah (150m - 250m). Disarankan teknisi cek ketersediaan tiang tumpu dan redaman tiang ODP sebelum penarikan kabel.";
+      }
+
+      return {
+        ...odp,
+        straightDist,
+        estCable,
+        tier,
+        statusText,
+        tierColor,
+        tierBadge,
+        tierDesc,
+        matchedStatus: matched?.status || "Aman",
+        matchedOdp: matched,
+      };
+    });
+
+    withDistances.sort((a, b) => a.straightDist - b.straightDist);
+
+    return {
+      target: {
+        lat,
+        lng,
+        label: label || `Titik Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+      },
+      best: withDistances[0],
+      alternatives: withDistances.slice(1, 4),
+      allNearest: withDistances.slice(0, 5),
+    };
+  };
+
+  const handleCheckCoverageAt = (lat, lng, label = "") => {
+    const res = calculateCoverage(lat, lng, label);
+    if (!res) return;
+    setCoverageResult(res);
+    setShowCoveragePanel(true);
+    if (mapInstanceRef.current && res.best) {
+      mapInstanceRef.current.fitBounds(
+        [
+          [lat, lng],
+          [res.best.lat, res.best.lng],
+        ],
+        { padding: [70, 70], maxZoom: 18 }
+      );
+    }
+  };
+
+  // Selalu pasang fungsi handleCheckCoverageAt ke ref
+  triggerCoverageAtRef.current = handleCheckCoverageAt;
+
+  // Efek jika ada initialCoverageTarget dari Leads
+  useEffect(() => {
+    if (initialCoverageTarget && initialCoverageTarget.lat && initialCoverageTarget.lng) {
+      setIsCoverageActive(true);
+      handleCheckCoverageAt(
+        initialCoverageTarget.lat,
+        initialCoverageTarget.lng,
+        initialCoverageTarget.label || ""
+      );
+    }
+  }, [initialCoverageTarget]);
+
+  // Efek jika initialCoverageMode aktif
+  useEffect(() => {
+    if (initialCoverageMode) {
+      setIsCoverageActive(true);
+    }
+  }, [initialCoverageMode]);
+
+  // Render Visual Garis & Pin Coverage Checker di Peta Leaflet
+  useEffect(() => {
+    if (!mapInstanceRef.current || !coverageLayerRef.current) return;
+    coverageLayerRef.current.clearLayers();
+
+    if (!coverageResult || !isCoverageActive) return;
+
+    const { target, best } = coverageResult;
+
+    // 1. Pin Target Calon Pelanggan (Animasi House Marker)
+    const targetHtml = `
+      <div class="relative group cursor-pointer animate-bounce">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 via-pink-500 to-rose-600 text-white flex items-center justify-center shadow-2xl border-2 border-white ring-4 ring-rose-400/50">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+        </div>
+        <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/90 text-rose-300 text-[10px] font-black px-2 py-0.5 rounded shadow pointer-events-none border border-rose-400/60">
+          🏠 CALON PELANGGAN
+        </div>
+      </div>
+    `;
+
+    const targetIcon = L.divIcon({
+      html: targetHtml,
+      className: "custom-target-marker",
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+    });
+
+    const targetMarker = L.marker([target.lat, target.lng], { icon: targetIcon });
+    coverageLayerRef.current.addLayer(targetMarker);
+
+    if (best) {
+      // 2. Garis Virtual Dropcore dari Rumah ke ODP Terdekat
+      const line = L.polyline(
+        [
+          [target.lat, target.lng],
+          [best.lat, best.lng],
+        ],
+        {
+          color: best.tierColor,
+          weight: 4,
+          dashArray: "6, 6",
+          opacity: 0.95,
+          lineCap: "round",
+        }
+      );
+
+      line.bindTooltip(
+        `<div style="font-family:sans-serif; text-align:center; padding: 2px;">
+          <b style="font-size:12px;">📏 Jarak: ${best.straightDist} Meter</b><br/>
+          <span style="color:${best.tierColor}; font-weight:bold; font-size:11px;">🔌 Est. Dropcore: ~${best.estCable} Meter</span>
+        </div>`,
+        { permanent: true, direction: "center", className: "coverage-line-tooltip" }
+      );
+      coverageLayerRef.current.addLayer(line);
+
+      // 3. Lingkaran Radius Zona Ideal (150m) & Zona Maksimum (250m) dari ODP
+      const circleIdeal = L.circle([best.lat, best.lng], {
+        radius: 150,
+        color: "#10B981",
+        fillColor: "#10B981",
+        fillOpacity: 0.08,
+        weight: 1.5,
+        dashArray: "4, 4",
+      });
+      coverageLayerRef.current.addLayer(circleIdeal);
+
+      const circleMax = L.circle([best.lat, best.lng], {
+        radius: 250,
+        color: "#F59E0B",
+        fillColor: "#F59E0B",
+        fillOpacity: 0.04,
+        weight: 1,
+        dashArray: "6, 6",
+      });
+      coverageLayerRef.current.addLayer(circleMax);
+    }
+  }, [coverageResult, isCoverageActive]);
+
+  // Handler Cari Alamat / Paste Koordinat
+  const handleCoverageSearch = async (e) => {
+    if (e) e.preventDefault();
+    if (!coverageSearchText.trim()) return;
+
+    const text = coverageSearchText.trim();
+
+    // 1. Cek format koordinat: e.g. "-0.1054, 109.3980" atau "-0.1054 109.3980"
+    const coordRegex = /([+-]?\d+(?:\.\d+)?)[,\s]+([+-]?\d+(?:\.\d+)?)/;
+    const match = text.match(coordRegex);
+
+    if (match) {
+      const lat = parseFloat(match[1]);
+      const lng = parseFloat(match[2]);
+      if (!isNaN(lat) && !isNaN(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+        handleCheckCoverageAt(lat, lng, `Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+        return;
+      }
+    }
+
+    // 2. Geocode nama jalan / daerah via Nominatim OpenStreetMap
+    setIsSearchingCoord(true);
+    try {
+      const query =
+        text.toLowerCase().includes("pontianak") || text.toLowerCase().includes("kubu raya")
+          ? text
+          : `${text}, Kubu Raya, Pontianak`;
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        handleCheckCoverageAt(lat, lng, data[0].display_name);
+      } else {
+        alert("Lokasi/alamat tidak ditemukan. Coba ketik koordinat GPS langsung atau klik lokasi rumah di peta satelit.");
+      }
+    } catch (err) {
+      alert("Gagal mencari alamat: " + err.message);
+    } finally {
+      setIsSearchingCoord(false);
+    }
+  };
+
+  // Handler Pakai GPS Perangkat untuk Coverage
+  const handleLocateForCoverage = () => {
+    if (!navigator.geolocation) {
+      alert("Browser tidak mendukung geolokasi GPS.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        handleCheckCoverageAt(lat, lng, "📍 Posisi GPS Saya Saat Ini");
+      },
+      (err) => {
+        alert("Gagal membaca GPS: " + err.message);
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  // Handler Salin Pesan Format WhatsApp
+  const handleCopyWhatsApp = () => {
+    if (!coverageResult || !coverageResult.best) return;
+    const { target, best, alternatives } = coverageResult;
+
+    const statusEmoji = best.tier === "IDEAL" ? "🟢" : best.tier === "SURVEY" ? "🟡" : "🔴";
+    const statusTitle =
+      best.tier === "IDEAL"
+        ? "SANGAT LAYAK (BISA LANGSUNG PASANG)"
+        : best.tier === "SURVEY"
+        ? "BISA DIPASANG (PERLU SURVEY TEKNISI)"
+        : "DI LUAR JANGKAUAN ODP STANDAR";
+
+    const altText =
+      alternatives && alternatives.length > 0
+        ? alternatives
+            .map(
+              (alt, idx) =>
+                `${idx + 1}. *${alt.name}* (${alt.straightDist}m - est kabel ~${alt.estCable}m)`
+            )
+            .join("\n")
+        : "-";
+
+    const message = `📍 *HASIL SURVEY COVERAGE FTTH NEXUS NET*
+━━━━━━━━━━━━━━━━━━━━━━━━
+🏠 *Lokasi Target:* ${target.label || "Rumah Calon Pelanggan"}
+📌 *Koordinat GPS:* ${target.lat.toFixed(6)}, ${target.lng.toFixed(6)}
+⚡ *Status Feasibility:* ${statusEmoji} *${statusTitle}*
+
+📡 *ODP Rekomendasi:* *${best.name}*
+🏢 *ODC Induk:* ${best.odc || "ODC Distribusi"}
+📏 *Jarak Lurus Tiang:* ${best.straightDist} Meter
+🔌 *Estimasi Dropcore:* ~${best.estCable} Meter (+15% kendur & tiang)
+🏷️ *Status ODP:* ${best.matchedStatus || "Aman"}
+
+🔄 *Alternatif ODP Terdekat:*
+${altText}
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+📝 *Catatan Lapangan:*
+${
+  best.tier === "IDEAL"
+    ? "✅ Jarak sangat ideal (<150m). Redaman diprediksi prima (-16 s/d -20 dBm). Siap instalasi standar 1 roll dropcore."
+    : best.tier === "SURVEY"
+    ? "⚠️ Jarak 150m - 250m. Membutuhkan tarikan dropcore panjang. Perlu pengecekan redaman ODP dan tiang tumpu oleh tim teknisi."
+    : "❌ Jarak melebihi 250m. Melebihi batas aman dropcore standar. Perlu pengajuan tiang baru / ODP baru."
+}
+━━━━━━━━━━━━━━━━━━━━━━━━
+🌐 *Navigasi Google Maps:*
+https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
+
+    navigator.clipboard.writeText(message);
+    setCopiedText("whatsapp");
+    setTimeout(() => setCopiedText(""), 2500);
+  };
+
+  // Handler Simpan / Teruskan ke Leads
+  const handleSaveToLead = () => {
+    if (!coverageResult || !coverageResult.best) return;
+    if (onSaveLead) {
+      onSaveLead({
+        targetPoint: coverageResult.target,
+        odpName: coverageResult.best.name,
+        straightDist: coverageResult.best.straightDist,
+        estCable: coverageResult.best.estCable,
+        tier: coverageResult.best.tier,
+      });
+    }
+  };
+
   // Terbang ke koordinat (FlyTo)
   const flyToNode = (node) => {
     if (!mapInstanceRef.current || !node.lat || !node.lng) return;
@@ -610,8 +965,30 @@ export default function OdpGoogleEarthMap({
           </button>
         </div>
 
-        {/* Action Tools: Fiber Toggle, Ruler, KML Upload, GPS, Fullscreen */}
+        {/* Action Tools: Coverage, Fiber Toggle, Ruler, KML Upload, GPS, Fullscreen */}
         <div className="flex items-center gap-1.5 p-1 bg-gray-900/90 backdrop-blur-md rounded-2xl border border-gray-700/80 shadow-xl pointer-events-auto">
+          {/* Tombol Fitur #2: Coverage Feasibility Checker */}
+          <button
+            onClick={() => {
+              if (isCoverageActive) {
+                setIsCoverageActive(false);
+                setCoverageResult(null);
+              } else {
+                setIsCoverageActive(true);
+                setIsRulerActive(false); // Matikan ruler jika coverage aktif
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              isCoverageActive
+                ? "bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black shadow-lg shadow-amber-500/20 ring-2 ring-white/60 animate-pulse"
+                : "bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600 hover:text-white border border-emerald-500/40"
+            }`}
+            title="Cek Jangkauan ODP & Feasibility Pemasangan Pelanggan Baru (Sales/Marketing/Survey)"
+          >
+            <Target className={`w-3.5 h-3.5 ${isCoverageActive ? "text-slate-950" : "text-emerald-400"}`} />
+            <span>{isCoverageActive ? "Coverage ON" : "Cek Coverage"}</span>
+          </button>
+
           {/* Fiber line toggle */}
           <button
             onClick={() => setShowFiberLines((prev) => !prev)}
@@ -635,6 +1012,8 @@ export default function OdpGoogleEarthMap({
                 setRulerDistance(0);
               } else {
                 setIsRulerActive(true);
+                setIsCoverageActive(false);
+                setCoverageResult(null);
               }
             }}
             className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -709,6 +1088,241 @@ export default function OdpGoogleEarthMap({
           </button>
         </div>
       </div>
+
+      {/* 2.5 Coverage Checker Top Controls & Search Bar (Sales / Survey Mode) */}
+      {isCoverageActive && (
+        <div className="absolute top-16 left-3 right-3 sm:left-auto sm:right-3 sm:w-110 z-20 bg-gray-900/95 backdrop-blur-xl border border-amber-500/50 rounded-3xl p-3.5 shadow-2xl text-white animate-in fade-in slide-in-from-top-3">
+          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-gray-800">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black">
+                <Target className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-extrabold text-amber-300 flex items-center gap-1.5">
+                  <span>Coverage Feasibility Checker</span>
+                  <span className="px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 text-[9px] font-bold border border-amber-400/30">
+                    SALES / LEADS
+                  </span>
+                </h4>
+                <p className="text-[10px] text-gray-400">Pengecekan kelayakan jarak ODP calon pelanggan</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setIsCoverageActive(false);
+                setCoverageResult(null);
+              }}
+              className="p-1 text-gray-400 hover:text-white rounded-lg cursor-pointer"
+              title="Tutup Mode Coverage"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Search Box / Coordinate Input */}
+          <form onSubmit={handleCoverageSearch} className="mt-2.5 flex items-center gap-1.5">
+            <div className="relative flex-1">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Paste koordinat (-0.1054, 109.3980) / alamat..."
+                value={coverageSearchText}
+                onChange={(e) => setCoverageSearchText(e.target.value)}
+                className="w-full pl-8 pr-2 py-1.5 bg-gray-800/90 border border-gray-700 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isSearchingCoord}
+              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow cursor-pointer transition-all shrink-0"
+            >
+              {isSearchingCoord ? "Mencari..." : "Cek Titik"}
+            </button>
+            <button
+              type="button"
+              onClick={handleLocateForCoverage}
+              className="p-1.5 bg-gray-800 hover:bg-gray-700 text-blue-400 hover:text-blue-300 rounded-xl border border-gray-700 cursor-pointer shrink-0"
+              title="Gunakan Lokasi GPS Saya Saat Ini (Depan Rumah Pelanggan)"
+            >
+              <Crosshair className="w-4 h-4" />
+            </button>
+          </form>
+
+          <div className="mt-2 text-[10px] text-gray-400 flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <span>💡</span>
+              <span>Klik langsung rumah/posisi di peta satelit.</span>
+            </span>
+            {coverageResult && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCoverageResult(null);
+                  setCoverageSearchText("");
+                }}
+                className="text-rose-400 hover:text-rose-300 font-bold cursor-pointer"
+              >
+                Reset Titik
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 2.6 Coverage Feasibility Result Card (Panel Hasil Analisis ODP Terdekat) */}
+      {isCoverageActive && coverageResult && coverageResult.best && (
+        <div className="absolute bottom-4 left-3 right-3 sm:left-auto sm:right-3 sm:w-110 z-20 max-h-[82vh] overflow-y-auto bg-gray-900/95 backdrop-blur-2xl border border-gray-700/80 rounded-3xl p-4 text-white shadow-2xl animate-in fade-in slide-in-from-bottom-4">
+          {/* Feasibility Header Badge */}
+          <div className="flex items-start justify-between gap-3 border-b border-gray-800 pb-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide ${coverageResult.best.tierBadge}`}>
+                  {coverageResult.best.statusText}
+                </span>
+                <span className="text-[10px] text-gray-400 font-mono">
+                  {coverageResult.best.tier === "IDEAL"
+                    ? "🟢 Siap Pasang"
+                    : coverageResult.best.tier === "SURVEY"
+                    ? "🟡 Dropcore Panjang"
+                    : "🔴 Terlalu Jauh"}
+                </span>
+              </div>
+              <h3 className="text-sm font-extrabold text-white">Hasil Analisis Jangkauan Fiber</h3>
+              <p className="text-[11px] text-gray-400 line-clamp-1">{coverageResult.target.label}</p>
+            </div>
+            <button
+              onClick={() => setCoverageResult(null)}
+              className="p-1 text-gray-400 hover:text-white rounded-lg cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Primary Metrics: Jarak & Dropcore */}
+          <div className="grid grid-cols-2 gap-2.5 my-3">
+            <div className="p-2.5 rounded-2xl bg-gray-800/80 border border-gray-700/70">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Jarak Lurus Tiang</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-xl font-black text-white">{coverageResult.best.straightDist}</span>
+                <span className="text-xs text-gray-400">Meter</span>
+              </div>
+              <p className="text-[9px] text-gray-500 mt-0.5">Titik ke Tiang ODP</p>
+            </div>
+
+            <div className="p-2.5 rounded-2xl bg-gray-800/80 border border-gray-700/70">
+              <p className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Est. Kabel Dropcore</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-xl font-black text-amber-300">~{coverageResult.best.estCable}</span>
+                <span className="text-xs text-gray-400">Meter</span>
+              </div>
+              <p className="text-[9px] text-gray-500 mt-0.5">+15% kendur & tiang rumah</p>
+            </div>
+          </div>
+
+          {/* Nearest ODP Detail Box */}
+          <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-xs border border-emerald-500/40">
+                  ODP
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white">{coverageResult.best.name}</h4>
+                  <p className="text-[10px] text-emerald-300">{coverageResult.best.odc || "ODC Distribusi"}</p>
+                </div>
+              </div>
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded ${coverageResult.best.matchedStatus === "Diperbaiki" ? "bg-amber-500 text-slate-900 animate-pulse" : "bg-emerald-500 text-slate-950"}`}>
+                {coverageResult.best.matchedStatus || "Aman"}
+              </span>
+            </div>
+
+            {/* Description Note */}
+            <p className="text-[11px] text-gray-300 leading-relaxed border-t border-emerald-500/20 pt-2">
+              {coverageResult.best.tierDesc}
+            </p>
+          </div>
+
+          {/* Collapsible Alternative ODPs */}
+          {coverageResult.alternatives && coverageResult.alternatives.length > 0 && (
+            <div className="mt-3 border-t border-gray-800 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAlternatives(!showAlternatives)}
+                className="w-full flex items-center justify-between text-xs text-gray-400 hover:text-white py-1 cursor-pointer font-bold"
+              >
+                <span>ODP Alternatif Lain ({coverageResult.alternatives.length})</span>
+                {showAlternatives ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+
+              {showAlternatives && (
+                <div className="space-y-1.5 mt-2">
+                  {coverageResult.alternatives.map((alt) => (
+                    <div
+                      key={alt.id}
+                      onClick={() => flyToNode(alt)}
+                      className="flex items-center justify-between p-2 rounded-xl bg-gray-800/60 hover:bg-gray-800 border border-gray-700/50 text-xs cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                        <span className="font-bold text-gray-200 text-xs">{alt.name}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono text-xs text-amber-300 font-bold">{alt.straightDist}m</span>
+                        <span className="text-[10px] text-gray-400 block">(kabel ~{alt.estCable}m)</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quick Action Buttons: WhatsApp & Lead & Maps */}
+          <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-gray-800">
+            {/* Salin WA */}
+            <button
+              type="button"
+              onClick={handleCopyWhatsApp}
+              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
+              title="Salin ringkasan hasil survey coverage siap kirim ke WhatsApp"
+            >
+              {copiedText === "whatsapp" ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-white" />
+                  <span>Format Tersalin!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Salin WA</span>
+                </>
+              )}
+            </button>
+
+            {/* Tambah Lead */}
+            {onSaveLead ? (
+              <button
+                type="button"
+                onClick={handleSaveToLead}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md hover:shadow-lg transition-all cursor-pointer font-black"
+              >
+                <UserPlus className="w-3.5 h-3.5 text-slate-950" />
+                <span>+ Buat Lead</span>
+              </button>
+            ) : (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${coverageResult.target.lat},${coverageResult.target.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md transition-all"
+              >
+                <Navigation className="w-3.5 h-3.5" />
+                <span>Buka Rute Maps</span>
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 3. Ruler Banner Indicator (Saat Mengukur Jarak Kabel) */}
       {isRulerActive && (

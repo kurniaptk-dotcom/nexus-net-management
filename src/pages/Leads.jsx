@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, Search, Edit2, Trash2, Target, Phone, MapPin, Calendar } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Search, Edit2, Trash2, Target, Phone, MapPin, Calendar, Globe, Radio, ExternalLink } from "lucide-react";
 import { leadsList, sumberLeads } from "../data/mockData";
 import { generateLeadsNotification } from "../store/notificationStore";
 import { usePersistState } from "../hooks/usePersistState";
@@ -39,13 +40,21 @@ function SumberBadge({ sumber }) {
 const statusOptions = ["BARU", "KONTAK", "DIJADWALKAN", "SELESAI"];
 
 export default function Leads() {
+  const navigate = useNavigate();
   const [data, setData] = usePersistState("xnet_leads", leadsList);
   const [search, setSearch] = useState("");
   const [filterSumber, setFilterSumber] = useState("ALL");
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({
-    nama: "", sumber: "IKLAN", status: "BARU", tanggal: "", telepon: "", alamat: "",
+    nama: "",
+    sumber: "IKLAN",
+    status: "BARU",
+    tanggal: "",
+    telepon: "",
+    alamat: "",
+    odp_terdekat: "",
+    jarak_odp: "",
   });
 
   const filtered = data.filter((item) => {
@@ -68,11 +77,34 @@ export default function Leads() {
 
   const handleAdd = () => {
     setEditingItem(null);
-    setFormData({ nama: "", sumber: "IKLAN", status: "BARU", tanggal: new Date().toISOString().split("T")[0], telepon: "", alamat: "" });
+    setFormData({
+      nama: "",
+      sumber: "IKLAN",
+      status: "BARU",
+      tanggal: new Date().toISOString().split("T")[0],
+      telepon: "",
+      alamat: "",
+      odp_terdekat: "",
+      jarak_odp: "",
+    });
     setShowModal(true);
   };
 
-  const handleEdit = (item) => { setEditingItem(item); setFormData({ ...item }); setShowModal(true); };
+  const handleEdit = (item) => {
+    setEditingItem(item);
+    setFormData({
+      nama: item.nama || "",
+      sumber: item.sumber || "IKLAN",
+      status: item.status || "BARU",
+      tanggal: item.tanggal || "",
+      telepon: item.telepon || "",
+      alamat: item.alamat || "",
+      odp_terdekat: item.odp_terdekat || "",
+      jarak_odp: item.jarak_odp || "",
+    });
+    setShowModal(true);
+  };
+
   const handleDelete = (id) => {
     if (confirm("Hapus lead ini?")) {
       const item = data.find((d) => d.id === id);
@@ -80,6 +112,7 @@ export default function Leads() {
       if (item) notify(generateLeadsNotification(item, "dihapus"));
     }
   };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (editingItem) {
@@ -98,11 +131,21 @@ export default function Leads() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Leads</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Tracking leads pemasangan WiFi</p>
+          <p className="text-gray-500 text-sm mt-0.5">Tracking leads pemasangan WiFi & Feasibility Survey Coverage ODP</p>
         </div>
-        <button onClick={handleAdd} className="flex items-center justify-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all w-full sm:w-auto">
-          <Plus className="w-4 h-4" /> Tambah Lead
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate("/odp?coverage=1")}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all cursor-pointer"
+          >
+            <Globe className="w-4 h-4 text-emerald-200" />
+            <span>Peta Coverage ODP</span>
+          </button>
+          <button onClick={handleAdd} className="flex items-center justify-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all cursor-pointer">
+            <Plus className="w-4 h-4" /> Tambah Lead
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
@@ -122,7 +165,7 @@ export default function Leads() {
       <div className="bg-white rounded-2xl p-3 sm:p-4 border border-gray-100 shadow-sm flex flex-col sm:flex-row gap-2.5 sm:gap-3">
         <div className="flex-1 relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" placeholder="Cari nama / telepon..." value={search} onChange={(e) => setSearch(e.target.value)}
+          <input type="text" placeholder="Cari nama / telepon / alamat / ODP..." value={search} onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-[#F59E0B] outline-none" />
         </div>
         <select value={filterSumber} onChange={(e) => setFilterSumber(e.target.value)}
@@ -134,28 +177,72 @@ export default function Leads() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
         {filtered.map((item) => (
-          <div key={item.id} className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 hover:shadow-lg hover:shadow-gray-200/50 transition-all group">
-            <div className="flex items-start justify-between mb-3 gap-2">
-              <div className="min-w-0">
-                <h3 className="font-bold text-gray-800 text-sm sm:text-base truncate">{item.nama}</h3>
-                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                  <SumberBadge sumber={item.sumber} />
-                  <StatusBadge status={item.status} />
+          <div key={item.id} className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 hover:shadow-lg hover:shadow-gray-200/50 transition-all group flex flex-col justify-between">
+            <div>
+              <div className="flex items-start justify-between mb-3 gap-2">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-gray-800 text-sm sm:text-base truncate">{item.nama}</h3>
+                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                    <SumberBadge sumber={item.sumber} />
+                    <StatusBadge status={item.status} />
+                  </div>
+                </div>
+                <div className="flex gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => handleEdit(item)} className="p-1.5 rounded-xl hover:bg-blue-50 text-gray-400 hover:text-blue-600 bg-gray-50 sm:bg-transparent" title="Edit Lead">
+                    <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </button>
+                  <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 bg-gray-50 sm:bg-transparent" title="Hapus Lead">
+                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </button>
                 </div>
               </div>
-              <div className="flex gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                <button onClick={() => handleEdit(item)} className="p-1.5 rounded-xl hover:bg-blue-50 text-gray-400 hover:text-blue-600 bg-gray-50 sm:bg-transparent" title="Edit Lead">
-                  <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </button>
-                <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 bg-gray-50 sm:bg-transparent" title="Hapus Lead">
-                  <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </button>
+              <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-gray-600">
+                <div className="flex items-center gap-2.5"><Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" /><span>{item.telepon || "-"}</span></div>
+                <div className="flex items-center gap-2.5"><MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" /><span className="truncate">{item.alamat || "-"}</span></div>
+                <div className="flex items-center gap-2.5"><Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" /><span>{item.tanggal || "-"}</span></div>
+
+                {/* Status ODP Terdekat jika ada */}
+                {item.odp_terdekat && (
+                  <div className="mt-2 p-2 rounded-xl bg-emerald-50/80 border border-emerald-200/80 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                      <span className="font-bold text-emerald-900">{item.odp_terdekat}</span>
+                    </div>
+                    <span className="font-mono text-emerald-700 font-bold bg-white px-2 py-0.5 rounded-lg border border-emerald-200 shadow-2xs">
+                      ~{item.jarak_odp || 0}m dropcore
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-gray-600">
-              <div className="flex items-center gap-2.5"><Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" /><span>{item.telepon}</span></div>
-              <div className="flex items-center gap-2.5"><MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" /><span className="truncate">{item.alamat}</span></div>
-              <div className="flex items-center gap-2.5"><Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" /><span>{item.tanggal}</span></div>
+
+            {/* Quick Action: Cek Feasibility Jangkauan ODP di Google Earth Map */}
+            <div className="mt-3.5 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => {
+                  const query = new URLSearchParams({
+                    coverage: "1",
+                    leadId: item.id,
+                    alamat: item.alamat || "",
+                    nama: item.nama || "",
+                  });
+                  if (item.lat && item.lng) {
+                    query.append("lat", item.lat);
+                    query.append("lng", item.lng);
+                  }
+                  navigate(`/odp?${query.toString()}`);
+                }}
+                className={`w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  item.odp_terdekat
+                    ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200"
+                    : "bg-gradient-to-r from-amber-500/10 to-amber-500/20 hover:from-amber-500/20 hover:to-amber-500/30 text-amber-900 border border-amber-300"
+                }`}
+                title="Buka peta Google Earth untuk menganalisis jarak ke ODP terdekat"
+              >
+                <Target className="w-3.5 h-3.5 text-amber-600" />
+                <span>{item.odp_terdekat ? "Lihat Posisi di Peta ODP" : "Cek Coverage ODP di Peta"}</span>
+              </button>
             </div>
           </div>
         ))}
@@ -207,6 +294,54 @@ export default function Leads() {
                 <input type="text" value={formData.alamat} onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none" />
               </div>
+
+              {/* Data ODP & Feasibility Survey */}
+              <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-200/70 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Feasibility Survey ODP</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const query = new URLSearchParams({
+                        coverage: "1",
+                        alamat: formData.alamat || "",
+                        nama: formData.nama || "",
+                      });
+                      navigate(`/odp?${query.toString()}`);
+                    }}
+                    className="text-[11px] font-bold text-amber-800 hover:text-amber-900 flex items-center gap-1 cursor-pointer bg-white px-2 py-0.5 rounded-lg border border-amber-300 shadow-2xs"
+                  >
+                    <Globe className="w-3 h-3 text-emerald-600" />
+                    <span>Buka Peta Satelit</span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-600 mb-1">ODP Terdekat</label>
+                    <input
+                      type="text"
+                      placeholder="Cth: ODP 05 - ODC 02"
+                      value={formData.odp_terdekat || ""}
+                      onChange={(e) => setFormData({ ...formData, odp_terdekat: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-[#F59E0B] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-600 mb-1">Est. Dropcore (m)</label>
+                    <input
+                      type="number"
+                      placeholder="Cth: 85"
+                      value={formData.jarak_odp || ""}
+                      onChange={(e) => setFormData({ ...formData, jarak_odp: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-[#F59E0B] outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Tanggal</label>
                 <input type="date" value={formData.tanggal} onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}

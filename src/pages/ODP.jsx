@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Network,
   Wifi,
@@ -18,6 +18,8 @@ import {
   MapPin,
   Filter,
   Globe,
+  Target,
+  ArrowLeft,
 } from "lucide-react";
 import { odpOdcList, odcMasterList } from "../data/mockData";
 import unifiedOdpOdc from "../data/unifiedOdpOdc.json";
@@ -27,10 +29,18 @@ import OdpGoogleEarthMap from "../components/OdpGoogleEarthMap";
 
 export default function ODP() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const paramCoverage = searchParams.get("coverage");
+  const paramLeadId = searchParams.get("leadId");
+  const paramLat = searchParams.get("lat");
+  const paramLng = searchParams.get("lng");
+  const paramAlamat = searchParams.get("alamat");
+  const paramNama = searchParams.get("nama");
+
   const [data, setData] = usePersistState("xnet_odpodc", odpOdcList);
   const [odcList, setOdcList] = usePersistState("xnet_odc_list", odcMasterList);
 
-  const [viewMode, setViewMode] = useState("table"); // 'table' | 'earth'
+  const [viewMode, setViewMode] = useState(paramCoverage ? "earth" : "table"); // 'table' | 'earth'
   const [focusedNode, setFocusedNode] = useState(null);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -65,6 +75,61 @@ export default function ODP() {
   const handleJumpToMap = (item) => {
     setFocusedNode(item);
     setViewMode("earth");
+  };
+
+  // Sinkronkan viewMode jika ada query param coverage
+  useEffect(() => {
+    if (paramCoverage) {
+      setViewMode("earth");
+    }
+  }, [paramCoverage]);
+
+  // Handler Simpan Lead dari Hasil Survey Coverage Checker
+  const handleSaveLeadFromCoverage = (leadInfo) => {
+    try {
+      const existingLeads = JSON.parse(localStorage.getItem("xnet_leads") || "[]");
+
+      if (paramLeadId) {
+        // Update lead yang sedang dicek
+        const updated = existingLeads.map((item) => {
+          if (String(item.id) === String(paramLeadId)) {
+            return {
+              ...item,
+              odp_terdekat: leadInfo.odpName,
+              jarak_odp: leadInfo.estCable,
+              lat: leadInfo.targetPoint?.lat || item.lat,
+              lng: leadInfo.targetPoint?.lng || item.lng,
+              keterangan_coverage: `${leadInfo.tier === "IDEAL" ? "Sangat Layak" : leadInfo.tier === "SURVEY" ? "Perlu Survey" : "Di Luar Jangkauan"} (${leadInfo.straightDist}m)`,
+            };
+          }
+          return item;
+        });
+        localStorage.setItem("xnet_leads", JSON.stringify(updated));
+        showToast("success", `Data ODP ${leadInfo.odpName} (~${leadInfo.estCable}m) berhasil disimpan ke Lead #${paramLeadId}!`);
+        setTimeout(() => navigate("/leads"), 1200);
+      } else {
+        // Buat lead baru
+        const newLead = {
+          id: Date.now(),
+          nama: paramNama || "Calon Pelanggan (Survey Peta)",
+          sumber: "MARKETING",
+          status: "BARU",
+          tanggal: new Date().toISOString().split("T")[0],
+          telepon: "",
+          alamat: paramAlamat || leadInfo.targetPoint?.label || `Koordinat: ${leadInfo.targetPoint?.lat?.toFixed(5)}, ${leadInfo.targetPoint?.lng?.toFixed(5)}`,
+          lat: leadInfo.targetPoint?.lat,
+          lng: leadInfo.targetPoint?.lng,
+          odp_terdekat: leadInfo.odpName,
+          jarak_odp: leadInfo.estCable,
+          keterangan_coverage: `${leadInfo.tier === "IDEAL" ? "Sangat Layak" : leadInfo.tier === "SURVEY" ? "Perlu Survey" : "Di Luar Jangkauan"} (${leadInfo.straightDist}m)`,
+        };
+        localStorage.setItem("xnet_leads", JSON.stringify([newLead, ...existingLeads]));
+        showToast("success", `Lead baru berhasil dibuat! Terhubung ke ${leadInfo.odpName} (~${leadInfo.estCable}m)`);
+        setTimeout(() => navigate("/leads"), 1200);
+      }
+    } catch (err) {
+      showToast("error", "Gagal menyimpan lead: " + err.message);
+    }
   };
 
   // Modals
@@ -451,6 +516,33 @@ export default function ODP() {
             </button>
           </div>
 
+          {/* Banner jika dibuka dari Leads untuk Cek Coverage */}
+          {paramLeadId && (
+            <div className="flex items-center justify-between p-3.5 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent border border-amber-500/40 rounded-2xl text-amber-300 text-xs backdrop-blur-sm shadow-md">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shrink-0">
+                  <Target className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-extrabold text-white text-xs">
+                    Mode Feasibility Survey untuk Lead: {paramNama || paramAlamat || `#${paramLeadId}`}
+                  </p>
+                  <p className="text-[11px] text-amber-200/80">
+                    Klik titik rumah di peta atau gunakan hasil analisis, lalu klik &quot;+ Buat / Simpan ke Lead&quot; untuk memperbarui data lead.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/leads")}
+                className="flex items-center gap-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition-all shadow cursor-pointer shrink-0"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Kembali ke Leads</span>
+              </button>
+            </div>
+          )}
+
           <OdpGoogleEarthMap
             allOdcs={allOdcs}
             odpList={data}
@@ -458,6 +550,17 @@ export default function ODP() {
             onEditOdc={handleOpenEditOdc}
             onToggleStatus={handleToggleStatus}
             focusedNode={focusedNode}
+            initialCoverageMode={Boolean(paramCoverage)}
+            initialCoverageTarget={
+              paramLat && paramLng
+                ? {
+                    lat: parseFloat(paramLat),
+                    lng: parseFloat(paramLng),
+                    label: paramAlamat || paramNama || `Lead: ${paramNama || "Calon Pelanggan"}`,
+                  }
+                : null
+            }
+            onSaveLead={handleSaveLeadFromCoverage}
           />
         </div>
       ) : (
