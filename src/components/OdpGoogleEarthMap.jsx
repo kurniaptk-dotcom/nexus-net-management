@@ -35,8 +35,15 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
+  MessageCircle,
 } from "lucide-react";
 import defaultKmlData from "../data/kmlNetworkData.json";
+import {
+  parseShareLocation,
+  calculateOpticalLoss,
+  calculateDropcoreCost,
+  generateSurveyWhatsAppMessage,
+} from "../lib/surveySimulation";
 
 // Helper: Hitung jarak Haversine (dalam meter)
 function getDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -494,6 +501,9 @@ export default function OdpGoogleEarthMap({
           "Jarak menengah (150m - 250m). Disarankan teknisi cek ketersediaan tiang tumpu dan redaman tiang ODP sebelum penarikan kabel.";
       }
 
+      const loss = calculateOpticalLoss(estCable);
+      const cost = calculateDropcoreCost(estCable);
+
       return {
         ...odp,
         straightDist,
@@ -503,6 +513,8 @@ export default function OdpGoogleEarthMap({
         tierColor,
         tierBadge,
         tierDesc,
+        loss,
+        cost,
         matchedStatus: matched?.status || "Aman",
         matchedOdp: matched,
       };
@@ -641,29 +653,27 @@ export default function OdpGoogleEarthMap({
     }
   }, [coverageResult, isCoverageActive]);
 
-  // Handler Cari Alamat / Paste Koordinat
+  // Handler Cari Alamat / Paste Koordinat / Sharelokasi WA
   const handleCoverageSearch = async (e) => {
     if (e) e.preventDefault();
     if (!coverageSearchText.trim()) return;
 
     const text = coverageSearchText.trim();
+    setIsSearchingCoord(true);
 
-    // 1. Cek format koordinat: e.g. "-0.1054, 109.3980" atau "-0.1054 109.3980"
-    const coordRegex = /([+-]?\d+(?:\.\d+)?)[,\s]+([+-]?\d+(?:\.\d+)?)/;
-    const match = text.match(coordRegex);
-
-    if (match) {
-      const lat = parseFloat(match[1]);
-      const lng = parseFloat(match[2]);
-      if (!isNaN(lat) && !isNaN(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
-        handleCheckCoverageAt(lat, lng, `Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+    try {
+      // 1. Coba parse sharelokasi cerdas (Link Google Maps, shortlink maps.app.goo.gl, koordinat GPS)
+      const parsed = await parseShareLocation(text);
+      if (parsed && parsed.lat && parsed.lng) {
+        handleCheckCoverageAt(
+          parsed.lat,
+          parsed.lng,
+          `📍 Sharelokasi: ${parsed.lat.toFixed(6)}, ${parsed.lng.toFixed(6)}`
+        );
         return;
       }
-    }
 
-    // 2. Geocode nama jalan / daerah via Nominatim OpenStreetMap
-    setIsSearchingCoord(true);
-    try {
+      // 2. Geocode nama jalan / daerah via Nominatim OpenStreetMap
       const query =
         text.toLowerCase().includes("pontianak") || text.toLowerCase().includes("kubu raya")
           ? text
@@ -705,60 +715,38 @@ export default function OdpGoogleEarthMap({
     );
   };
 
-  // Handler Salin Pesan Format WhatsApp
+  // Handler Salin Pesan Format WhatsApp Resmi
   const handleCopyWhatsApp = () => {
     if (!coverageResult || !coverageResult.best) return;
     const { target, best, alternatives } = coverageResult;
 
-    const statusEmoji = best.tier === "IDEAL" ? "🟢" : best.tier === "SURVEY" ? "🟡" : "🔴";
-    const statusTitle =
-      best.tier === "IDEAL"
-        ? "SANGAT LAYAK (BISA LANGSUNG PASANG)"
-        : best.tier === "SURVEY"
-        ? "BISA DIPASANG (PERLU SURVEY TEKNISI)"
-        : "DI LUAR JANGKAUAN ODP STANDAR";
-
-    const altText =
-      alternatives && alternatives.length > 0
-        ? alternatives
-            .map(
-              (alt, idx) =>
-                `${idx + 1}. *${alt.name}* (${alt.straightDist}m - est kabel ~${alt.estCable}m)`
-            )
-            .join("\n")
-        : "-";
-
-    const message = `📍 *HASIL SURVEY COVERAGE FTTH NEXUS NET*
-━━━━━━━━━━━━━━━━━━━━━━━━
-🏠 *Lokasi Target:* ${target.label || "Rumah Calon Pelanggan"}
-📌 *Koordinat GPS:* ${target.lat.toFixed(6)}, ${target.lng.toFixed(6)}
-⚡ *Status Feasibility:* ${statusEmoji} *${statusTitle}*
-
-📡 *ODP Rekomendasi:* *${best.name}*
-🏢 *ODC Induk:* ${best.odc || "ODC Distribusi"}
-📏 *Jarak Lurus Tiang:* ${best.straightDist} Meter
-🔌 *Estimasi Dropcore:* ~${best.estCable} Meter (+15% kendur & tiang)
-🏷️ *Status ODP:* ${best.matchedStatus || "Aman"}
-
-🔄 *Alternatif ODP Terdekat:*
-${altText}
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-📝 *Catatan Lapangan:*
-${
-  best.tier === "IDEAL"
-    ? "✅ Jarak sangat ideal (<150m). Redaman diprediksi prima (-16 s/d -20 dBm). Siap instalasi standar 1 roll dropcore."
-    : best.tier === "SURVEY"
-    ? "⚠️ Jarak 150m - 250m. Membutuhkan tarikan dropcore panjang. Perlu pengecekan redaman ODP dan tiang tumpu oleh tim teknisi."
-    : "❌ Jarak melebihi 250m. Melebihi batas aman dropcore standar. Perlu pengajuan tiang baru / ODP baru."
-}
-━━━━━━━━━━━━━━━━━━━━━━━━
-🌐 *Navigasi Google Maps:*
-https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
+    const message = generateSurveyWhatsAppMessage({
+      leadName: target.label?.includes("Lead:") ? target.label.replace("Lead:", "").trim() : "Calon Pelanggan",
+      address: target.label || "",
+      bestOdp: best,
+      alternatives: alternatives || [],
+      companyName: "Nexus Net Management",
+    });
 
     navigator.clipboard.writeText(message);
     setCopiedText("whatsapp");
     setTimeout(() => setCopiedText(""), 2500);
+  };
+
+  // Handler Buka Langsung WhatsApp dengan Draft Pesan
+  const handleOpenWhatsAppDirect = () => {
+    if (!coverageResult || !coverageResult.best) return;
+    const { target, best, alternatives } = coverageResult;
+
+    const message = generateSurveyWhatsAppMessage({
+      leadName: target.label?.includes("Lead:") ? target.label.replace("Lead:", "").trim() : "Calon Pelanggan",
+      address: target.label || "",
+      bestOdp: best,
+      alternatives: alternatives || [],
+      companyName: "Nexus Net Management",
+    });
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   // Handler Simpan / Teruskan ke Leads
@@ -771,6 +759,8 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
         straightDist: coverageResult.best.straightDist,
         estCable: coverageResult.best.estCable,
         tier: coverageResult.best.tier,
+        loss: coverageResult.best.loss,
+        cost: coverageResult.best.cost,
       });
     }
   };
@@ -1125,7 +1115,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Paste koordinat (-0.1054, 109.3980) / alamat..."
+                placeholder="Paste link WA (maps.app.goo.gl/...), koordinat, atau alamat..."
                 value={coverageSearchText}
                 onChange={(e) => setCoverageSearchText(e.target.value)}
                 className="w-full pl-8 pr-2 py-1.5 sm:py-2 bg-gray-800/90 border border-gray-700 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
@@ -1201,24 +1191,45 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
             </button>
           </div>
 
-          {/* Primary Metrics: Jarak & Dropcore */}
-          <div className="grid grid-cols-2 gap-2.5 my-3">
+          {/* Primary Metrics: 4 KPIs (Jarak Lurus, Dropcore, Redaman, Biaya) */}
+          <div className="grid grid-cols-2 gap-2 my-2.5">
             <div className="p-2.5 rounded-2xl bg-gray-800/80 border border-gray-700/70">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Jarak Lurus Tiang</p>
               <div className="flex items-baseline gap-1 mt-0.5">
                 <span className="text-xl font-black text-white">{coverageResult.best.straightDist}</span>
                 <span className="text-xs text-gray-400">Meter</span>
               </div>
-              <p className="text-[9px] text-gray-500 mt-0.5">Titik ke Tiang ODP</p>
+              <p className="text-[9px] text-gray-500 mt-0.5">Titik Rumah ke ODP</p>
             </div>
 
             <div className="p-2.5 rounded-2xl bg-gray-800/80 border border-gray-700/70">
-              <p className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Est. Kabel Dropcore</p>
+              <p className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Est. Dropcore</p>
               <div className="flex items-baseline gap-1 mt-0.5">
                 <span className="text-xl font-black text-amber-300">~{coverageResult.best.estCable}</span>
                 <span className="text-xs text-gray-400">Meter</span>
               </div>
-              <p className="text-[9px] text-gray-500 mt-0.5">+15% kendur & tiang rumah</p>
+              <p className="text-[9px] text-gray-500 mt-0.5">+20% lekukan tiang</p>
+            </div>
+
+            <div className="p-2.5 rounded-2xl bg-gray-800/80 border border-gray-700/70">
+              <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Prediksi Redaman</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-lg font-black text-emerald-300">{coverageResult.best.loss?.rxPowerDbm || "-"}</span>
+                <span className="text-xs text-gray-400">dBm</span>
+              </div>
+              <p className="text-[9px] text-gray-400 mt-0.5 font-bold">{coverageResult.best.loss?.status || "Normal"}</p>
+            </div>
+
+            <div className="p-2.5 rounded-2xl bg-gray-800/80 border border-gray-700/70">
+              <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Biaya Tambahan</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-sm font-black text-purple-300 truncate">
+                  {coverageResult.best.cost?.isFree ? "Gratis" : coverageResult.best.cost?.formattedCost}
+                </span>
+              </div>
+              <p className="text-[9px] text-gray-500 mt-0.5 truncate">
+                {coverageResult.best.cost?.isFree ? "Promo s.d 100m" : `Kelebihan ${coverageResult.best.cost?.excessMeters}m`}
+              </p>
             </div>
           </div>
 
@@ -1247,7 +1258,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
 
           {/* Collapsible Alternative ODPs */}
           {coverageResult.alternatives && coverageResult.alternatives.length > 0 && (
-            <div className="mt-3 border-t border-gray-800 pt-2">
+            <div className="mt-2.5 border-t border-gray-800 pt-2">
               <button
                 type="button"
                 onClick={() => setShowAlternatives(!showAlternatives)}
@@ -1281,18 +1292,18 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
           )}
 
           {/* Quick Action Buttons: WhatsApp & Lead & Maps */}
-          <div className="grid grid-cols-2 gap-2.5 mt-3 pt-3 border-t border-gray-800 pb-1 sm:pb-0">
-            {/* Salin WA */}
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-800 pb-1 sm:pb-0">
+            {/* Salin / Kirim WA */}
             <button
               type="button"
               onClick={handleCopyWhatsApp}
-              className="flex items-center justify-center gap-1.5 py-3 sm:py-2 px-3 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md active:scale-95 transition-all cursor-pointer"
+              className="flex-1 flex items-center justify-center gap-1.5 py-3 sm:py-2.5 px-3 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md active:scale-95 transition-all cursor-pointer"
               title="Salin ringkasan hasil survey coverage siap kirim ke WhatsApp"
             >
               {copiedText === "whatsapp" ? (
                 <>
                   <Check className="w-4 h-4 text-white" />
-                  <span>Format Tersalin!</span>
+                  <span>Tersalin!</span>
                 </>
               ) : (
                 <>
@@ -1302,25 +1313,35 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
               )}
             </button>
 
+            {/* Buka WhatsApp Langsung */}
+            <button
+              type="button"
+              onClick={handleOpenWhatsAppDirect}
+              className="p-3 sm:p-2.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
+              title="Kirim ke WhatsApp Langsung"
+            >
+              <MessageCircle className="w-4 h-4" />
+            </button>
+
             {/* Tambah Lead */}
             {onSaveLead ? (
               <button
                 type="button"
                 onClick={handleSaveToLead}
-                className="flex items-center justify-center gap-1.5 py-3 sm:py-2 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md active:scale-95 transition-all cursor-pointer font-black"
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 sm:py-2.5 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md active:scale-95 transition-all cursor-pointer font-black"
               >
                 <UserPlus className="w-4 h-4 text-slate-950" />
-                <span>+ Buat Lead</span>
+                <span>Simpan Lead</span>
               </button>
             ) : (
               <a
                 href={`https://www.google.com/maps/dir/?api=1&destination=${coverageResult.target.lat},${coverageResult.target.lng}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 py-3 sm:py-2 px-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md active:scale-95 transition-all"
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 sm:py-2.5 px-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md active:scale-95 transition-all"
               >
                 <Navigation className="w-4 h-4" />
-                <span>Buka Rute Maps</span>
+                <span>Rute Maps</span>
               </a>
             )}
           </div>

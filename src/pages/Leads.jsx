@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Edit2, Trash2, Target, Phone, MapPin, Calendar, Globe, Radio, ExternalLink } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Target, Phone, MapPin, Calendar, Globe, Radio, ExternalLink, Zap, MessageCircle, Loader2, Share2, Check } from "lucide-react";
 import { leadsList, sumberLeads } from "../data/mockData";
 import { generateLeadsNotification } from "../store/notificationStore";
 import { usePersistState } from "../hooks/usePersistState";
+import { parseShareLocation, findNearestOdpFromList, generateSurveyWhatsAppMessage } from "../lib/surveySimulation";
 
 function notify(notif) {
   if (window.__addNotification) window.__addNotification(notif);
@@ -46,6 +47,10 @@ export default function Leads() {
   const [filterSumber, setFilterSumber] = useState("ALL");
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simError, setSimError] = useState("");
+  const [simSuccess, setSimSuccess] = useState(null);
+
   const [formData, setFormData] = useState({
     nama: "",
     sumber: "IKLAN",
@@ -53,8 +58,14 @@ export default function Leads() {
     tanggal: "",
     telepon: "",
     alamat: "",
+    shareloc: "",
+    lat: null,
+    lng: null,
     odp_terdekat: "",
     jarak_odp: "",
+    redaman: "",
+    biaya_kabel: "",
+    keterangan_survey: "",
   });
 
   const filtered = data.filter((item) => {
@@ -77,6 +88,8 @@ export default function Leads() {
 
   const handleAdd = () => {
     setEditingItem(null);
+    setSimSuccess(null);
+    setSimError("");
     setFormData({
       nama: "",
       sumber: "IKLAN",
@@ -84,14 +97,22 @@ export default function Leads() {
       tanggal: new Date().toISOString().split("T")[0],
       telepon: "",
       alamat: "",
+      shareloc: "",
+      lat: null,
+      lng: null,
       odp_terdekat: "",
       jarak_odp: "",
+      redaman: "",
+      biaya_kabel: "",
+      keterangan_survey: "",
     });
     setShowModal(true);
   };
 
   const handleEdit = (item) => {
     setEditingItem(item);
+    setSimSuccess(null);
+    setSimError("");
     setFormData({
       nama: item.nama || "",
       sumber: item.sumber || "IKLAN",
@@ -99,10 +120,71 @@ export default function Leads() {
       tanggal: item.tanggal || "",
       telepon: item.telepon || "",
       alamat: item.alamat || "",
+      shareloc: item.shareloc || (item.lat && item.lng ? `${item.lat}, ${item.lng}` : ""),
+      lat: item.lat || null,
+      lng: item.lng || null,
       odp_terdekat: item.odp_terdekat || "",
       jarak_odp: item.jarak_odp || "",
+      redaman: item.redaman || "",
+      biaya_kabel: item.biaya_kabel || "",
+      keterangan_survey: item.keterangan_survey || item.keterangan_coverage || "",
     });
     setShowModal(true);
+  };
+
+  const handleSimulateSurvey = async () => {
+    const queryStr = (formData.shareloc || formData.alamat || "").trim();
+    if (!queryStr) {
+      setSimError("Silakan paste link sharelokasi WhatsApp atau koordinat GPS.");
+      return;
+    }
+    setIsSimulating(true);
+    setSimError("");
+    setSimSuccess(null);
+
+    try {
+      const parsed = await parseShareLocation(queryStr);
+      if (!parsed || !parsed.lat || !parsed.lng) {
+        setSimError(
+          "Tidak dapat mendeteksi koordinat dari tautan. Pastikan format link atau koordinat benar (contoh: maps.app.goo.gl/... atau -0.131807, 109.391669)."
+        );
+        setIsSimulating(false);
+        return;
+      }
+
+      const res = findNearestOdpFromList(parsed.lat, parsed.lng);
+      if (!res || !res.best) {
+        setSimError("Titik ODP di sekitar lokasi tersebut tidak ditemukan.");
+        setIsSimulating(false);
+        return;
+      }
+
+      const { best, alternatives } = res;
+      const odpNameFormatted = `${best.name}${best.odc ? ` - ${best.odc}` : ""}`;
+
+      setFormData((prev) => ({
+        ...prev,
+        lat: parsed.lat,
+        lng: parsed.lng,
+        shareloc: queryStr,
+        odp_terdekat: odpNameFormatted,
+        jarak_odp: best.estCable,
+        redaman: `${best.loss?.rxPowerDbm || "-"} dBm`,
+        biaya_kabel: best.cost?.formattedCost || "Gratis",
+        keterangan_survey: `${best.statusText} (${best.straightDist}m garis lurus, ~${best.estCable}m dropcore). Redaman: ${best.loss?.rxPowerDbm} dBm`,
+      }));
+
+      setSimSuccess({
+        best,
+        alternatives,
+        lat: parsed.lat,
+        lng: parsed.lng,
+      });
+    } catch (err) {
+      setSimError("Gagal menjalankan simulasi: " + err.message);
+    } finally {
+      setIsSimulating(false);
+    }
   };
 
   const handleDelete = (id) => {
@@ -206,21 +288,29 @@ export default function Leads() {
 
                 {/* Status ODP Terdekat jika ada */}
                 {item.odp_terdekat && (
-                  <div className="mt-2 p-2 rounded-xl bg-emerald-50/80 border border-emerald-200/80 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-                      <span className="font-bold text-emerald-900">{item.odp_terdekat}</span>
+                  <div className="mt-2.5 p-2.5 rounded-2xl bg-emerald-50/90 border border-emerald-200/90 space-y-1.5 text-xs shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                        <span className="font-bold text-emerald-950 truncate max-w-[150px]">{item.odp_terdekat}</span>
+                      </div>
+                      <span className="font-mono text-emerald-800 font-extrabold bg-white px-2 py-0.5 rounded-lg border border-emerald-200 shadow-2xs">
+                        ~{item.jarak_odp || 0}m dropcore
+                      </span>
                     </div>
-                    <span className="font-mono text-emerald-700 font-bold bg-white px-2 py-0.5 rounded-lg border border-emerald-200 shadow-2xs">
-                      ~{item.jarak_odp || 0}m dropcore
-                    </span>
+                    {item.redaman && (
+                      <div className="flex items-center justify-between text-[11px] text-gray-500 pt-1 border-t border-emerald-200/60">
+                        <span>Prediksi Redaman:</span>
+                        <span className="font-bold text-amber-700">{item.redaman}</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Quick Action: Cek Feasibility Jangkauan ODP di Google Earth Map */}
-            <div className="mt-3.5 pt-3 border-t border-gray-100">
+            {/* Quick Actions: Simulasi Google Earth & WhatsApp */}
+            <div className="mt-3.5 pt-3 border-t border-gray-100 flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -236,16 +326,34 @@ export default function Leads() {
                   }
                   navigate(`/odp?${query.toString()}`);
                 }}
-                className={`w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                   item.odp_terdekat
                     ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200"
                     : "bg-gradient-to-r from-amber-500/10 to-amber-500/20 hover:from-amber-500/20 hover:to-amber-500/30 text-amber-900 border border-amber-300"
                 }`}
                 title="Buka peta Google Earth untuk menganalisis jarak ke ODP terdekat"
               >
-                <Target className="w-3.5 h-3.5 text-amber-600" />
-                <span>{item.odp_terdekat ? "Lihat Posisi di Peta ODP" : "Cek Coverage ODP di Peta"}</span>
+                <Globe className="w-3.5 h-3.5 text-emerald-600" />
+                <span>{item.odp_terdekat ? "Simulasi Peta Earth" : "Cek Coverage ODP"}</span>
               </button>
+
+              {item.telepon && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cleanPhone = String(item.telepon).replace(/\D/g, "");
+                    const intlPhone = cleanPhone.startsWith("0") ? "62" + cleanPhone.slice(1) : cleanPhone;
+                    const surveyText = item.odp_terdekat
+                      ? `Halo Kak *${item.nama}*, terima kasih telah menghubungi Nexus Net!\n\nKami telah melakukan simulasi survey lokasi via Google Earth GIS:\n📍 *Alamat:* ${item.alamat || "-"}\n📡 *ODP Terdekat:* ${item.odp_terdekat}\n📏 *Est. Tarikan Dropcore:* ~${item.jarak_odp || 0} meter\n📶 *Status Jaringan:* Siap Pasang Langsung ✅\n\nKapan waktu luang yang tepat untuk tim teknisi kami melakukan instalasi modem ke rumah Anda?`
+                      : `Halo Kak *${item.nama}*, terima kasih telah menghubungi Nexus Net!\n\nApakah kami boleh meminta sharelokasi WhatsApp rumah Anda untuk simulasi survey ODP terdekat? Terima kasih.`;
+                    window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(surveyText)}`, "_blank");
+                  }}
+                  className="p-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+                  title="Kirim Hasil Survey ke WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -298,38 +406,101 @@ export default function Leads() {
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none" />
               </div>
 
-              {/* Data ODP & Feasibility Survey */}
-              <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-200/70 space-y-2.5">
+              {/* Data ODP & Feasibility Survey (Simulasi Sharelokasi) */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-emerald-500/10 border border-amber-300/80 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                    <Target className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Feasibility Survey ODP</span>
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black">
+                      <Target className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-extrabold text-amber-950 block">Simulasi Survey ODP</span>
+                      <p className="text-[10px] text-gray-500">Hitung jarak & redaman dari sharelokasi</p>
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
                       const query = new URLSearchParams({
                         coverage: "1",
-                        alamat: formData.alamat || "",
                         nama: formData.nama || "",
+                        alamat: formData.alamat || "",
                       });
+                      if (formData.lat && formData.lng) {
+                        query.append("lat", formData.lat);
+                        query.append("lng", formData.lng);
+                      }
                       navigate(`/odp?${query.toString()}`);
                     }}
-                    className="text-[11px] font-bold text-amber-800 hover:text-amber-900 flex items-center gap-1 cursor-pointer bg-white px-2 py-0.5 rounded-lg border border-amber-300 shadow-2xs"
+                    className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1.5 cursor-pointer bg-white px-2.5 py-1 rounded-xl border border-emerald-300 shadow-2xs active:scale-95 transition-all"
                   >
-                    <Globe className="w-3 h-3 text-emerald-600" />
-                    <span>Buka Peta Satelit</span>
+                    <Globe className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                    <span>Peta Satelit 3D</span>
                   </button>
                 </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    Link Sharelokasi WA / Koordinat GPS
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Paste link WA (maps.app.goo.gl/...) atau -0.1318, 109.3916"
+                      value={formData.shareloc || ""}
+                      onChange={(e) => setFormData({ ...formData, shareloc: e.target.value })}
+                      className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-[#F59E0B] outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={isSimulating}
+                      onClick={handleSimulateSurvey}
+                      className="px-3.5 py-2 bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                    >
+                      {isSimulating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 text-amber-400" />}
+                      <span>Hitung Jarak</span>
+                    </button>
+                  </div>
+                  {simError && <p className="text-[10px] text-red-600 mt-1 font-medium">{simError}</p>}
+                </div>
+
+                {/* Hasil Simulasi Otomatis */}
+                {simSuccess && (
+                  <div className="p-2.5 rounded-xl bg-white border border-emerald-200 shadow-2xs space-y-1.5 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded ${simSuccess.best.tierBadge}`}>
+                        {simSuccess.best.statusText}
+                      </span>
+                      <span className="text-[10px] text-gray-500 font-mono">
+                        GPS: {simSuccess.lat.toFixed(5)}, {simSuccess.lng.toFixed(5)}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5 text-center pt-1 border-t border-gray-100">
+                      <div className="bg-gray-50 p-1.5 rounded-lg">
+                        <span className="text-[9px] text-gray-400 block font-bold">ODP Terdekat</span>
+                        <span className="text-[11px] font-black text-gray-800 truncate block">{simSuccess.best.name}</span>
+                      </div>
+                      <div className="bg-gray-50 p-1.5 rounded-lg">
+                        <span className="text-[9px] text-gray-400 block font-bold">Est. Dropcore</span>
+                        <span className="text-[11px] font-black text-emerald-600 block">~{simSuccess.best.estCable} m</span>
+                      </div>
+                      <div className="bg-gray-50 p-1.5 rounded-lg">
+                        <span className="text-[9px] text-gray-400 block font-bold">Prediksi Redaman</span>
+                        <span className="text-[11px] font-black text-amber-600 block">{simSuccess.best.loss?.rxPowerDbm} dBm</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-600 mb-1">ODP Terdekat</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-600 mb-1">ODP Terpilih</label>
                     <input
                       type="text"
                       placeholder="Cth: ODP 05 - ODC 02"
                       value={formData.odp_terdekat || ""}
                       onChange={(e) => setFormData({ ...formData, odp_terdekat: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-[#F59E0B] outline-none"
+                      className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#F59E0B] outline-none"
                     />
                   </div>
                   <div>
@@ -339,7 +510,7 @@ export default function Leads() {
                       placeholder="Cth: 85"
                       value={formData.jarak_odp || ""}
                       onChange={(e) => setFormData({ ...formData, jarak_odp: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-[#F59E0B] outline-none"
+                      className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#F59E0B] outline-none"
                     />
                   </div>
                 </div>
