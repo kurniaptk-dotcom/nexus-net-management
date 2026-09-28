@@ -37,6 +37,11 @@ export function AuthProvider({ children }) {
         } catch (e) {
           // ignore
         }
+        if (merged.email === 'ais@nexus.net') {
+          if (!merged.tim) merged.tim = 'GATRA - AIS';
+          if (merged.role === 'user') merged.role = 'teknisi';
+          if (!merged.allowed_menus) merged.allowed_menus = ['/teknisi'];
+        }
         setProfile(merged);
       }
     } catch (err) {
@@ -95,6 +100,69 @@ export function AuthProvider({ children }) {
       data = retry.data;
       error = null;
     } else if (error) {
+      const isAlreadyRegistered =
+        error.message?.toLowerCase().includes("already registered") ||
+        error.message?.toLowerCase().includes("already in use") ||
+        error.status === 400 ||
+        error.status === 422;
+
+      if (isAlreadyRegistered) {
+        // Cek apakah user sudah ada di profiles
+        const { data: existingProf } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("email", email)
+          .maybeSingle();
+
+        if (existingProf) {
+          // Profil sudah ada di tabel profiles! Perbarui info dan permissions
+          try {
+            await updateProfile(existingProf.id, {
+              full_name: fullName,
+              role,
+              allowed_menus: allowedMenus,
+              tim: tim || "",
+            });
+          } catch (e) {
+            console.warn("Failed to auto-update existing profile:", e);
+          }
+          return { user: existingProf, isExisting: true };
+        } else {
+          // User ada di auth.users tetapi belum ada di profiles (orphaned auth)
+          // Coba login dengan password yang dimasukkan untuk mengambil user.id
+          try {
+            const loginRes = await client.auth.signInWithPassword({ email, password });
+            if (loginRes.data?.user) {
+              const uId = loginRes.data.user.id;
+              try {
+                const payload = {
+                  id: uId,
+                  email,
+                  full_name: fullName,
+                  role: role === "admin" ? "admin" : "user",
+                };
+                await supabase.from("profiles").upsert(payload);
+              } catch (e) {}
+
+              try {
+                localStorage.setItem(
+                  `xnet_perms_${uId}`,
+                  JSON.stringify({
+                    role,
+                    allowedMenus,
+                    tim: tim || "",
+                    updatedAt: new Date().toISOString(),
+                  })
+                );
+              } catch (e) {}
+
+              return { user: loginRes.data.user, isExisting: true, recovered: true };
+            }
+          } catch (loginErr) {
+            console.warn("Auto-recovery signIn failed:", loginErr);
+          }
+        }
+      }
       throw error;
     }
 

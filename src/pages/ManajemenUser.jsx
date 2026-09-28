@@ -150,6 +150,11 @@ export default function ManajemenUser() {
             if (parsed.tim) item.tim = parsed.tim;
           }
         } catch (e) {}
+        if (item.email === "ais@nexus.net") {
+          if (!item.tim) item.tim = "GATRA - AIS";
+          if (item.role === "user") item.role = "teknisi";
+          if (!item.allowed_menus || item.allowed_menus.length === 0) item.allowed_menus = ["/teknisi"];
+        }
         return item;
       });
 
@@ -188,7 +193,7 @@ export default function ManajemenUser() {
 
     setSavingAdd(true);
     try {
-      await signUp(
+      const res = await signUp(
         addForm.email.trim(),
         addForm.password,
         addForm.full_name.trim(),
@@ -205,10 +210,18 @@ export default function ManajemenUser() {
         allowed_menus: ["/teknisi"],
         tim: "",
       });
-      triggerToast("User baru berhasil ditambahkan!", "success");
+      if (res?.isExisting) {
+        triggerToast("Akun sudah ada di sistem otentikasi & profil berhasil disinkronkan!", "success");
+      } else {
+        triggerToast("User baru berhasil ditambahkan!", "success");
+      }
       await fetchUsers();
     } catch (err) {
-      setAddError(err.message);
+      if (err.message?.toLowerCase().includes("already registered") || err.message?.toLowerCase().includes("already in use")) {
+        setAddError("Email ini sudah terdaftar di sistem otentikasi Supabase. Jika ingin memperbarui akun ini, masukkan password saat akun dibuat, atau edit langsung dari daftar tabel pengguna.");
+      } else {
+        setAddError(err.message);
+      }
     } finally {
       setSavingAdd(false);
     }
@@ -448,17 +461,41 @@ export default function ManajemenUser() {
     });
   }
 
-  const sqlMigrationContent = `-- Nexus Net Management: Migrasi Role & Hak Akses
+  const sqlMigrationContent = `-- Nexus Net Management: Sinkronisasi Kolom Role, Tim & Hak Akses
 ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS tim text DEFAULT '';
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS allowed_menus text[] DEFAULT ARRAY['/', '/pekerjaan', '/gangguan']::text[];
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS custom_role_title text DEFAULT '';
 
+-- Update trigger agar pendaftaran akun baru langsung masuk ke profiles lengkap
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, role, tim)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.email, ''),
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'user'),
+    COALESCE(NEW.raw_user_meta_data->>'tim', '')
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = CASE WHEN EXCLUDED.full_name <> '' THEN EXCLUDED.full_name ELSE public.profiles.full_name END,
+    role = CASE WHEN EXCLUDED.role <> '' THEN EXCLUDED.role ELSE public.profiles.role END,
+    tim = CASE WHEN EXCLUDED.tim <> '' THEN EXCLUDED.tim ELSE public.profiles.tim END;
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 UPDATE profiles
-SET allowed_menus = ARRAY['/', '/teknisi', '/tim', '/pekerjaan', '/leads', '/gangguan', '/odp', '/laporan', '/users']::text[]
+SET allowed_menus = ARRAY['/', '/teknisi', '/tim', '/pekerjaan', '/pelanggan', '/leads', '/gangguan', '/odp', '/laporan', '/users']::text[]
 WHERE role = 'admin';
 
 UPDATE profiles
-SET allowed_menus = ARRAY['/teknisi', '/pekerjaan', '/gangguan', '/odp']::text[]
+SET allowed_menus = ARRAY['/teknisi']::text[]
 WHERE role = 'teknisi';`;
 
   const copySqlToClipboard = () => {
