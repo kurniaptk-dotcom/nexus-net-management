@@ -24,6 +24,7 @@ import {
   Upload,
   Building2,
   SlidersHorizontal,
+  RefreshCw,
 } from "lucide-react";
 import defaultKmlData from "../data/kmlNetworkData.json";
 
@@ -75,6 +76,41 @@ export default function OdpGoogleEarthMap({
   const [isRulerActive, setIsRulerActive] = useState(false);
   const [rulerPoints, setRulerPoints] = useState([]);
   const [rulerDistance, setRulerDistance] = useState(0);
+
+  // Live Sync State
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState("");
+
+  // Handler Sinkronisasi Realtime Langsung ke Google Earth Cloud
+  const handleLiveSync = async (silent = false) => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch("/api/sync-earth?docId=1jjol-j_FNp2XN5HD9YS9x2QPbfY9-PHf");
+      const json = await res.json();
+      if (json.success) {
+        setKmlData(json);
+        const timeStr = new Date().toLocaleTimeString();
+        setLastSyncTime(timeStr);
+        if (!silent) {
+          alert(`✅ Sinkronisasi Google Earth Berhasil!\n\nData terbaru berhasil ditarik langsung dari Cloud:\n• ${json.totalPoints} Titik Jaringan\n• ${json.totalLines} Rute Kabel Fiber Optik\nWaktu: ${timeStr}`);
+        }
+      } else if (json.isRestricted) {
+        if (!silent) {
+          alert(
+            "🔒 Akses Google Earth Masih 'Restricted' (Pribadi):\n\n" +
+            json.error +
+            "\n\nLangkah singkat:\n1. Buka link Google Earth Anda\n2. Klik ikon 'Bagikan / Share Proyek'\n3. Ubah Akses Umum menjadi 'Siapa saja yang memiliki link (Viewer)'\n4. Klik Selesai, lalu coba tekan sinkronkan kembali."
+          );
+        }
+      } else if (!silent) {
+        alert("Gagal sinkronisasi: " + (json.error || "Terjadi kendala koneksi"));
+      }
+    } catch (err) {
+      if (!silent) alert("Kendala koneksi ke server: " + err.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Koordinat pusat peta (Kantor Nexus Net Kubu Raya / Pontianak)
   const officeCenter = useMemo(() => {
@@ -612,6 +648,21 @@ export default function OdpGoogleEarthMap({
             <span className="hidden sm:inline">
               {isRulerActive ? "Batal Ukur" : "Ukur Kabel"}
             </span>
+          </button>
+
+          {/* Tombol Live Sync Google Earth Cloud */}
+          <button
+            onClick={() => handleLiveSync(false)}
+            disabled={isSyncing}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              isSyncing
+                ? "bg-amber-500 text-slate-950 animate-pulse"
+                : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow"
+            }`}
+            title={lastSyncTime ? `Sinkronkan dari Google Earth (Terakhir: ${lastSyncTime})` : "Sinkronkan langsung dari Google Earth Cloud"}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">{isSyncing ? "Sinkron..." : "Sinkronkan Cloud"}</span>
           </button>
 
           {/* Upload File KML Button */}
