@@ -424,11 +424,11 @@ export default function ODP() {
         </div>
         <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto flex-wrap sm:flex-nowrap">
           {/* Switcher Mode Tampilan: Tabel vs Google Earth */}
-          <div className="flex items-center p-1 bg-gray-100 rounded-2xl border border-gray-200/90 shadow-2xs">
+          <div className="w-full sm:w-auto grid grid-cols-2 sm:flex items-center p-1 bg-gray-100 rounded-2xl border border-gray-200/90 shadow-2xs">
             <button
               type="button"
               onClick={() => setViewMode("table")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 viewMode === "table"
                   ? "bg-white text-gray-900 shadow-xs"
                   : "text-gray-500 hover:text-gray-900"
@@ -440,7 +440,7 @@ export default function ODP() {
             <button
               type="button"
               onClick={() => setViewMode("earth")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 viewMode === "earth"
                   ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xs"
                   : "text-gray-600 hover:text-emerald-700"
@@ -518,7 +518,7 @@ export default function ODP() {
 
           {/* Banner jika dibuka dari Leads untuk Cek Coverage */}
           {paramLeadId && (
-            <div className="flex items-center justify-between p-3.5 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent border border-amber-500/40 rounded-2xl text-amber-300 text-xs backdrop-blur-sm shadow-md">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent border border-amber-500/40 rounded-2xl text-amber-300 text-xs backdrop-blur-sm shadow-md">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shrink-0">
                   <Target className="w-4 h-4" />
@@ -535,7 +535,7 @@ export default function ODP() {
               <button
                 type="button"
                 onClick={() => navigate("/leads")}
-                className="flex items-center gap-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition-all shadow cursor-pointer shrink-0"
+                className="flex items-center justify-center gap-1.5 w-full sm:w-auto px-3.5 py-2 sm:py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition-all shadow cursor-pointer shrink-0 active:scale-95"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Kembali ke Leads</span>

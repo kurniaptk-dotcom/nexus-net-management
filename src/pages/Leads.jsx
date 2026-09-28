@@ -133,17 +133,20 @@ export default function Leads() {
           <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Leads</h1>
           <p className="text-gray-500 text-sm mt-0.5">Tracking leads pemasangan WiFi & Feasibility Survey Coverage ODP</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => navigate("/odp?coverage=1")}
-            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all cursor-pointer"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all cursor-pointer"
           >
             <Globe className="w-4 h-4 text-emerald-200" />
-            <span>Peta Coverage ODP</span>
+            <span>Peta Coverage</span>
           </button>
-          <button onClick={handleAdd} className="flex items-center justify-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all cursor-pointer">
-            <Plus className="w-4 h-4" /> Tambah Lead
+          <button
+            onClick={handleAdd}
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] active:scale-95 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" /> <span>Tambah Lead</span>
           </button>
         </div>
       </div>

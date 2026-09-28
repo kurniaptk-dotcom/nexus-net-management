@@ -915,47 +915,47 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
 
   return (
     <div
-      className={`relative w-full rounded-3xl overflow-hidden border border-gray-200/80 shadow-2xl bg-gray-950 transition-all ${
+      className={`relative w-full rounded-2xl sm:rounded-3xl overflow-hidden border border-gray-200/80 shadow-2xl bg-gray-950 transition-all ${
         isFullscreen
           ? "fixed inset-0 z-50 rounded-none border-none h-screen"
-          : "h-[680px] sm:h-[760px]"
+          : "h-[540px] sm:h-[680px] lg:h-[760px]"
       }`}
     >
       {/* 1. Map Container */}
       <div ref={mapContainerRef} className="w-full h-full z-0" />
 
-      {/* 2. Top Header Floating Bar */}
-      <div className="absolute top-3 left-3 right-3 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+      {/* 2. Top Header Floating Bar (Mobile Friendly) */}
+      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 right-2 sm:right-3 z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 pointer-events-none">
         {/* Layer & Mode Selector */}
-        <div className="flex items-center gap-1.5 p-1 bg-gray-900/90 backdrop-blur-md rounded-2xl border border-gray-700/80 shadow-xl pointer-events-auto">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 text-white text-xs font-black tracking-wide border-r border-gray-700">
-            <Globe className="w-4 h-4 text-emerald-400" />
+        <div className="flex items-center gap-1 p-1 bg-gray-900/90 backdrop-blur-md rounded-xl sm:rounded-2xl border border-gray-700/80 shadow-xl pointer-events-auto self-start sm:self-auto overflow-x-auto max-w-full">
+          <div className="flex items-center gap-1.5 px-2 py-1 text-white text-[11px] sm:text-xs font-black tracking-wide border-r border-gray-700 shrink-0">
+            <Globe className="w-3.5 h-3.5 text-emerald-400" />
             <span className="hidden sm:inline">Google Earth GIS</span>
           </div>
 
           <button
             onClick={() => setMapType("google_hybrid")}
-            className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
               mapType === "google_hybrid"
                 ? "bg-emerald-600 text-white shadow"
                 : "text-gray-300 hover:text-white hover:bg-gray-800"
             }`}
           >
-            Hybrid (Label)
+            Hybrid
           </button>
           <button
             onClick={() => setMapType("google_sat")}
-            className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
               mapType === "google_sat"
                 ? "bg-emerald-600 text-white shadow"
                 : "text-gray-300 hover:text-white hover:bg-gray-800"
             }`}
           >
-            Satelit Murni
+            Satelit
           </button>
           <button
             onClick={() => setMapType("google_streets")}
-            className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer hidden md:inline-block ${
+            className={`px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 hidden md:inline-block ${
               mapType === "google_streets"
                 ? "bg-emerald-600 text-white shadow"
                 : "text-gray-300 hover:text-white hover:bg-gray-800"
@@ -966,7 +966,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
         </div>
 
         {/* Action Tools: Coverage, Fiber Toggle, Ruler, KML Upload, GPS, Fullscreen */}
-        <div className="flex items-center gap-1.5 p-1 bg-gray-900/90 backdrop-blur-md rounded-2xl border border-gray-700/80 shadow-xl pointer-events-auto">
+        <div className="flex items-center gap-1 p-1 bg-gray-900/90 backdrop-blur-md rounded-xl sm:rounded-2xl border border-gray-700/80 shadow-xl pointer-events-auto overflow-x-auto max-w-full">
           {/* Tombol Fitur #2: Coverage Feasibility Checker */}
           <button
             onClick={() => {
@@ -978,7 +978,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
                 setIsRulerActive(false); // Matikan ruler jika coverage aktif
               }
             }}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
               isCoverageActive
                 ? "bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black shadow-lg shadow-amber-500/20 ring-2 ring-white/60 animate-pulse"
                 : "bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600 hover:text-white border border-emerald-500/40"
@@ -992,7 +992,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
           {/* Fiber line toggle */}
           <button
             onClick={() => setShowFiberLines((prev) => !prev)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
               showFiberLines
                 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
                 : "text-gray-400 hover:text-gray-200"
@@ -1016,7 +1016,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
                 setCoverageResult(null);
               }
             }}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
               isRulerActive
                 ? "bg-rose-600 text-white animate-pulse"
                 : "text-gray-300 hover:text-white hover:bg-gray-800"
@@ -1033,7 +1033,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
           <button
             onClick={() => handleLiveSync(false)}
             disabled={isSyncing}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
               isSyncing
                 ? "bg-amber-500 text-slate-950 animate-pulse"
                 : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow"
@@ -1054,57 +1054,57 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-800 rounded-xl transition-all cursor-pointer"
+            className="p-1 sm:p-1.5 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg sm:rounded-xl transition-all cursor-pointer shrink-0"
             title="Unggah File KML dari Google Earth Pro"
           >
-            <Upload className="w-4 h-4 text-amber-400" />
+            <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
           </button>
 
           {/* GPS Button */}
           <button
             onClick={handleLocateMe}
-            className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-800 rounded-xl transition-all cursor-pointer"
+            className="p-1 sm:p-1.5 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg sm:rounded-xl transition-all cursor-pointer shrink-0"
             title="Lokasi GPS Saya"
           >
-            <Crosshair className="w-4 h-4" />
+            <Crosshair className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
 
           {/* Reset Zoom */}
           <button
             onClick={handleResetView}
-            className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-800 rounded-xl transition-all cursor-pointer"
+            className="p-1 sm:p-1.5 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg sm:rounded-xl transition-all cursor-pointer shrink-0"
             title="Reset Peta ke Kantor Nexus Net"
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
 
           {/* Fullscreen Toggle */}
           <button
             onClick={() => setIsFullscreen((prev) => !prev)}
-            className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-800 rounded-xl transition-all cursor-pointer"
+            className="p-1 sm:p-1.5 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg sm:rounded-xl transition-all cursor-pointer shrink-0"
             title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
           >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
           </button>
         </div>
       </div>
 
       {/* 2.5 Coverage Checker Top Controls & Search Bar (Sales / Survey Mode) */}
       {isCoverageActive && (
-        <div className="absolute top-16 left-3 right-3 sm:left-auto sm:right-3 sm:w-110 z-20 bg-gray-900/95 backdrop-blur-xl border border-amber-500/50 rounded-3xl p-3.5 shadow-2xl text-white animate-in fade-in slide-in-from-top-3">
-          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-gray-800">
+        <div className="absolute top-24 sm:top-16 left-2 sm:left-auto right-2 sm:right-3 sm:w-110 z-20 bg-gray-900/95 backdrop-blur-xl border border-amber-500/50 rounded-2xl sm:rounded-3xl p-3 sm:p-3.5 shadow-2xl text-white animate-in fade-in slide-in-from-top-3">
+          <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-800">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black">
-                <Target className="w-4 h-4" />
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black">
+                <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-extrabold text-amber-300 flex items-center gap-1.5">
+                <h4 className="text-[11px] sm:text-xs font-extrabold text-amber-300 flex items-center gap-1.5">
                   <span>Coverage Feasibility Checker</span>
-                  <span className="px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 text-[9px] font-bold border border-amber-400/30">
-                    SALES / LEADS
+                  <span className="px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 text-[8px] sm:text-[9px] font-bold border border-amber-400/30">
+                    SALES
                   </span>
                 </h4>
-                <p className="text-[10px] text-gray-400">Pengecekan kelayakan jarak ODP calon pelanggan</p>
+                <p className="text-[9px] sm:text-[10px] text-gray-400">Pengecekan kelayakan jarak ODP calon pelanggan</p>
               </div>
             </div>
             <button
@@ -1128,20 +1128,20 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
                 placeholder="Paste koordinat (-0.1054, 109.3980) / alamat..."
                 value={coverageSearchText}
                 onChange={(e) => setCoverageSearchText(e.target.value)}
-                className="w-full pl-8 pr-2 py-1.5 bg-gray-800/90 border border-gray-700 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
+                className="w-full pl-8 pr-2 py-1.5 sm:py-2 bg-gray-800/90 border border-gray-700 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
               />
             </div>
             <button
               type="submit"
               disabled={isSearchingCoord}
-              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow cursor-pointer transition-all shrink-0"
+              className="px-3 py-1.5 sm:py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow cursor-pointer transition-all shrink-0"
             >
-              {isSearchingCoord ? "Mencari..." : "Cek Titik"}
+              {isSearchingCoord ? "..." : "Cek"}
             </button>
             <button
               type="button"
               onClick={handleLocateForCoverage}
-              className="p-1.5 bg-gray-800 hover:bg-gray-700 text-blue-400 hover:text-blue-300 rounded-xl border border-gray-700 cursor-pointer shrink-0"
+              className="p-1.5 sm:p-2 bg-gray-800 hover:bg-gray-700 text-blue-400 hover:text-blue-300 rounded-xl border border-gray-700 cursor-pointer shrink-0"
               title="Gunakan Lokasi GPS Saya Saat Ini (Depan Rumah Pelanggan)"
             >
               <Crosshair className="w-4 h-4" />
@@ -1151,7 +1151,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
           <div className="mt-2 text-[10px] text-gray-400 flex items-center justify-between">
             <span className="flex items-center gap-1">
               <span>💡</span>
-              <span>Klik langsung rumah/posisi di peta satelit.</span>
+              <span>Klik atap rumah di peta satelit.</span>
             </span>
             {coverageResult && (
               <button
@@ -1160,7 +1160,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
                   setCoverageResult(null);
                   setCoverageSearchText("");
                 }}
-                className="text-rose-400 hover:text-rose-300 font-bold cursor-pointer"
+                className="text-rose-400 hover:text-rose-300 font-bold cursor-pointer text-[11px]"
               >
                 Reset Titik
               </button>
@@ -1169,9 +1169,12 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
         </div>
       )}
 
-      {/* 2.6 Coverage Feasibility Result Card (Panel Hasil Analisis ODP Terdekat) */}
+      {/* 2.6 Coverage Feasibility Result Card (Panel Hasil Analisis ODP Terdekat - Mobile Bottom Sheet Friendly) */}
       {isCoverageActive && coverageResult && coverageResult.best && (
-        <div className="absolute bottom-4 left-3 right-3 sm:left-auto sm:right-3 sm:w-110 z-20 max-h-[82vh] overflow-y-auto bg-gray-900/95 backdrop-blur-2xl border border-gray-700/80 rounded-3xl p-4 text-white shadow-2xl animate-in fade-in slide-in-from-bottom-4">
+        <div className="fixed inset-x-0 bottom-0 sm:absolute sm:inset-x-auto sm:bottom-4 sm:right-3 sm:w-110 z-40 max-h-[85vh] sm:max-h-[82vh] overflow-y-auto bg-gray-900/98 backdrop-blur-2xl border-t sm:border border-gray-700/80 rounded-t-3xl sm:rounded-3xl p-4 text-white shadow-2xl animate-in fade-in slide-in-from-bottom-6">
+          {/* Mobile Drag Handle Indicator */}
+          <div className="w-12 h-1.5 bg-gray-600 rounded-full mx-auto mb-2.5 sm:hidden" />
+
           {/* Feasibility Header Badge */}
           <div className="flex items-start justify-between gap-3 border-b border-gray-800 pb-3">
             <div className="space-y-1">
@@ -1192,7 +1195,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
             </div>
             <button
               onClick={() => setCoverageResult(null)}
-              className="p-1 text-gray-400 hover:text-white rounded-lg cursor-pointer"
+              className="p-1.5 text-gray-400 hover:text-white rounded-lg cursor-pointer bg-gray-800/60"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1278,22 +1281,22 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
           )}
 
           {/* Quick Action Buttons: WhatsApp & Lead & Maps */}
-          <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-gray-800">
+          <div className="grid grid-cols-2 gap-2.5 mt-3 pt-3 border-t border-gray-800 pb-1 sm:pb-0">
             {/* Salin WA */}
             <button
               type="button"
               onClick={handleCopyWhatsApp}
-              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
+              className="flex items-center justify-center gap-1.5 py-3 sm:py-2 px-3 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md active:scale-95 transition-all cursor-pointer"
               title="Salin ringkasan hasil survey coverage siap kirim ke WhatsApp"
             >
               {copiedText === "whatsapp" ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-white" />
+                  <Check className="w-4 h-4 text-white" />
                   <span>Format Tersalin!</span>
                 </>
               ) : (
                 <>
-                  <Share2 className="w-3.5 h-3.5" />
+                  <Share2 className="w-4 h-4" />
                   <span>Salin WA</span>
                 </>
               )}
@@ -1304,9 +1307,9 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
               <button
                 type="button"
                 onClick={handleSaveToLead}
-                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md hover:shadow-lg transition-all cursor-pointer font-black"
+                className="flex items-center justify-center gap-1.5 py-3 sm:py-2 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md active:scale-95 transition-all cursor-pointer font-black"
               >
-                <UserPlus className="w-3.5 h-3.5 text-slate-950" />
+                <UserPlus className="w-4 h-4 text-slate-950" />
                 <span>+ Buat Lead</span>
               </button>
             ) : (
@@ -1314,9 +1317,9 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
                 href={`https://www.google.com/maps/dir/?api=1&destination=${coverageResult.target.lat},${coverageResult.target.lng}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md transition-all"
+                className="flex items-center justify-center gap-1.5 py-3 sm:py-2 px-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md active:scale-95 transition-all"
               >
-                <Navigation className="w-3.5 h-3.5" />
+                <Navigation className="w-4 h-4" />
                 <span>Buka Rute Maps</span>
               </a>
             )}
@@ -1372,7 +1375,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
 
       {/* 5. Detail Popup Card (Saat Node Diklik) */}
       {selectedNode && (
-        <div className="absolute top-16 right-3 z-20 w-80 sm:w-88 bg-gray-900/95 backdrop-blur-xl border border-gray-700/80 rounded-3xl p-4 text-white shadow-2xl animate-in fade-in slide-in-from-right-4 duration-200">
+        <div className="fixed inset-x-3 bottom-3 sm:absolute sm:inset-x-auto sm:top-16 sm:right-3 w-auto sm:w-88 z-40 bg-gray-900/95 backdrop-blur-xl border border-gray-700/80 rounded-2xl sm:rounded-3xl p-4 text-white shadow-2xl animate-in fade-in slide-in-from-bottom-4 sm:slide-in-from-right-4 duration-200 max-h-[80vh] overflow-y-auto">
           <div className="flex items-start justify-between gap-2 border-b border-gray-800 pb-3">
             <div className="flex items-center gap-2.5">
               <div
@@ -1412,7 +1415,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
             </div>
             <button
               onClick={() => setSelectedNode(null)}
-              className="p-1 text-gray-400 hover:text-white rounded-lg cursor-pointer"
+              className="p-1.5 text-gray-400 hover:text-white rounded-lg cursor-pointer bg-gray-800/60"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1459,7 +1462,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
               href={`https://earth.google.com/web/search/${selectedNode.lat},${selectedNode.lng}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white rounded-xl text-xs font-bold transition-all shadow-md"
             >
               <Globe className="w-3.5 h-3.5" />
               <span>Google Earth 3D</span>
@@ -1470,7 +1473,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
               href={`https://www.google.com/maps/dir/?api=1&destination=${selectedNode.lat},${selectedNode.lng}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold transition-all shadow-md"
             >
               <Navigation className="w-3.5 h-3.5" />
               <span>Rute Maps</span>
@@ -1493,7 +1496,7 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
                     },
                   }));
                 }}
-                className="w-full py-1.5 px-3 rounded-xl text-xs font-bold bg-gray-800 hover:bg-gray-700 text-amber-300 border border-gray-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="w-full py-2.5 sm:py-1.5 px-3 rounded-xl text-xs font-bold bg-gray-800 hover:bg-gray-700 active:scale-95 text-amber-300 border border-gray-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
               >
                 <span>
                   {selectedNode.status === "Aman"
@@ -1508,8 +1511,8 @@ https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`;
 
       {/* 6. Sidebar Navigasi Cepat Titik ODP/ODC (Collapsible) */}
       <div
-        className={`absolute top-16 left-3 bottom-14 z-10 w-72 bg-gray-900/90 backdrop-blur-xl border border-gray-700/80 rounded-3xl p-3 flex flex-col shadow-2xl transition-all duration-300 ${
-          isSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-80 opacity-0 pointer-events-none"
+        className={`absolute top-16 left-3 bottom-14 z-20 w-[calc(100%-24px)] sm:w-72 bg-gray-900/95 backdrop-blur-xl border border-gray-700/80 rounded-2xl sm:rounded-3xl p-3 flex flex-col shadow-2xl transition-all duration-300 ${
+          isSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"
         }`}
       >
         <div className="flex items-center justify-between pb-2 border-b border-gray-800">
