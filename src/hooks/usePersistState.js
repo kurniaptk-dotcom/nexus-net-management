@@ -15,9 +15,23 @@ const ALLOWED_COLUMNS = {
   pekerjaan: ["tim", "jenis", "alamat", "pelanggan", "status", "tanggal", "keterangan"],
   daftar_gangguan: ["nama", "keterangan", "kontak", "tanggal_mulai", "follow_up", "hasil_fu"],
   gangguan: ["tanggal", "kategori", "pelanggan", "alamat", "status", "keterangan", "user_terdampak"],
-  leads: ["nama", "sumber", "status", "tanggal", "telepon", "alamat"],
+  leads: [
+    "nama",
+    "sumber",
+    "status",
+    "tanggal",
+    "telepon",
+    "alamat",
+    "odp_terdekat",
+    "jarak_odp",
+    "lat",
+    "lng",
+    "redaman",
+    "biaya_kabel",
+    "keterangan_survey",
+  ],
   tim: ["nama"],
-  odp_odc: ["odc", "nama", "keterangan", "status"],
+  odp_odc: ["odc", "nama", "keterangan", "status", "port_kapasitas", "port_terpakai"],
   pengajuan_pemutusan: ["nama", "kontak", "alasan", "tanggal"],
 };
 
@@ -31,7 +45,7 @@ function sanitizeForTable(tableName, row) {
     }
   }
 
-  // Safety guards for PostgreSQL check constraints
+  // Safety guards for PostgreSQL check constraints & data types
   if (tableName === "leads") {
     const validStatus = ["BARU", "KONTAK", "DIJADWALKAN", "SELESAI"];
     if (clean.status && !validStatus.includes(clean.status)) {
@@ -40,6 +54,18 @@ function sanitizeForTable(tableName, row) {
     const validSumber = ["IKLAN", "AFFILIATE", "MARKETING"];
     if (clean.sumber && !validSumber.includes(clean.sumber)) {
       clean.sumber = "IKLAN";
+    }
+    if (clean.jarak_odp !== undefined && clean.jarak_odp !== null) {
+      const num = parseInt(clean.jarak_odp, 10);
+      clean.jarak_odp = isNaN(num) ? null : num;
+    }
+    if (clean.lat !== undefined && clean.lat !== null) {
+      const num = parseFloat(clean.lat);
+      clean.lat = isNaN(num) ? null : num;
+    }
+    if (clean.lng !== undefined && clean.lng !== null) {
+      const num = parseFloat(clean.lng);
+      clean.lng = isNaN(num) ? null : num;
     }
   } else if (tableName === "odp_odc") {
     const validStatus = ["", "Aman", "Diperbaiki"];

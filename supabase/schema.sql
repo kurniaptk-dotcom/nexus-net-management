@@ -31,6 +31,13 @@ CREATE TABLE IF NOT EXISTS leads (
   tanggal date,
   telepon text,
   alamat text,
+  odp_terdekat text,
+  jarak_odp int,
+  lat double precision,
+  lng double precision,
+  redaman text,
+  biaya_kabel text,
+  keterangan_survey text,
   created_at timestamptz DEFAULT now()
 );
 
@@ -54,6 +61,8 @@ CREATE TABLE IF NOT EXISTS odp_odc (
   nama text NOT NULL,
   keterangan text,
   status text DEFAULT '' CHECK (status IN ('', 'Aman', 'Diperbaiki')),
+  port_kapasitas int DEFAULT 8,
+  port_terpakai int DEFAULT 0,
   created_at timestamptz DEFAULT now()
 );
 
@@ -118,15 +127,25 @@ ALTER TABLE daftar_gangguan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pelanggan_radius ENABLE ROW LEVEL SECURITY;
 
--- Policies: Allow all operations for anon (public app)
-CREATE POLICY "Allow all on tim" ON tim FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all on pekerjaan" ON pekerjaan FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all on pelanggan_radius" ON pelanggan_radius FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all on leads" ON leads FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all on gangguan" ON gangguan FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all on odp_odc" ON odp_odc FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all on pengajuan_pemutusan" ON pengajuan_pemutusan FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all on daftar_gangguan" ON daftar_gangguan FOR ALL USING (true) WITH CHECK (true);
+-- Policies: Membatasi akses hanya untuk pengguna yang login (authenticated)
+-- Menutup celah akses anonim publik dari internet!
+DROP POLICY IF EXISTS "Allow all on tim" ON tim;
+DROP POLICY IF EXISTS "Allow all on pekerjaan" ON pekerjaan;
+DROP POLICY IF EXISTS "Allow all on pelanggan_radius" ON pelanggan_radius;
+DROP POLICY IF EXISTS "Allow all on leads" ON leads;
+DROP POLICY IF EXISTS "Allow all on gangguan" ON gangguan;
+DROP POLICY IF EXISTS "Allow all on odp_odc" ON odp_odc;
+DROP POLICY IF EXISTS "Allow all on pengajuan_pemutusan" ON pengajuan_pemutusan;
+DROP POLICY IF EXISTS "Allow all on daftar_gangguan" ON daftar_gangguan;
+
+CREATE POLICY "Authenticated users can access tim" ON tim FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access pekerjaan" ON pekerjaan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access pelanggan_radius" ON pelanggan_radius FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access leads" ON leads FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access gangguan" ON gangguan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access odp_odc" ON odp_odc FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access pengajuan_pemutusan" ON pengajuan_pemutusan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access daftar_gangguan" ON daftar_gangguan FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- Policies for profiles
 CREATE POLICY "Users can read own profile" ON profiles FOR SELECT USING (auth.uid() = id);
@@ -306,3 +325,42 @@ INSERT INTO odp_odc (odc, nama, keterangan, status) VALUES
   ('ODC 12', 'ODP 12.7 - Adi Gunawan', 'Aman', 'Aman'),
   ('ODC 12', 'ODP 12.4 - Eko Supriadi', '', ''),
   ('ODC 23', 'ODP 23.2 Hasbi Andika', 'Aman', 'Aman');
+
+-- ====================================================================
+-- SKRIP MIGRASI CEPAT (Untuk Database Supabase yang Sudah Berjalan)
+-- Salin dan jalankan blok di bawah ini di Supabase SQL Editor:
+-- ====================================================================
+/*
+-- 1. Tambahkan kolom survey GIS ke tabel leads
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS odp_terdekat text;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS jarak_odp int;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS lat double precision;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS lng double precision;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS redaman text;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS biaya_kabel text;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS keterangan_survey text;
+
+-- 2. Tambahkan kolom kapasitas port ke tabel odp_odc
+ALTER TABLE odp_odc ADD COLUMN IF NOT EXISTS port_kapasitas int DEFAULT 8;
+ALTER TABLE odp_odc ADD COLUMN IF NOT EXISTS port_terpakai int DEFAULT 0;
+
+-- 3. Kunci keamanan RLS agar hanya pengguna yang login (authenticated) yang bisa mengakses
+DROP POLICY IF EXISTS "Allow all on tim" ON tim;
+DROP POLICY IF EXISTS "Allow all on pekerjaan" ON pekerjaan;
+DROP POLICY IF EXISTS "Allow all on pelanggan_radius" ON pelanggan_radius;
+DROP POLICY IF EXISTS "Allow all on leads" ON leads;
+DROP POLICY IF EXISTS "Allow all on gangguan" ON gangguan;
+DROP POLICY IF EXISTS "Allow all on odp_odc" ON odp_odc;
+DROP POLICY IF EXISTS "Allow all on pengajuan_pemutusan" ON pengajuan_pemutusan;
+DROP POLICY IF EXISTS "Allow all on daftar_gangguan" ON daftar_gangguan;
+
+CREATE POLICY "Authenticated users can access tim" ON tim FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access pekerjaan" ON pekerjaan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access pelanggan_radius" ON pelanggan_radius FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access leads" ON leads FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access gangguan" ON gangguan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access odp_odc" ON odp_odc FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access pengajuan_pemutusan" ON pengajuan_pemutusan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated users can access daftar_gangguan" ON daftar_gangguan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+*/
+
