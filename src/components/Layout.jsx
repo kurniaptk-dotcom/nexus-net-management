@@ -22,6 +22,7 @@ import {
   MoreHorizontal,
   HardHat,
   UserCheck,
+  Plus,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -58,7 +59,7 @@ export default function Layout() {
   };
 
   const handleClearCache = () => {
-    if (confirm("Apakah Anda yakin ingin mereset cache lokal aplikasi? Data offline di browser akan dikembalikan ke state awal.")) {
+    if (confirm("Apakah Anda yakin ingin mereset cache lokal aplikasi? Seluruh data offline di browser akan dikembalikan ke state awal.")) {
       const keys = [
         "xnet_pekerjaan",
         "xnet_leads",
@@ -67,7 +68,15 @@ export default function Layout() {
         "xnet_tim",
         "xnet_odpodc",
         "xnet_odc_list",
+        "xnet_pelanggan_radius",
+        "xnet_master_komisi",
+        "xnet_pengajuan_pemutusan",
+        "xnet_custom_roles",
+        "xnet_radius_api_config",
+        "xnet_incentive_config",
         "xnet_notifications",
+        "xnet_active_tech_team",
+        "xnet_tech_duty_status",
       ];
       keys.forEach((k) => localStorage.removeItem(k));
       window.location.reload();
@@ -193,9 +202,12 @@ export default function Layout() {
 
         {/* User Info */}
         <div className="p-3 border-t border-white/10">
-          <div className="flex items-center gap-3 p-2 rounded-xl bg-white/5">
-            <div className="w-9 h-9 rounded-xl bg-[#F59E0B] flex items-center justify-center font-bold text-sm text-[#0D1B4A] flex-shrink-0">
-              {profile?.full_name?.[0]?.toUpperCase() || "U"}
+          <div className="flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/10">
+            <div className="relative">
+              <div className="w-9 h-9 rounded-xl bg-[#F59E0B] flex items-center justify-center font-bold text-sm text-[#0D1B4A] flex-shrink-0 shadow-sm">
+                {profile?.full_name?.[0]?.toUpperCase() || "U"}
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-[#0D1B4A] animate-pulse" />
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">
@@ -242,7 +254,7 @@ export default function Layout() {
                 {currentTitle}
               </h2>
               <p className="text-[10px] sm:text-xs text-gray-400 truncate">
-                Nexus Net WiFi Management · September 2026
+                Nexus Net WiFi Management · {new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
               </p>
             </div>
           </div>
@@ -253,11 +265,11 @@ export default function Layout() {
               <Search className="w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Cari pekerjaan lalu Enter..."
+                placeholder="Cari pekerjaan, pelanggan, atau alamat..."
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                className="bg-transparent text-xs sm:text-sm outline-none w-44 placeholder:text-gray-400"
+                className="bg-transparent text-xs sm:text-sm outline-none w-56 lg:w-64 placeholder:text-gray-400"
               />
             </div>
 
@@ -309,31 +321,98 @@ export default function Layout() {
           <Outlet />
         </main>
 
-        {/* Mobile Bottom Navigation Bar */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200/90 px-2 py-1 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] flex items-center justify-around pb-[calc(0.25rem+env(safe-area-inset-bottom))]">
-          {bottomNavItems.map((item) => (
+        {/* Mobile Bottom Navigation Bar (Glassmorphic Super-App Shell) */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/92 backdrop-blur-xl border-t border-slate-200/80 px-2 py-1.5 shadow-[0_-8px_30px_rgba(13,27,74,0.08)] flex items-center justify-around pb-[calc(0.4rem+env(safe-area-inset-bottom))]">
+          {bottomNavItems.slice(0, 2).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === "/"}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
+                `flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all relative ${
                   isActive
-                    ? "text-[#0D1B4A] font-extrabold scale-105"
-                    : "text-gray-400 hover:text-gray-600 font-medium"
+                    ? "text-[#0D1B4A] font-extrabold"
+                    : "text-slate-400 hover:text-slate-600 font-medium"
                 }`
               }
             >
               {({ isActive }) => (
                 <>
                   <div
-                    className={`p-1 rounded-xl transition-all ${
-                      isActive ? "bg-amber-100 text-[#0D1B4A]" : ""
+                    className={`p-1.5 rounded-xl transition-all ${
+                      isActive ? "bg-amber-100 text-[#0D1B4A] shadow-xs scale-105" : ""
                     }`}
                   >
                     <item.icon className="w-5 h-5" />
                   </div>
-                  <span className="text-[10px] mt-0.5 tracking-tight">{item.label}</span>
+                  <span className="text-[10px] mt-0.5 tracking-tight font-bold">{item.label}</span>
+                  {isActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-0.5 animate-in fade-in" />
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
+
+          {/* Center Quick Action (Adaptif Role: SPK Baru untuk Admin vs Tugas Saya untuk Teknisi) */}
+          {profile?.role === "teknisi" ? (
+            <button
+              type="button"
+              onClick={() => navigate("/teknisi")}
+              className="flex flex-col items-center justify-center -mt-6 group cursor-pointer"
+              title="Portal Lapangan & Tugas Teknisi"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-950 via-[#0D1B4A] to-emerald-900 text-amber-400 flex items-center justify-center shadow-lg shadow-emerald-950/30 ring-4 ring-white group-active:scale-90 transition-all">
+                <HardHat className="w-6 h-6 text-amber-400" />
+              </div>
+              <span className="text-[10px] font-black text-emerald-800 mt-0.5 tracking-tight">Tugas Saya</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                if (allowedPaths.includes("/pekerjaan") || profile?.role === "admin") {
+                  navigate("/pekerjaan?dispatch=1");
+                } else {
+                  navigate("/teknisi");
+                }
+              }}
+              className="flex flex-col items-center justify-center -mt-6 group cursor-pointer"
+              title="Tambah / Terbitkan SPK Baru"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#0D1B4A] via-[#1a237e] to-[#0D1B4A] text-amber-400 flex items-center justify-center shadow-lg shadow-[#0D1B4A]/30 ring-4 ring-white group-active:scale-90 transition-all">
+                <Plus className="w-6 h-6 stroke-[3]" />
+              </div>
+              <span className="text-[10px] font-black text-[#0D1B4A] mt-0.5 tracking-tight">SPK Baru</span>
+            </button>
+          )}
+
+          {bottomNavItems.slice(2, 4).map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/"}
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all relative ${
+                  isActive
+                    ? "text-[#0D1B4A] font-extrabold"
+                    : "text-slate-400 hover:text-slate-600 font-medium"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <div
+                    className={`p-1.5 rounded-xl transition-all ${
+                      isActive ? "bg-amber-100 text-[#0D1B4A] shadow-xs scale-105" : ""
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] mt-0.5 tracking-tight font-bold">{item.label}</span>
+                  {isActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-0.5 animate-in fade-in" />
+                  )}
                 </>
               )}
             </NavLink>
@@ -342,12 +421,12 @@ export default function Layout() {
           {/* More / Menu trigger in Bottom Nav */}
           <button
             onClick={() => setSidebarOpen(true)}
-            className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-gray-400 hover:text-gray-700 font-medium transition-all cursor-pointer"
+            className="flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl text-slate-400 hover:text-slate-700 font-medium transition-all cursor-pointer"
           >
-            <div className="p-1 rounded-xl">
+            <div className="p-1.5 rounded-xl hover:bg-slate-100">
               <MoreHorizontal className="w-5 h-5" />
             </div>
-            <span className="text-[10px] mt-0.5 tracking-tight">Menu</span>
+            <span className="text-[10px] mt-0.5 tracking-tight font-bold">Menu</span>
           </button>
         </nav>
       </div>

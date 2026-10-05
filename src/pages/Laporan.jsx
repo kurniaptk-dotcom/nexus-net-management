@@ -1,4 +1,5 @@
-import { Download, BarChart3, Users, Wrench, AlertTriangle, Target, FileSpreadsheet } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Download, BarChart3, Users, Wrench, AlertTriangle, Target, FileSpreadsheet, Coins, Calendar, Loader2, RefreshCw } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import {
   initialTimData, fuPelangganList, redamanTinggiList, pengajuanPemutusanList,
@@ -8,9 +9,44 @@ import { usePersistState } from "../hooks/usePersistState";
 import { pekerjaanList } from "../data/mockData";
 import { leadsList } from "../data/mockData";
 import { gangguanList } from "../data/mockData";
-import * as XLSX from "xlsx";
+import { calculateTaskIncentive, formatRupiah, MASTER_KOMISI_ITEMS } from "../lib/incentives";
+import Toast from "../components/Toast";
 
 const COLORS = ["#0D1B4A", "#F59E0B", "#F97316", "#10B981", "#6366F1"];
+
+const MONTH_OPTIONS = [
+  { value: 0, label: "Januari" },
+  { value: 1, label: "Februari" },
+  { value: 2, label: "Maret" },
+  { value: 3, label: "April" },
+  { value: 4, label: "Mei" },
+  { value: 5, label: "Juni" },
+  { value: 6, label: "Juli" },
+  { value: 7, label: "Agustus" },
+  { value: 8, label: "September" },
+  { value: 9, label: "Oktober" },
+  { value: 10, label: "November" },
+  { value: 11, label: "Desember" },
+];
+
+function parseRecordDate(dStr) {
+  if (!dStr) return null;
+  const s = String(dStr).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  const match = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$/);
+  if (match) {
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    let year = parseInt(match[3], 10);
+    if (year < 100) year += 2000;
+    return new Date(year, month, day);
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
 
 function escapeCSV(val) {
   const str = String(val ?? "");
@@ -45,7 +81,8 @@ function exportToJSON(data, filename) {
   URL.revokeObjectURL(url);
 }
 
-function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odpData, filename) {
+async function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odpData, masterKomisi, filename, periodLabel) {
+  const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
 
   const totalSelesai = pekerjaanData.filter((d) => d.status === "SELESAI").length;
@@ -55,8 +92,13 @@ function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odp
   const perbaikanKhususSelesai = pekerjaanData.filter((d) => d.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && d.status === "SELESAI").length;
   const pemutusanSelesai = pekerjaanData.filter((d) => d.jenis === "PEMUTUSAN" && d.status === "SELESAI").length;
 
+  const totalBebanKomisi = pekerjaanData
+    .filter((d) => d.status === "SELESAI")
+    .reduce((sum, p) => sum + (p.komisi_total !== undefined ? Number(p.komisi_total) : calculateTaskIncentive(p, undefined, masterKomisi).total), 0);
+
   const summaryRows = [
-    ["RINGKASAN BULAN", "September 2026"],
+    ["RINGKASAN PERIODE", periodLabel || new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })],
+    ["Waktu Ekspor", new Date().toLocaleString("id-ID")],
     [""],
     ["Total Pekerjaan", pekerjaanData.length],
     ["Total Leads", leadsData.length],
@@ -66,6 +108,8 @@ function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odp
     ["Pemutusan Selesai", pemutusanSelesai],
     ["Selesai Total", totalSelesai],
     ["Gagal Total", totalGagal],
+    ["Total Beban Komisi Teknisi (Rp)", totalBebanKomisi],
+    ["Total Beban Komisi Teknisi (Format)", formatRupiah(totalBebanKomisi)],
     ["Gangguan Total", gangguanDataState.length],
     ["User Terdampak", gangguanDataState.reduce((sum, d) => sum + (d.userTerdampak || 0), 0)],
   ];
@@ -74,17 +118,48 @@ function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odp
 
   const timRows = timData.map((t) => {
     const timP = pekerjaanData.filter((p) => p.tim === t.nama);
+    const timSelesai = timP.filter((p) => p.status === "SELESAI");
+    const komisiTim = timSelesai.reduce(
+      (sum, p) => sum + (p.komisi_total !== undefined ? Number(p.komisi_total) : calculateTaskIncentive(p, undefined, masterKomisi).total),
+      0
+    );
     return {
       Tim: t.nama,
       "Pemasangan Selesai": timP.filter((p) => p.jenis === "PEMASANGAN" && p.status === "SELESAI").length,
       "Perbaikan Selesai": timP.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length,
       "Perbaikan Khusus Selesai": timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length,
       "Pemutusan Selesai": timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length,
-      Total: timP.filter((p) => p.status === "SELESAI").length,
+      "Total Selesai": timSelesai.length,
+      "Total Komisi (Rp)": komisiTim,
     };
   });
   const wsTim = XLSX.utils.json_to_sheet(timRows);
   XLSX.utils.book_append_sheet(wb, wsTim, "Data Tim");
+
+  // Sheet Komisi & Insentif Detail per Pekerjaan Selesai
+  const komisiDetailRows = pekerjaanData
+    .filter((p) => p.status === "SELESAI")
+    .map((p, idx) => {
+      const inc = calculateTaskIncentive(p, undefined, masterKomisi);
+      const itemsStr = Array.isArray(p.komisi_items) && p.komisi_items.length > 0
+        ? p.komisi_items.map((i) => `${i.nama} (${i.qty} ${i.satuan || "x"})`).join("; ")
+        : (p.keterangan || "-");
+      return {
+        No: idx + 1,
+        "ID Tugas": p.id,
+        Tanggal: p.tanggal || "-",
+        Tim: p.tim || "-",
+        "Jenis Tugas": p.jenis,
+        Pelanggan: p.pelanggan || "-",
+        Alamat: p.alamat || "-",
+        "ODP / Jalur": p.odp || "-",
+        "Item Dikerjakan": itemsStr,
+        "Redaman (dBm)": p.redaman || "-",
+        "Total Komisi (Rp)": p.komisi_total !== undefined ? Number(p.komisi_total) : inc.total,
+      };
+    });
+  const wsKomisi = XLSX.utils.json_to_sheet(komisiDetailRows);
+  XLSX.utils.book_append_sheet(wb, wsKomisi, "Komisi & Insentif");
 
   const kinerjaPemasangan = timData.map((t) => {
     const timP = pekerjaanData.filter((p) => p.tim === t.nama && p.jenis === "PEMASANGAN");
@@ -178,12 +253,64 @@ export default function Laporan() {
   const [gangguanDataState] = usePersistState("xnet_daftar_gangguan_v2", daftarGangguanList);
   const [timData] = usePersistState("xnet_tim", initialTimData);
   const [odpData] = usePersistState("xnet_odpodc", odpOdcList);
+  const [masterKomisi] = usePersistState("xnet_master_komisi", MASTER_KOMISI_ITEMS);
 
-  const totalSelesai = pekerjaanData.filter((d) => d.status === "SELESAI").length;
-  const totalGagal = pekerjaanData.filter((d) => d.status === "GAGAL").length;
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [isExporting, setIsExporting] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  // Filter Data berdasarkan Bulan & Tahun Terpilih
+  const filteredPekerjaan = useMemo(() => {
+    if (selectedMonth === -1) return pekerjaanData;
+    return pekerjaanData.filter((p) => {
+      const d = parseRecordDate(p.tanggal);
+      if (!d) return true;
+      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+    });
+  }, [pekerjaanData, selectedMonth, selectedYear]);
+
+  const filteredLeads = useMemo(() => {
+    if (selectedMonth === -1) return leadsData;
+    return leadsData.filter((l) => {
+      const d = parseRecordDate(l.tanggal);
+      if (!d) return true;
+      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+    });
+  }, [leadsData, selectedMonth, selectedYear]);
+
+  const filteredGangguan = useMemo(() => {
+    if (selectedMonth === -1) return gangguanDataState;
+    return gangguanDataState.filter((g) => {
+      const d = parseRecordDate(g.tanggalMulai);
+      if (!d) return true;
+      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+    });
+  }, [gangguanDataState, selectedMonth, selectedYear]);
+
+  const periodLabel = selectedMonth === -1
+    ? `Semua Periode (${selectedYear})`
+    : `${MONTH_OPTIONS[selectedMonth]?.label || "Bulan"} ${selectedYear}`;
+  const periodSlug = selectedMonth === -1
+    ? `semua-periode-${selectedYear}`
+    : `${(MONTH_OPTIONS[selectedMonth]?.label || "bulan").toLowerCase()}-${selectedYear}`;
+
+  const totalSelesai = filteredPekerjaan.filter((d) => d.status === "SELESAI").length;
+  const totalGagal = filteredPekerjaan.filter((d) => d.status === "GAGAL").length;
+
+  const totalBebanKomisi = filteredPekerjaan
+    .filter((d) => d.status === "SELESAI")
+    .reduce((sum, p) => sum + (p.komisi_total !== undefined ? Number(p.komisi_total) : calculateTaskIncentive(p, undefined, masterKomisi).total), 0);
+
+  const getTeamKomisi = (teamName) => {
+    return filteredPekerjaan
+      .filter((p) => p.tim === teamName && p.status === "SELESAI")
+      .reduce((sum, p) => sum + (p.komisi_total !== undefined ? Number(p.komisi_total) : calculateTaskIncentive(p, undefined, masterKomisi).total), 0);
+  };
 
   const timChartData = timData.map((t) => {
-    const timP = pekerjaanData.filter((p) => p.tim === t.nama);
+    const timP = filteredPekerjaan.filter((p) => p.tim === t.nama);
     return {
       name: t.nama.split(" - ")[0],
       pemasangan: timP.filter((p) => p.jenis === "PEMASANGAN" && p.status === "SELESAI").length,
@@ -193,7 +320,7 @@ export default function Laporan() {
     };
   });
 
-  const leadsBySumberMap = leadsData.reduce((acc, l) => {
+  const leadsBySumberMap = filteredLeads.reduce((acc, l) => {
     acc[l.sumber] = (acc[l.sumber] || 0) + 1;
     return acc;
   }, {});
@@ -203,7 +330,7 @@ export default function Laporan() {
     { name: "Marketing", value: leadsBySumberMap["MARKETING"] || 0 },
   ];
 
-  const gangguanByKat = (gangguanDataState || []).reduce((acc, g) => {
+  const gangguanByKat = (filteredGangguan || []).reduce((acc, g) => {
     const kat = g.kategori || g.keterangan || "Lainnya";
     acc[kat] = (acc[kat] || 0) + 1;
     return acc;
@@ -214,71 +341,187 @@ export default function Laporan() {
     .map(([k, v]) => ({ name: k, value: v }));
 
   const summaryExport = [
-    { Metrik: "Total Pekerjaan", Nilai: pekerjaanData.length },
-    { Metrik: "Total Leads", Nilai: leadsData.length },
+    { Metrik: "Periode", Nilai: periodLabel },
+    { Metrik: "Total Pekerjaan", Nilai: filteredPekerjaan.length },
+    { Metrik: "Total Leads", Nilai: filteredLeads.length },
     { Metrik: "Selesai", Nilai: totalSelesai },
     { Metrik: "Gagal", Nilai: totalGagal },
-    { Metrik: "Gangguan Total", Nilai: gangguanDataState.length },
-    { Metrik: "User Terdampak", Nilai: gangguanDataState.reduce((a, b) => a + (b.userTerdampak || 0), 0) },
+    { Metrik: "Beban Komisi Teknisi (Rp)", Nilai: totalBebanKomisi },
+    { Metrik: "Gangguan Total", Nilai: filteredGangguan.length },
+    { Metrik: "User Terdampak", Nilai: filteredGangguan.reduce((a, b) => a + (b.userTerdampak || 0), 0) },
   ];
 
   const timExport = timData.map((t) => {
-    const timP = pekerjaanData.filter((p) => p.tim === t.nama);
+    const timP = filteredPekerjaan.filter((p) => p.tim === t.nama);
+    const timSelesai = timP.filter((p) => p.status === "SELESAI");
     return {
       Tim: t.nama,
       "Pemasangan Selesai": timP.filter((p) => p.jenis === "PEMASANGAN" && p.status === "SELESAI").length,
       "Perbaikan Selesai": timP.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length,
       "Perbaikan Khusus Selesai": timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length,
       "Pemutusan Selesai": timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length,
-      "Total Selesai": timP.filter((p) => p.status === "SELESAI").length,
+      "Total Selesai": timSelesai.length,
+      "Total Komisi (Rp)": getTeamKomisi(t.nama),
     };
   });
 
   const gangguanExport = Object.entries(gangguanByKat).map(([kategori, jumlah]) => ({ Kategori: kategori, Jumlah: jumlah }));
 
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      await exportToExcel(
+        filteredPekerjaan,
+        filteredLeads,
+        filteredGangguan,
+        timData,
+        odpData,
+        masterKomisi,
+        `laporan-${periodSlug}.xlsx`,
+        periodLabel
+      );
+      setToast({ type: "success", message: `Laporan Excel ${periodLabel} berhasil diekspor!` });
+    } catch (err) {
+      console.error(err);
+      setToast({ type: "error", message: `Gagal mengekspor Excel: ${err.message}` });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportCsvSummary = () => {
+    exportToCSV(summaryExport, `summary-${periodSlug}.csv`);
+    setToast({ type: "success", message: `Summary CSV ${periodLabel} berhasil diunduh.` });
+  };
+
+  const handleExportCsvTim = () => {
+    exportToCSV(timExport, `tim-komisi-${periodSlug}.csv`);
+    setToast({ type: "success", message: `Data Tim CSV ${periodLabel} berhasil diunduh.` });
+  };
+
+  const handleExportJson = () => {
+    exportToJSON({ periode: periodLabel, summary: summaryExport, tim: timExport, gangguan: gangguanExport }, `laporan-${periodSlug}.json`);
+    setToast({ type: "success", message: `Berkas JSON ${periodLabel} berhasil diunduh.` });
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Laporan</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Ringkasan dan export data bulanan</p>
-      </div>
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
 
-      {/* Export */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm">
-        <h3 className="text-sm font-bold text-gray-800 mb-3 sm:mb-4">Export Data</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 sm:gap-3">
-          <button onClick={() => exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odpData, "laporan-september-2026.xlsx")}
-            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all">
-            <FileSpreadsheet className="w-4 h-4 shrink-0" /> <span>Export Excel (Semua Sheet)</span>
-          </button>
-          <button onClick={() => exportToCSV(summaryExport, "summary-september-2026.csv")}
-            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all">
-            <Download className="w-4 h-4 shrink-0" /> <span>Summary CSV</span>
-          </button>
-          <button onClick={() => exportToCSV(timExport, "tim-september-2026.csv")}
-            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all">
-            <Download className="w-4 h-4 shrink-0" /> <span>Data Tim CSV</span>
-          </button>
-          <button onClick={() => exportToJSON({ summary: summaryExport, tim: timExport, gangguan: gangguanExport }, "laporan-september-2026.json")}
-            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all">
-            <Download className="w-4 h-4 shrink-0" /> <span>Full JSON</span>
+      {/* Header & Filter Periode */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Laporan & Ekspor</h1>
+          <p className="text-gray-500 text-xs sm:text-sm mt-0.5">
+            Periode aktif: <span className="font-bold text-[#0D1B4A]">{periodLabel}</span>
+          </p>
+        </div>
+
+        {/* Filter Bulan & Tahun */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+            <Calendar className="w-4 h-4 text-amber-500" />
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="bg-transparent text-xs sm:text-sm font-semibold text-gray-800 outline-none cursor-pointer"
+            >
+              <option value={-1}>Semua Bulan</option>
+              {MONTH_OPTIONS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-800 outline-none cursor-pointer"
+          >
+            <option value={2025}>2025</option>
+            <option value={2026}>2026</option>
+            <option value={2027}>2027</option>
+          </select>
+
+          <button
+            type="button"
+            onClick={() => {
+              const d = new Date();
+              setSelectedMonth(d.getMonth());
+              setSelectedYear(d.getFullYear());
+            }}
+            className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+            title="Reset ke Bulan Ini"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Bulan Ini</span>
           </button>
         </div>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
+      {/* Export Section */}
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h3 className="text-sm font-bold text-gray-800">Export Data ({periodLabel})</h3>
+          <span className="text-[11px] text-gray-400 font-medium">Format: .xlsx / .csv / .json</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 sm:gap-3">
+          <button
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 bg-[#0D1B4A] hover:bg-[#1a237e] disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all cursor-pointer active:scale-95"
+          >
+            {isExporting ? <Loader2 className="w-4 h-4 shrink-0 animate-spin text-amber-400" /> : <FileSpreadsheet className="w-4 h-4 shrink-0 text-amber-400" />}
+            <span>{isExporting ? "Menyiapkan Excel..." : "Export Excel (Termasuk Sheet Komisi)"}</span>
+          </button>
+          <button
+            onClick={handleExportCsvSummary}
+            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all cursor-pointer active:scale-95"
+          >
+            <Download className="w-4 h-4 shrink-0" />
+            <span>Summary CSV</span>
+          </button>
+          <button
+            onClick={handleExportCsvTim}
+            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all cursor-pointer active:scale-95"
+          >
+            <Download className="w-4 h-4 shrink-0" />
+            <span>Data Tim & Komisi CSV</span>
+          </button>
+          <button
+            onClick={handleExportJson}
+            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all cursor-pointer active:scale-95"
+          >
+            <Download className="w-4 h-4 shrink-0" />
+            <span>Full JSON</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Summary 6 Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
         {[
-          { label: "Pekerjaan", value: pekerjaanData.length, icon: Wrench, bg: "bg-white" },
-          { label: "Leads", value: leadsData.length, icon: Target, bg: "bg-amber-50" },
-          { label: "Selesai", value: totalSelesai, icon: BarChart3, bg: "bg-emerald-50" },
-          { label: "Gangguan", value: gangguanDataState.length, icon: AlertTriangle, bg: "bg-red-50" },
-          { label: "Tim", value: timData.length, icon: Users, bg: "bg-blue-50" },
-        ].map((s, idx) => (
-          <div key={s.label} className={`${s.bg} rounded-2xl p-3.5 sm:p-4 border border-gray-100 ${idx === 4 ? "col-span-2 sm:col-span-1" : ""}`}>
-            <s.icon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mb-1.5 sm:mb-2" />
-            <p className="text-xl sm:text-2xl font-extrabold text-gray-900">{s.value}</p>
-            <p className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider mt-0.5">{s.label}</p>
+          { label: "Pekerjaan", value: filteredPekerjaan.length, icon: Wrench, bg: "bg-white", highlight: false },
+          { label: "Leads", value: filteredLeads.length, icon: Target, bg: "bg-amber-50", highlight: false },
+          { label: "Selesai", value: totalSelesai, icon: BarChart3, bg: "bg-emerald-50", highlight: false },
+          { label: "Beban Komisi", value: formatRupiah(totalBebanKomisi), icon: Coins, bg: "bg-amber-50/70 border-amber-200", highlight: true },
+          { label: "Gangguan", value: filteredGangguan.length, icon: AlertTriangle, bg: "bg-red-50", highlight: false },
+          { label: "Tim", value: timData.length, icon: Users, bg: "bg-blue-50", highlight: false },
+        ].map((s) => (
+          <div key={s.label} className={`${s.bg} rounded-2xl p-3.5 sm:p-4 border ${s.highlight ? "border-amber-300 ring-2 ring-amber-100" : "border-gray-100"} transition-all`}>
+            <s.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${s.highlight ? "text-amber-600" : "text-gray-400"} mb-1.5 sm:mb-2`} />
+            <p className={`text-base sm:text-xl font-black ${s.highlight ? "text-amber-700 font-mono tracking-tight" : "text-gray-900"} truncate`}>
+              {s.value}
+            </p>
+            <p className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider mt-0.5 truncate">{s.label}</p>
           </div>
         ))}
       </div>
@@ -331,8 +574,14 @@ export default function Laporan() {
 
       {/* Detail Table */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-bold text-gray-800">Detail per Tim</h3>
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-gray-800">Detail & Rekap Komisi per Tim</h3>
+            <p className="text-xs text-gray-400">Akumulasi komisi pekerjaan sukses masing-masing regu teknisi</p>
+          </div>
+          <span className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-xl border border-amber-200">
+            Total Beban: {formatRupiah(totalBebanKomisi)}
+          </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -343,19 +592,21 @@ export default function Laporan() {
                 <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Perbaikan</th>
                 <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Perbaikan Khusus</th>
                 <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Pemutusan</th>
-                <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Total</th>
+                <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Total Tugas</th>
+                <th className="text-right px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Total Komisi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {initialTimData.map((t) => {
-                const timP = pekerjaanData.filter((p) => p.tim === t.nama);
+              {timData.map((t) => {
+                const timP = filteredPekerjaan.filter((p) => p.tim === t.nama);
                 const pemasangan = timP.filter((p) => p.jenis === "PEMASANGAN" && p.status === "SELESAI").length;
                 const perbaikan = timP.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length;
                 const perbaikanKhusus = timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length;
                 const pemutusan = timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length;
                 const total = pemasangan + perbaikan + perbaikanKhusus + pemutusan;
+                const timKomisi = getTeamKomisi(t.nama);
                 return (
-                  <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={t.id || t.nama} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-3 font-bold text-gray-800">{t.nama}</td>
                     <td className="px-5 py-3 text-center text-[#0D1B4A] font-bold">{pemasangan}</td>
                     <td className="px-5 py-3 text-center text-[#F59E0B] font-bold">{perbaikan}</td>
@@ -363,6 +614,9 @@ export default function Laporan() {
                     <td className="px-5 py-3 text-center text-[#F97316] font-bold">{pemutusan}</td>
                     <td className="px-5 py-3 text-center">
                       <span className="px-2.5 py-1 bg-gray-100 rounded-lg text-xs font-bold text-gray-800">{total}</span>
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <span className="font-extrabold text-amber-600 font-mono">{formatRupiah(timKomisi)}</span>
                     </td>
                   </tr>
                 );
@@ -389,8 +643,8 @@ export default function Laporan() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {initialTimData.map((t) => {
-                const timP = pekerjaanData.filter((p) => p.tim === t.nama && p.jenis === "PEMASANGAN");
+              {timData.map((t) => {
+                const timP = filteredPekerjaan.filter((p) => p.tim === t.nama && p.jenis === "PEMASANGAN");
                 const selesai = timP.filter((p) => p.status === "SELESAI").length;
                 const total = timP.length;
                 const gagal = timP.filter((p) => p.status === "GAGAL").length;

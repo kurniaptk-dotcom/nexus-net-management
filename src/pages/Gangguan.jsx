@@ -17,11 +17,13 @@ import {
   FileSpreadsheet,
   Check,
   RefreshCw,
+  HardHat,
 } from "lucide-react";
-import { daftarGangguanList } from "../data/mockData";
+import { daftarGangguanList, odpOdcList, initialPelangganRadius, initialTimData } from "../data/mockData";
 import { usePersistState } from "../hooks/usePersistState";
 import Toast from "../components/Toast";
-import * as XLSX from "xlsx";
+import DispatchTaskModal from "../components/DispatchTaskModal";
+import { formatPhoneWa } from "../lib/spkGenerator";
 
 function getStatusBadge(hasil) {
   const norm = (hasil || "").trim().toLowerCase();
@@ -60,12 +62,8 @@ function getStatusBadge(hasil) {
 // Clean phone number for wa.me link
 function formatWaLink(kontak, nama, keterangan) {
   if (!kontak) return null;
-  // ambil angka pertama jika ada beberapa nomor
-  const matches = kontak.match(/\d{9,15}/g);
-  if (!matches || matches.length === 0) return null;
-  let phone = matches[0];
-  if (phone.startsWith("0")) phone = "62" + phone.substring(1);
-  if (!phone.startsWith("62")) phone = "62" + phone;
+  const phone = formatPhoneWa(kontak);
+  if (!phone || phone.length < 8) return null;
 
   const text = encodeURIComponent(
     `Halo Kak ${nama || "Pelanggan"}, kami dari Support Nexus Net ingin menindaklanjuti kendala WiFi (${keterangan || "layanan"}). Apakah koneksi saat ini sudah berjalan aman dan normal? Terima kasih 🙏`
@@ -86,12 +84,67 @@ const KENDALA_PRESETS = [
 
 export default function Gangguan() {
   const [data, setData] = usePersistState("xnet_daftar_gangguan_v2", daftarGangguanList);
+  const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", []);
+  const [odpList] = usePersistState("xnet_odpodc", odpOdcList);
+  const [pelangganList] = usePersistState("xnet_pelanggan_radius", initialPelangganRadius);
+  const [timList] = usePersistState("xnet_tim", initialTimData);
+
   const [search, setSearch] = useState("");
   const [filterHasil, setFilterHasil] = useState("ALL");
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [dispatchGangguan, setDispatchGangguan] = useState(null);
   const [toast, setToast] = useState(null);
+
+  const handleOpenDispatch = (item) => {
+    // Tentukan jenis perbaikan (khusus ODP jika ada kata ODP/ODC/server)
+    const ket = (item.keterangan || "").toLowerCase();
+    const isSpecial = ket.includes("odp") || ket.includes("odc") || ket.includes("splitter") || ket.includes("backbone");
+    const isLos = ket.includes("los") || ket.includes("putus") || ket.includes("mati");
+
+    // Cari ODP pelanggan jika terdaftar di radius
+    const matchedCust = (pelangganList || []).find(
+      (c) => c.nama?.toLowerCase().trim() === item.nama?.toLowerCase().trim()
+    );
+
+    setDispatchGangguan({
+      sourceModule: "GANGGUAN",
+      sourceId: item.id,
+      jenis: isSpecial ? "PERBAIKAN KHUSUS (ODP/ODC)" : "PERBAIKAN",
+      prioritas: isLos ? "URGENT" : "TINGGI",
+      pelanggan: item.nama,
+      telepon: item.kontak || matchedCust?.telepon || "",
+      alamat: matchedCust?.alamat || "",
+      odp: matchedCust?.odp || "",
+      keterangan: `Kendala: ${item.keterangan || "Gangguan Layanan"}${item.tanggalMulai ? ` (Sejak: ${item.tanggalMulai})` : ""}`,
+    });
+  };
+
+  const handleSaveDispatch = (newTask, shouldSendWa) => {
+    setPekerjaan((prev) => [newTask, ...prev]);
+
+    // Update status tiket gangguan menjadi Bermasalah / Dalam Penanganan
+    const today = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+    setData((prev) =>
+      prev.map((g) =>
+        g.id === dispatchGangguan?.sourceId
+          ? {
+              ...g,
+              followUp: `SPK ke ${newTask.tim} (${today})`,
+              hasilFU: "Bermasalah",
+            }
+          : g
+      )
+    );
+
+    showToast(
+      "success",
+      `SPK Perbaikan ${newTask.spk_no} untuk "${newTask.pelanggan}" berhasil ditugaskan ke Tim ${newTask.tim}!`
+    );
+
+    setDispatchGangguan(null);
+  };
 
   // Form state
   const [formData, setFormData] = useState({
@@ -193,25 +246,35 @@ export default function Gangguan() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.nama.trim()) {
+    const cleanNama = (formData.nama || "").trim();
+    if (!cleanNama) {
       showToast("error", "Nama pelanggan wajib diisi!");
       return;
     }
 
+    const cleanData = {
+      ...formData,
+      nama: cleanNama,
+      kontak: formatPhoneWa(formData.kontak || ""),
+      keterangan: (formData.keterangan || "").trim(),
+      tanggalMulai: (formData.tanggalMulai || "").trim(),
+      followUp: (formData.followUp || "").trim(),
+    };
+
     if (editingItem) {
       setData((prev) =>
         prev.map((item) =>
-          item.id === editingItem.id ? { ...item, ...formData } : item
+          item.id === editingItem.id ? { ...item, ...cleanData } : item
         )
       );
-      showToast("success", `Data gangguan ${formData.nama} berhasil diperbarui!`);
+      showToast("success", `Data gangguan ${cleanNama} berhasil diperbarui!`);
     } else {
       const newItem = {
         id: Date.now(),
-        ...formData,
+        ...cleanData,
       };
       setData((prev) => [newItem, ...prev]);
-      showToast("success", `Laporan gangguan ${formData.nama} berhasil ditambahkan!`);
+      showToast("success", `Laporan gangguan ${cleanNama} berhasil ditambahkan!`);
     }
     setShowModal(false);
   };
@@ -223,22 +286,28 @@ export default function Gangguan() {
     setDeleteConfirm(null);
   };
 
-  const handleExportExcel = () => {
-    const rows = data.map((d, idx) => ({
-      No: idx + 1,
-      Nama: d.nama,
-      Keterangan: d.keterangan || "-",
-      Kontak: d.kontak || "-",
-      "Tanggal Mulai": d.tanggalMulai || "-",
-      FollUp: d.followUp || "-",
-      "Hasil FU": d.hasilFU || "Belum FU",
-    }));
+  const handleExportExcel = async () => {
+    try {
+      const XLSX = await import("xlsx");
+      const rows = data.map((d, idx) => ({
+        No: idx + 1,
+        Nama: d.nama,
+        Keterangan: d.keterangan || "-",
+        Kontak: d.kontak || "-",
+        "Tanggal Mulai": d.tanggalMulai || "-",
+        FollUp: d.followUp || "-",
+        "Hasil FU": d.hasilFU || "Belum FU",
+      }));
 
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Daftar Gangguan");
-    XLSX.writeFile(wb, `daftar-gangguan-${new Date().toISOString().split("T")[0]}.xlsx`);
-    showToast("success", "Export Excel Daftar Gangguan berhasil diunduh!");
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Daftar Gangguan");
+      XLSX.writeFile(wb, `daftar-gangguan-${new Date().toISOString().split("T")[0]}.xlsx`);
+      showToast("success", "Export Excel Daftar Gangguan berhasil diunduh!");
+    } catch (err) {
+      console.error("Gagal export excel:", err);
+      showToast("error", "Gagal memproses export Excel.");
+    }
   };
 
   return (
@@ -505,7 +574,16 @@ export default function Gangguan() {
                       <span className="text-gray-300 text-xs italic">Tanpa No. HP</span>
                     )}
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDispatch(item)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-[#0D1B4A] to-slate-900 text-amber-400 font-extrabold rounded-xl text-xs shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                        title="Tugaskan Teknisi (Buat SPK Perbaikan)"
+                      >
+                        <HardHat className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Tugaskan SPK</span>
+                      </button>
                       <button
                         onClick={() => handleOpenEdit(item)}
                         className="p-2 rounded-xl text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
@@ -642,7 +720,14 @@ export default function Gangguan() {
 
                       {/* Aksi */}
                       <td className="px-4 py-3.5 text-center">
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => handleOpenDispatch(item)}
+                            title="Tugaskan Teknisi Lapangan (Buat SPK Perbaikan)"
+                            className="p-1.5 rounded-lg text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors cursor-pointer"
+                          >
+                            <HardHat className="w-4 h-4 text-amber-600" />
+                          </button>
                           <button
                             onClick={() => handleOpenEdit(item)}
                             title="Edit Laporan"
@@ -859,6 +944,18 @@ export default function Gangguan() {
           </div>
         </div>
       )}
+
+      {/* Modal Terpadu Penugasan Teknisi (SPK Perbaikan Gangguan) */}
+      <DispatchTaskModal
+        isOpen={Boolean(dispatchGangguan)}
+        onClose={() => setDispatchGangguan(null)}
+        initialData={dispatchGangguan || {}}
+        onSave={handleSaveDispatch}
+        odpList={odpList}
+        pelangganList={pelangganList}
+        timList={timList}
+        taskList={pekerjaan}
+      />
     </div>
   );
 }

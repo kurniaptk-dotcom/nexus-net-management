@@ -20,10 +20,13 @@ import {
   Globe,
   Target,
   ArrowLeft,
+  Users,
+  AlertTriangle,
 } from "lucide-react";
-import { odpOdcList, odcMasterList } from "../data/mockData";
+import { odpOdcList, odcMasterList, initialPelangganRadius } from "../data/mockData";
 import unifiedOdpOdc from "../data/unifiedOdpOdc.json";
 import { usePersistState } from "../hooks/usePersistState";
+import { enrichOdpWithPortUtilization, calculateNetworkPortStats } from "../lib/odpUtilization";
 import Toast from "../components/Toast";
 import OdpGoogleEarthMap from "../components/OdpGoogleEarthMap";
 
@@ -39,13 +42,16 @@ export default function ODP() {
 
   const [data, setData] = usePersistState("xnet_odpodc", odpOdcList);
   const [odcList, setOdcList] = usePersistState("xnet_odc_list", odcMasterList);
+  const [pelangganList] = usePersistState("xnet_pelanggan_radius", initialPelangganRadius);
 
   const [viewMode, setViewMode] = useState(paramCoverage ? "earth" : "table"); // 'table' | 'earth'
   const [focusedNode, setFocusedNode] = useState(null);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterOdc, setFilterOdc] = useState("ALL");
+  const [filterPort, setFilterPort] = useState("ALL"); // "ALL" | "AVAILABLE" | "FULL"
   const [expandedOdc, setExpandedOdc] = useState({});
+  const [selectedOdpCustomers, setSelectedOdpCustomers] = useState(null);
 
   // Auto-sinkronisasi data tabel dengan seluruh 200 titik ODP & 42 ODC dari Google Earth KML
   useEffect(() => {
@@ -185,6 +191,16 @@ export default function ODP() {
     });
   }, [odcList, data]);
 
+  // Perkaya seluruh data ODP dengan utilisasi port real-time dari data Pelanggan Radius
+  const enrichedData = useMemo(() => {
+    return enrichOdpWithPortUtilization(data, pelangganList);
+  }, [data, pelangganList]);
+
+  // Statistik Port Seluruh Jaringan
+  const portStats = useMemo(() => {
+    return calculateNetworkPortStats(enrichedData);
+  }, [enrichedData]);
+
   // Group ODPs by ODC
   const groupedData = useMemo(() => {
     const groups = {};
@@ -196,7 +212,7 @@ export default function ODP() {
       };
     });
 
-    (data || []).forEach((item) => {
+    (enrichedData || []).forEach((item) => {
       const key = item.odc || "TANPA ODC";
       if (!groups[key]) {
         groups[key] = {
@@ -218,7 +234,12 @@ export default function ODP() {
         (filterStatus === "Diperbaiki" && item.status === "Diperbaiki") ||
         (filterStatus === "Belum Dicek" && (!item.status || item.status === ""));
 
-      if (matchSearch && matchStatus) {
+      const matchPort =
+        filterPort === "ALL" ||
+        (filterPort === "AVAILABLE" && !item.port_is_full) ||
+        (filterPort === "FULL" && item.port_is_full);
+
+      if (matchSearch && matchStatus && matchPort) {
         groups[key].odps.push(item);
       }
     });
@@ -228,16 +249,17 @@ export default function ODP() {
     }
 
     return groups;
-  }, [allOdcs, data, search, filterStatus, filterOdc]);
+  }, [allOdcs, enrichedData, search, filterStatus, filterOdc, filterPort]);
 
   const stats = {
     totalOdc: allOdcs.length,
-    totalOdp: data.length,
-    aman: data.filter((d) => d.status === "Aman").length,
-    diperbaiki: data.filter((d) => d.status === "Diperbaiki").length,
+    totalOdp: enrichedData.length,
+    aman: enrichedData.filter((d) => d.status === "Aman").length,
+    diperbaiki: enrichedData.filter((d) => d.status === "Diperbaiki").length,
     odcBermasalah: allOdcs.filter((odc) =>
-      data.some((d) => d.odc === odc.nama && d.status === "Diperbaiki")
+      enrichedData.some((d) => d.odc === odc.nama && d.status === "Diperbaiki")
     ).length,
+    ...portStats,
   };
 
   // Accordion controls
@@ -488,6 +510,65 @@ export default function ODP() {
         ))}
       </div>
 
+      {/* Real-time Port Capacity & Utilization Banner */}
+      <div className="bg-gradient-to-r from-slate-900 via-[#0D1B4A] to-slate-900 rounded-3xl p-4 sm:p-5 text-white shadow-md border border-slate-800 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-300 flex items-center justify-center font-bold shrink-0 border border-amber-400/30">
+              <Network className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-sm sm:text-base text-white">
+                  Kapasitas Port Real-Time Jaringan
+                </h3>
+                {stats.odpPenuhCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">
+                    {stats.odpPenuhCount} ODP Penuh
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Kalkulasi otomatis dari <b>{pelangganList.length} pelanggan Radius</b> yang tersambung ke titik ODP.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+            <div className="text-right sm:text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Terpakai</span>
+              <span className="text-lg font-black text-amber-400">{stats.totalTerpakai} Port</span>
+            </div>
+            <div className="w-px h-8 bg-slate-700 hidden sm:block" />
+            <div className="text-right sm:text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Sisa Bebas</span>
+              <span className="text-lg font-black text-emerald-400">{stats.totalSisa} Port</span>
+            </div>
+            <div className="w-px h-8 bg-slate-700 hidden sm:block" />
+            <div className="text-right sm:text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Kapasitas</span>
+              <span className="text-lg font-black text-white">{stats.totalKapasitas} Port</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Global Progress Bar */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[11px] text-slate-400">
+            <span>Tingkat Utilisasi Splitter: <b className="text-white">{stats.percentTotal}%</b></span>
+            <span>{stats.odpKritisCount > 0 ? `⚠️ ${stats.odpKritisCount} ODP sisa 1 port` : "Semua kapasitas aman"}</span>
+          </div>
+          <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                stats.percentTotal > 85 ? "bg-rose-500" : stats.percentTotal > 65 ? "bg-amber-400" : "bg-emerald-500"
+              }`}
+              style={{ width: `${stats.percentTotal}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Tampilan Google Earth GIS Map jika viewMode === 'earth' */}
       {viewMode === "earth" ? (
         <div className="space-y-4">
@@ -545,7 +626,7 @@ export default function ODP() {
 
           <OdpGoogleEarthMap
             allOdcs={allOdcs}
-            odpList={data}
+            odpList={enrichedData}
             onEditOdp={handleOpenEditOdp}
             onEditOdc={handleOpenEditOdc}
             onToggleStatus={handleToggleStatus}
@@ -635,6 +716,20 @@ export default function ODP() {
               <option value="Aman">🟢 Aman</option>
               <option value="Diperbaiki">🟡 Diperbaiki</option>
               <option value="Belum Dicek">⚪ Belum Dicek</option>
+            </select>
+          </div>
+
+          {/* Filter Kapasitas Port */}
+          <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold">
+            <Network className="w-3.5 h-3.5 text-emerald-600" />
+            <select
+              value={filterPort}
+              onChange={(e) => setFilterPort(e.target.value)}
+              className="bg-transparent outline-none font-semibold text-gray-700 cursor-pointer"
+            >
+              <option value="ALL">Semua Port</option>
+              <option value="AVAILABLE">🟢 Port Tersedia</option>
+              <option value="FULL">🔴 Port Penuh ({stats.odpPenuhCount})</option>
             </select>
           </div>
 
@@ -852,6 +947,42 @@ export default function ODP() {
                                 </p>
                               )}
 
+                              {/* Port Utilization Bar Mobile */}
+                              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1.5">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-bold text-slate-700">
+                                    Port: <b>{item.port_terpakai || 0}</b> / {item.port_kapasitas || 8}
+                                  </span>
+                                  {item.port_is_full ? (
+                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200">
+                                      ⛔ PENUH (0 Sisa)
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                      Sisa {item.port_sisa} Port
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${
+                                      item.port_is_full ? "bg-rose-500" : item.port_is_near_full ? "bg-amber-500" : "bg-emerald-500"
+                                    }`}
+                                    style={{ width: `${item.port_percent || 0}%` }}
+                                  />
+                                </div>
+                                {item.connected_customers?.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedOdpCustomers(item)}
+                                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer pt-0.5"
+                                  >
+                                    <Users className="w-3 h-3" />
+                                    <span>{item.connected_customers.length} Pelanggan Terdaftar (Lihat)</span>
+                                  </button>
+                                )}
+                              </div>
+
                               <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-50">
                                 <button
                                   onClick={() => handleToggleStatus(item)}
@@ -888,67 +1019,108 @@ export default function ODP() {
                                 <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">
                                   Nama & Titik ODP
                                 </th>
-                            <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">
-                              Keterangan / Lokasi Tiang
-                            </th>
-                            <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">
-                              Status Kelayakan
-                            </th>
-                            <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider text-right">
-                              Aksi
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {items.map((item) => (
-                            <tr key={item.id} className="hover:bg-gray-50/60 transition-colors">
-                              <td className="px-5 py-3">
-                                <div className="flex items-center gap-2.5">
-                                  {item.status === "Aman" ? (
-                                    <Wifi className="w-4 h-4 text-emerald-500 shrink-0" />
-                                  ) : item.status === "Diperbaiki" ? (
-                                    <WifiOff className="w-4 h-4 text-amber-500 shrink-0" />
-                                  ) : (
-                                    <Wifi className="w-4 h-4 text-gray-300 shrink-0" />
-                                  )}
-                                  <div>
-                                    <span className="font-bold text-gray-800">{item.nama}</span>
-                                    <span className="text-[10px] text-gray-400 block">
-                                      Induk: {odcName}
-                                    </span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-5 py-3 text-gray-600 text-xs">
-                                {item.keterangan || "-"}
-                              </td>
-                              <td className="px-5 py-3">
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => handleToggleStatus(item)}
-                                    title="Klik untuk ubah status cepat"
-                                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all hover:scale-105 ${
-                                      item.status === "Aman"
-                                        ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100"
-                                        : item.status === "Diperbaiki"
-                                        ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100"
-                                        : "bg-gray-50 text-gray-500 ring-1 ring-gray-200 hover:bg-gray-100"
-                                    }`}
-                                  >
-                                    {item.status || "Belum Dicek"}
-                                  </button>
-                                  {item.status === "Diperbaiki" && (
-                                    <button
-                                      onClick={() => handleCreateJob(item)}
-                                      className="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-md text-[11px] font-bold flex items-center gap-1 transition-all"
-                                      title="Buka menu Pekerjaan untuk buat tiket perbaikan khusus ODP ini"
-                                    >
-                                      <Wrench className="w-3 h-3 text-purple-600" />
-                                      Buat Tiket
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
+                                <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">
+                                  Keterangan / Lokasi Tiang
+                                </th>
+                                <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">
+                                  Kapasitas Port Real-Time
+                                </th>
+                                <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">
+                                  Status Kelayakan
+                                </th>
+                                <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider text-right">
+                                  Aksi
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                              {items.map((item) => (
+                                <tr key={item.id} className="hover:bg-gray-50/60 transition-colors">
+                                  <td className="px-5 py-3">
+                                    <div className="flex items-center gap-2.5">
+                                      {item.status === "Aman" ? (
+                                        <Wifi className="w-4 h-4 text-emerald-500 shrink-0" />
+                                      ) : item.status === "Diperbaiki" ? (
+                                        <WifiOff className="w-4 h-4 text-amber-500 shrink-0" />
+                                      ) : (
+                                        <Wifi className="w-4 h-4 text-gray-300 shrink-0" />
+                                      )}
+                                      <div>
+                                        <span className="font-bold text-gray-800">{item.nama}</span>
+                                        <span className="text-[10px] text-gray-400 block">
+                                          Induk: {odcName}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-5 py-3 text-gray-600 text-xs">
+                                    {item.keterangan || "-"}
+                                  </td>
+                                  <td className="px-5 py-3">
+                                    <div className="space-y-1.5 max-w-[200px]">
+                                      <div className="flex items-center justify-between text-xs">
+                                        <span className="font-semibold text-slate-800">
+                                          {item.port_terpakai || 0} / {item.port_kapasitas || 8} Port
+                                        </span>
+                                        {item.port_is_full ? (
+                                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200">
+                                            ⛔ PENUH
+                                          </span>
+                                        ) : (
+                                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                            Sisa {item.port_sisa}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                        <div
+                                          className={`h-full rounded-full transition-all ${
+                                            item.port_is_full ? "bg-rose-500" : item.port_is_near_full ? "bg-amber-500" : "bg-emerald-500"
+                                          }`}
+                                          style={{ width: `${item.port_percent || 0}%` }}
+                                        />
+                                      </div>
+                                      {item.connected_customers?.length > 0 ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => setSelectedOdpCustomers(item)}
+                                          className="text-[10px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer hover:underline"
+                                        >
+                                          <Users className="w-3 h-3" />
+                                          <span>{item.connected_customers.length} Pelanggan Aktif</span>
+                                        </button>
+                                      ) : (
+                                        <span className="text-[10px] text-slate-400 block">Belum ada pelanggan</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-5 py-3">
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={() => handleToggleStatus(item)}
+                                        title="Klik untuk ubah status cepat"
+                                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all hover:scale-105 ${
+                                          item.status === "Aman"
+                                            ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100"
+                                            : item.status === "Diperbaiki"
+                                            ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100"
+                                            : "bg-gray-50 text-gray-500 ring-1 ring-gray-200 hover:bg-gray-100"
+                                        }`}
+                                      >
+                                        {item.status || "Belum Dicek"}
+                                      </button>
+                                      {item.status === "Diperbaiki" && (
+                                        <button
+                                          onClick={() => handleCreateJob(item)}
+                                          className="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-md text-[11px] font-bold flex items-center gap-1 transition-all"
+                                          title="Buka menu Pekerjaan untuk buat tiket perbaikan khusus ODP ini"
+                                        >
+                                          <Wrench className="w-3 h-3 text-purple-600" />
+                                          Buat Tiket
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
                               <td className="px-5 py-3 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
                                   <button
@@ -1241,6 +1413,80 @@ export default function ODP() {
                 className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-semibold hover:bg-red-700 transition-colors"
               >
                 Hapus ODP
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Daftar Pelanggan yang Terhubung ke ODP */}
+      {selectedOdpCustomers && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shrink-0">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">
+                    Pelanggan Terhubung di {selectedOdpCustomers.nama}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    ODC: {selectedOdpCustomers.odc} · Terpakai: {selectedOdpCustomers.port_terpakai} / {selectedOdpCustomers.port_kapasitas} Port
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedOdpCustomers(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-5 overflow-y-auto divide-y divide-slate-100 flex-1 space-y-2">
+              {selectedOdpCustomers.connected_customers && selectedOdpCustomers.connected_customers.length > 0 ? (
+                selectedOdpCustomers.connected_customers.map((cust, idx) => (
+                  <div key={cust.id || idx} className="pt-2 pb-2 flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-slate-900">{cust.nama}</span>
+                        <span className={`px-2 py-0.2 rounded text-[10px] font-black uppercase ${
+                          cust.status === "AKTIF" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                        }`}>
+                          {cust.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-0.5 font-medium">{cust.paket}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{cust.alamat}</p>
+                    </div>
+                    {cust.telepon && (
+                      <a
+                        href={`https://wa.me/${cust.telepon.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-200 shrink-0"
+                      >
+                        WA
+                      </a>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  Belum ada data pelanggan yang terhubung ke ODP ini.
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50/70 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedOdpCustomers(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+              >
+                Tutup
               </button>
             </div>
           </div>

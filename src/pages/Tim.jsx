@@ -1,16 +1,23 @@
 import { useState } from "react";
-import { Users, Plus, Edit2, Trash2, Mail, Phone, Award } from "lucide-react";
+import { Users, Plus, Edit2, Trash2, Mail, Phone, Award, Coins, Wallet, Wrench } from "lucide-react";
 import { initialTimData, pekerjaanList } from "../data/mockData";
 import { usePersistState } from "../hooks/usePersistState";
+import { calculateTaskIncentive, formatRupiah, MASTER_KOMISI_ITEMS } from "../lib/incentives";
+import Toast from "../components/Toast";
 
-function TeamCard({ tim, pekerjaanData, onEdit, onDelete }) {
+function TeamCard({ tim, pekerjaanData, masterKomisi, onEdit, onDelete }) {
   const timPekerjaan = pekerjaanData.filter((p) => p.tim === tim.nama);
   const pemasanganSelesai = timPekerjaan.filter((p) => p.jenis === "PEMASANGAN" && p.status === "SELESAI").length;
   const perbaikanSelesai = timPekerjaan.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length;
+  const perbaikanKhususSelesai = timPekerjaan.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length;
   const pemutusanSelesai = timPekerjaan.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length;
-  const totalPekerjaan = pemasanganSelesai + perbaikanSelesai + pemutusanSelesai;
+  const totalPekerjaan = pemasanganSelesai + perbaikanSelesai + perbaikanKhususSelesai + pemutusanSelesai;
   const totalWaiting = timPekerjaan.filter((p) => p.status === "WAITING LIST").length;
   const completionRate = (totalPekerjaan + totalWaiting) > 0 ? ((totalPekerjaan / (totalPekerjaan + totalWaiting)) * 100).toFixed(0) : 0;
+
+  const totalKomisi = timPekerjaan
+    .filter((p) => p.status === "SELESAI")
+    .reduce((sum, p) => sum + (p.komisi_total !== undefined ? Number(p.komisi_total) : calculateTaskIncentive(p, undefined, masterKomisi).total), 0);
 
   const colors = [
     { bg: "bg-[#0D1B4A]", accent: "#F59E0B" },
@@ -52,20 +59,24 @@ function TeamCard({ tim, pekerjaanData, onEdit, onDelete }) {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats (4 Kolom Lengkap Termasuk Perbaikan Khusus ODP/ODC) */}
       <div className="p-3.5 sm:p-5">
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
-          <div className="text-center p-2 sm:p-3 bg-blue-50 rounded-xl">
-            <p className="text-xl sm:text-2xl font-black text-[#0D1B4A]">{pemasanganSelesai}</p>
-            <p className="text-[9px] sm:text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-0.5 truncate">Pasang</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 sm:mb-4">
+          <div className="text-center p-2 bg-blue-50 rounded-xl">
+            <p className="text-lg sm:text-xl font-black text-[#0D1B4A]">{pemasanganSelesai}</p>
+            <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider mt-0.5 truncate">Pasang</p>
           </div>
-          <div className="text-center p-2 sm:p-3 bg-amber-50 rounded-xl">
-            <p className="text-xl sm:text-2xl font-black text-[#F59E0B]">{perbaikanSelesai}</p>
-            <p className="text-[9px] sm:text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-0.5 truncate">Perbaikan</p>
+          <div className="text-center p-2 bg-amber-50 rounded-xl">
+            <p className="text-lg sm:text-xl font-black text-[#F59E0B]">{perbaikanSelesai}</p>
+            <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider mt-0.5 truncate">Perbaikan</p>
           </div>
-          <div className="text-center p-2 sm:p-3 bg-red-50 rounded-xl">
-            <p className="text-xl sm:text-2xl font-black text-red-500">{pemutusanSelesai}</p>
-            <p className="text-[9px] sm:text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-0.5 truncate">Putus</p>
+          <div className="text-center p-2 bg-purple-50 rounded-xl">
+            <p className="text-lg sm:text-xl font-black text-purple-700">{perbaikanKhususSelesai}</p>
+            <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider mt-0.5 truncate">ODP/ODC</p>
+          </div>
+          <div className="text-center p-2 bg-red-50 rounded-xl">
+            <p className="text-lg sm:text-xl font-black text-red-500">{pemutusanSelesai}</p>
+            <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider mt-0.5 truncate">Putus</p>
           </div>
         </div>
 
@@ -89,6 +100,17 @@ function TeamCard({ tim, pekerjaanData, onEdit, onDelete }) {
           </div>
           <span className="text-base sm:text-lg font-black text-gray-900">{totalPekerjaan}</span>
         </div>
+
+        {/* Commission Badge */}
+        <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-dashed border-gray-100 text-xs">
+          <div className="flex items-center gap-1.5 text-gray-600 font-semibold">
+            <Coins className="w-3.5 h-3.5 text-amber-500" />
+            <span>Estimasi Komisi Tim</span>
+          </div>
+          <span className="font-extrabold text-amber-600 font-mono text-sm bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+            {formatRupiah(totalKomisi)}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -97,9 +119,17 @@ function TeamCard({ tim, pekerjaanData, onEdit, onDelete }) {
 export default function Tim() {
   const [timData, setTimData] = usePersistState("xnet_tim", initialTimData);
   const [pekerjaanData] = usePersistState("xnet_pekerjaan", pekerjaanList);
+  const [masterKomisi] = usePersistState("xnet_master_komisi", MASTER_KOMISI_ITEMS);
   const [showModal, setShowModal] = useState(false);
   const [editingTim, setEditingTim] = useState(null);
   const [formData, setFormData] = useState({ nama: "" });
+  const [toast, setToast] = useState(null);
+
+  const totalKomisiSemua = pekerjaanData
+    .filter((p) => p.status === "SELESAI")
+    .reduce((sum, p) => sum + (p.komisi_total !== undefined ? Number(p.komisi_total) : calculateTaskIncentive(p, undefined, masterKomisi).total), 0);
+
+  const totalSelesaiSemua = pekerjaanData.filter((p) => p.status === "SELESAI").length;
 
   const handleAdd = () => {
     setEditingTim(null);
@@ -114,40 +144,52 @@ export default function Tim() {
   };
 
   const handleDelete = (id) => {
-    if (confirm("Hapus tim ini?")) {
+    const target = timData.find((t) => t.id === id);
+    if (confirm(`Hapus tim "${target?.nama || id}"?`)) {
       setTimData(timData.filter((t) => t.id !== id));
+      setToast({ type: "success", message: `Tim ${target?.nama || ""} berhasil dihapus.` });
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.nama.trim()) return;
+    const cleanNama = formData.nama.trim();
+    if (!cleanNama) return;
 
     if (editingTim) {
       setTimData(
         timData.map((t) =>
-          t.id === editingTim.id ? { ...t, nama: formData.nama } : t
+          t.id === editingTim.id ? { ...t, nama: cleanNama } : t
         )
       );
+      setToast({ type: "success", message: `Data tim "${cleanNama}" berhasil diperbarui.` });
     } else {
       const newTim = {
         id: Date.now(),
-        nama: formData.nama,
+        nama: cleanNama,
         pemasangan: { waitingList: 0, dijadwalkan: 0, selesai: 0, gagal: 0 },
         perbaikan: { waitingList: 0, dijadwalkan: 0, selesai: 0 },
         pemutusan: { waitingList: 0, dijadwalkan: 0, selesai: 0 },
       };
       setTimData([...timData, newTim]);
+      setToast({ type: "success", message: `Tim "${cleanNama}" berhasil ditambahkan.` });
     }
     setShowModal(false);
   };
 
   return (
     <div className="space-y-6">
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Manajemen Tim</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Kelola tim field technician</p>
+          <p className="text-gray-500 text-sm mt-0.5">Kelola tim field technician & pantau akumulasi komisi kerja</p>
         </div>
         <button
           onClick={handleAdd}
@@ -158,12 +200,46 @@ export default function Tim() {
         </button>
       </div>
 
+      {/* KPI Cards Ringkasan Tim & Komisi */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0D1B4A] flex items-center justify-center shrink-0">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Regu Teknisi</p>
+            <p className="text-xl font-black text-gray-900">{timData.length} Tim</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <Award className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Tugas Selesai</p>
+            <p className="text-xl font-black text-gray-900">{totalSelesaiSemua} Tugas</p>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50/60 p-4 rounded-2xl border border-amber-200/80 shadow-2xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-400 text-[#0D1B4A] flex items-center justify-center shrink-0 shadow-xs font-bold">
+            <Coins className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Total Komisi Seluruh Tim</p>
+            <p className="text-xl font-black text-amber-700 font-mono">{formatRupiah(totalKomisiSemua)}</p>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {timData.map((tim) => (
           <TeamCard
             key={tim.id}
             tim={tim}
             pekerjaanData={pekerjaanData}
+            masterKomisi={masterKomisi}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />

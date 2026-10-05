@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Edit2, Trash2, Target, Phone, MapPin, Calendar, Globe, Radio, ExternalLink, Zap, MessageCircle, Loader2, Share2, Check } from "lucide-react";
-import { leadsList, sumberLeads } from "../data/mockData";
+import { Plus, Search, Edit2, Trash2, Target, Phone, MapPin, Calendar, Globe, Radio, ExternalLink, Zap, MessageCircle, Loader2, Share2, Check, HardHat } from "lucide-react";
+import { leadsList, sumberLeads, odpOdcList, initialPelangganRadius, initialTimData } from "../data/mockData";
 import { generateLeadsNotification } from "../store/notificationStore";
 import { usePersistState } from "../hooks/usePersistState";
 import { parseShareLocation, findNearestOdpFromList, generateSurveyWhatsAppMessage } from "../lib/surveySimulation";
+import DispatchTaskModal from "../components/DispatchTaskModal";
+import { formatPhoneWa } from "../lib/spkGenerator";
 
 function notify(notif) {
   if (window.__addNotification) window.__addNotification(notif);
@@ -43,13 +45,66 @@ const statusOptions = ["BARU", "KONTAK", "DIJADWALKAN", "SELESAI"];
 export default function Leads() {
   const navigate = useNavigate();
   const [data, setData] = usePersistState("xnet_leads", leadsList);
+  const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", []);
+  const [odpList] = usePersistState("xnet_odpodc", odpOdcList);
+  const [pelangganList] = usePersistState("xnet_pelanggan_radius", initialPelangganRadius);
+  const [timList] = usePersistState("xnet_tim", initialTimData);
+
   const [search, setSearch] = useState("");
   const [filterSumber, setFilterSumber] = useState("ALL");
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [dispatchLead, setDispatchLead] = useState(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [simError, setSimError] = useState("");
   const [simSuccess, setSimSuccess] = useState(null);
+
+  const handleOpenDispatch = (item) => {
+    setDispatchLead({
+      sourceModule: "LEADS",
+      sourceId: item.id,
+      jenis: "PEMASANGAN",
+      prioritas: "NORMAL",
+      pelanggan: item.nama,
+      telepon: item.telepon,
+      alamat: item.alamat,
+      shareloc: item.shareloc || (item.lat && item.lng ? `${item.lat}, ${item.lng}` : ""),
+      odp: item.odp_terdekat || "",
+      jarak_odp: item.jarak_odp || "",
+      redaman: item.redaman || "",
+      keterangan: item.keterangan_survey || `Pemasangan Baru (PSB) via Leads ${item.sumber}`,
+    });
+  };
+
+  const handleSaveDispatch = (newTask, shouldSendWa) => {
+    setPekerjaan((prev) => [newTask, ...prev]);
+    setData((prev) =>
+      prev.map((item) =>
+        item.id === dispatchLead?.sourceId
+          ? {
+              ...item,
+              status: "DIJADWALKAN",
+              tim: newTask.tim,
+              spk_no: newTask.spk_no,
+              keterangan_survey: item.keterangan_survey
+                ? `${item.keterangan_survey} · Ditugaskan ke ${newTask.tim} (${newTask.spk_no})`
+                : `Ditugaskan ke Tim ${newTask.tim} (${newTask.spk_no})`,
+            }
+          : item
+      )
+    );
+
+    notify({
+      id: Date.now(),
+      type: "SUCCESS",
+      title: "Penugasan Teknisi Berhasil",
+      message: `Surat Perintah Kerja ${newTask.spk_no} untuk "${newTask.pelanggan}" berhasil diterbitkan ke Tim ${newTask.tim}.`,
+      timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+      read: false,
+    });
+
+    setDispatchLead(null);
+  };
 
   const [formData, setFormData] = useState({
     nama: "",
@@ -197,11 +252,26 @@ export default function Leads() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const cleanNama = (formData.nama || "").trim();
+    if (!cleanNama) {
+      alert("Nama lead wajib diisi!");
+      return;
+    }
+    const cleanTelepon = formatPhoneWa(formData.telepon || "");
+    const cleanData = {
+      ...formData,
+      nama: cleanNama,
+      telepon: cleanTelepon,
+      alamat: (formData.alamat || "").trim(),
+      shareloc: (formData.shareloc || "").trim(),
+      keterangan_survey: (formData.keterangan_survey || "").trim(),
+    };
+
     if (editingItem) {
-      setData(data.map((d) => (d.id === editingItem.id ? { ...d, ...formData } : d)));
-      notify(generateLeadsNotification({ ...editingItem, ...formData }, "diperbarui"));
+      setData(data.map((d) => (d.id === editingItem.id ? { ...d, ...cleanData } : d)));
+      notify(generateLeadsNotification({ ...editingItem, ...cleanData }, "diperbarui"));
     } else {
-      const newItem = { id: Date.now(), ...formData };
+      const newItem = { id: Date.now(), ...cleanData };
       setData([...data, newItem]);
       notify(generateLeadsNotification(newItem, "baru masuk"));
     }
@@ -309,8 +379,8 @@ export default function Leads() {
               </div>
             </div>
 
-            {/* Quick Actions: Simulasi Google Earth & WhatsApp */}
-            <div className="mt-3.5 pt-3 border-t border-gray-100 flex items-center gap-2">
+            {/* Quick Actions: Simulasi Google Earth, WhatsApp, & Dispatch SPK */}
+            <div className="mt-3.5 pt-3 border-t border-gray-100 flex items-center gap-1.5 flex-wrap">
               <button
                 type="button"
                 onClick={() => {
@@ -326,15 +396,26 @@ export default function Leads() {
                   }
                   navigate(`/odp?${query.toString()}`);
                 }}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                className={`flex-1 min-w-[120px] flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                   item.odp_terdekat
                     ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200"
                     : "bg-gradient-to-r from-amber-500/10 to-amber-500/20 hover:from-amber-500/20 hover:to-amber-500/30 text-amber-900 border border-amber-300"
                 }`}
                 title="Buka peta Google Earth untuk menganalisis jarak ke ODP terdekat"
               >
-                <Globe className="w-3.5 h-3.5 text-emerald-600" />
-                <span>{item.odp_terdekat ? "Simulasi Peta Earth" : "Cek Coverage ODP"}</span>
+                <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="truncate">{item.odp_terdekat ? "Peta Earth" : "Cek ODP"}</span>
+              </button>
+
+              {/* Tombol One-Click Dispatch SPK Teknisi */}
+              <button
+                type="button"
+                onClick={() => handleOpenDispatch(item)}
+                className="flex-1 min-w-[110px] flex items-center justify-center gap-1.5 py-2 px-2.5 bg-gradient-to-r from-[#0D1B4A] to-slate-800 hover:from-slate-900 hover:to-black text-amber-400 font-extrabold rounded-xl text-xs shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                title="Tugaskan Tim Teknisi Lapangan (Pasang Baru / PSB)"
+              >
+                <HardHat className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="truncate">Tugaskan SPK</span>
               </button>
 
               {item.telepon && (
@@ -348,8 +429,8 @@ export default function Leads() {
                       : `Halo Kak *${item.nama}*, terima kasih telah menghubungi Nexus Net!\n\nApakah kami boleh meminta sharelokasi WhatsApp rumah Anda untuk simulasi survey ODP terdekat? Terima kasih.`;
                     window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(surveyText)}`, "_blank");
                   }}
-                  className="p-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
-                  title="Kirim Hasil Survey ke WhatsApp"
+                  className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+                  title="Kirim Pesan Survey WhatsApp"
                 >
                   <MessageCircle className="w-4 h-4" />
                 </button>
@@ -521,14 +602,44 @@ export default function Leads() {
                 <input type="date" value={formData.tanggal} onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none" />
               </div>
-              <div className="flex gap-2.5 justify-end pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Batal</button>
-                <button type="submit" className="px-5 py-2.5 text-xs sm:text-sm font-semibold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl shadow-sm hover:shadow-md transition-all">Simpan</button>
+              <div className="flex items-center justify-between gap-2.5 pt-2 flex-wrap">
+                {formData.nama && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowModal(false);
+                      handleOpenDispatch({
+                        id: editingItem?.id || Date.now(),
+                        ...formData,
+                      });
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-[#0D1B4A] to-slate-900 text-amber-400 font-extrabold rounded-xl text-xs hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    <HardHat className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Tugaskan SPK Pasang Baru</span>
+                  </button>
+                )}
+                <div className="flex gap-2.5 ml-auto">
+                  <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Batal</button>
+                  <button type="submit" className="px-5 py-2.5 text-xs sm:text-sm font-semibold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl shadow-sm hover:shadow-md transition-all">Simpan</button>
+                </div>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Modal Terpadu Penugasan Teknisi (SPK) */}
+      <DispatchTaskModal
+        isOpen={Boolean(dispatchLead)}
+        onClose={() => setDispatchLead(null)}
+        initialData={dispatchLead || {}}
+        onSave={handleSaveDispatch}
+        odpList={odpList}
+        pelangganList={pelangganList}
+        timList={timList}
+        taskList={pekerjaan}
+      />
     </div>
   );
 }

@@ -360,7 +360,14 @@ ALTER TABLE leads ADD COLUMN IF NOT EXISTS keterangan_survey text;
 ALTER TABLE odp_odc ADD COLUMN IF NOT EXISTS port_kapasitas int DEFAULT 8;
 ALTER TABLE odp_odc ADD COLUMN IF NOT EXISTS port_terpakai int DEFAULT 0;
 
--- 4. Aktifkan RLS
+-- 4. Tambahkan kolom bukti lapangan & redaman ke tabel pekerjaan
+ALTER TABLE pekerjaan ADD COLUMN IF NOT EXISTS foto_opm text;
+ALTER TABLE pekerjaan ADD COLUMN IF NOT EXISTS foto_dropcore text;
+ALTER TABLE pekerjaan ADD COLUMN IF NOT EXISTS foto_modem text;
+ALTER TABLE pekerjaan ADD COLUMN IF NOT EXISTS redaman text;
+ALTER TABLE pekerjaan ADD COLUMN IF NOT EXISTS sn_modem text;
+
+-- 5. Aktifkan RLS
 ALTER TABLE tim ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pekerjaan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
@@ -398,4 +405,23 @@ CREATE POLICY "Authenticated users can access odp_odc" ON odp_odc FOR ALL TO aut
 CREATE POLICY "Authenticated users can access pengajuan_pemutusan" ON pengajuan_pemutusan FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Authenticated users can access daftar_gangguan" ON daftar_gangguan FOR ALL TO authenticated USING (true) WITH CHECK (true);
 */
+
+-- =========================================================================
+-- 6. Setup Supabase Storage Bucket untuk Bukti Foto Lapangan Teknisi
+-- Jalankan di SQL Editor jika ingin mengaktifkan penyimpanan foto berbasis Cloud
+-- =========================================================================
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('evidence-photos', 'evidence-photos', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Policy agar semua user dapat melihat foto bukti lapangan
+DROP POLICY IF EXISTS "Public read evidence-photos" ON storage.objects;
+CREATE POLICY "Public read evidence-photos" ON storage.objects
+FOR SELECT USING (bucket_id = 'evidence-photos');
+
+-- Policy agar upload foto diizinkan
+DROP POLICY IF EXISTS "Allow upload to evidence-photos" ON storage.objects;
+CREATE POLICY "Allow upload to evidence-photos" ON storage.objects
+FOR INSERT WITH CHECK (bucket_id = 'evidence-photos');
+
 

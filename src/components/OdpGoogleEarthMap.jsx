@@ -375,9 +375,12 @@ export default function OdpGoogleEarthMap({
 
         const liveStatus = matchedOdp?.status || "Aman";
         const isSub = point.type === "SUB_ODP";
+        const isPortFull = Boolean(matchedOdp?.port_is_full);
 
         let pinBg = isSub ? "bg-teal-500" : "bg-emerald-500";
-        if (liveStatus === "Diperbaiki") {
+        if (isPortFull) {
+          pinBg = "bg-rose-600 animate-pulse border-white ring-2 ring-rose-400";
+        } else if (liveStatus === "Diperbaiki") {
           pinBg = "bg-amber-500 animate-pulse border-amber-200 ring-2 ring-amber-400";
         }
 
@@ -388,6 +391,7 @@ export default function OdpGoogleEarthMap({
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.393 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
               </svg>
             </div>
+            ${isPortFull ? '<div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-rose-600 text-white text-[8px] font-black px-1 rounded shadow-sm uppercase pointer-events-none whitespace-nowrap">FULL</div>' : ''}
           </div>
         `;
         iconSize = [24, 24];
@@ -413,6 +417,11 @@ export default function OdpGoogleEarthMap({
           ...point,
           status: matchedOdp?.status || "Aman",
           keterangan: matchedOdp?.keterangan || (point.type === "SUB_ODP" ? "Sub-ODP Distribusi" : "Tiang Distribusi Lapangan"),
+          port_kapasitas: matchedOdp?.port_kapasitas || 8,
+          port_terpakai: matchedOdp?.port_terpakai || 0,
+          port_sisa: matchedOdp?.port_sisa !== undefined ? matchedOdp.port_sisa : 8,
+          port_is_full: Boolean(matchedOdp?.port_is_full),
+          connected_customers: matchedOdp?.connected_customers || [],
           matchedOdp: matchedOdp || { ...point, status: "Aman" },
         });
       });
@@ -504,6 +513,11 @@ export default function OdpGoogleEarthMap({
       const loss = calculateOpticalLoss(estCable);
       const cost = calculateDropcoreCost(estCable);
 
+      const isPortFull = Boolean(matched?.port_is_full);
+      const portKapasitas = matched?.port_kapasitas || 8;
+      const portTerpakai = matched?.port_terpakai || 0;
+      const portSisa = matched?.port_sisa !== undefined ? matched.port_sisa : Math.max(0, portKapasitas - portTerpakai);
+
       return {
         ...odp,
         straightDist,
@@ -517,10 +531,18 @@ export default function OdpGoogleEarthMap({
         cost,
         matchedStatus: matched?.status || "Aman",
         matchedOdp: matched,
+        port_kapasitas: portKapasitas,
+        port_terpakai: portTerpakai,
+        port_sisa: portSisa,
+        port_is_full: isPortFull,
+        connected_customers: matched?.connected_customers || [],
       };
     });
 
     withDistances.sort((a, b) => a.straightDist - b.straightDist);
+
+    const best = withDistances[0];
+    const bestAvailable = withDistances.find((o) => !o.port_is_full);
 
     return {
       target: {
@@ -528,7 +550,9 @@ export default function OdpGoogleEarthMap({
         lng,
         label: label || `Titik Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
       },
-      best: withDistances[0],
+      best,
+      bestAvailable: bestAvailable && bestAvailable.name !== best?.name ? bestAvailable : null,
+      hasPortWarning: Boolean(best?.port_is_full),
       alternatives: withDistances.slice(1, 4),
       allNearest: withDistances.slice(0, 5),
     };
@@ -1254,6 +1278,69 @@ export default function OdpGoogleEarthMap({
             <p className="text-[11px] text-gray-300 leading-relaxed border-t border-emerald-500/20 pt-2">
               {coverageResult.best.tierDesc}
             </p>
+
+            {/* Live Port Availability */}
+            <div className="pt-2 border-t border-emerald-500/20 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-gray-300">
+                  Kapasitas Port: <b className="text-white">{coverageResult.best.port_terpakai || 0}/{coverageResult.best.port_kapasitas || 8} Terpakai</b>
+                </span>
+                {coverageResult.best.port_is_full ? (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-rose-600 text-white animate-pulse">
+                    ⛔ PORT PENUH (0 Sisa)
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    Sisa {coverageResult.best.port_sisa} Port
+                  </span>
+                )}
+              </div>
+              <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    coverageResult.best.port_is_full ? "bg-rose-500" : "bg-emerald-400"
+                  }`}
+                  style={{
+                    width: `${Math.min(100, Math.round(((coverageResult.best.port_terpakai || 0) / (coverageResult.best.port_kapasitas || 8)) * 100))}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Peringatan Kritis Jika Port ODP Terdekat Penuh */}
+            {coverageResult.best.port_is_full && (
+              <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-500/60 text-rose-200 text-xs space-y-2 mt-2">
+                <div className="flex items-center gap-1.5 font-bold text-rose-300">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>PERINGATAN: ODP {coverageResult.best.name} SUDAH PENUH!</span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-rose-100/90">
+                  Tiang ini terdekat ({coverageResult.best.straightDist}m) tetapi <b>seluruh port splitter sudah terisi</b> ({coverageResult.best.port_terpakai}/{coverageResult.best.port_kapasitas}). Calon pelanggan tidak bisa dicolokkan ke sini kecuali splitter di-upgrade.
+                </p>
+                {coverageResult.bestAvailable && (
+                  <div className="pt-1.5 border-t border-rose-500/30">
+                    <p className="text-[11px] font-semibold text-amber-300 mb-1.5">
+                      💡 Rekomendasi: Hubungkan ke <b>{coverageResult.bestAvailable.name}</b> (~{coverageResult.bestAvailable.straightDist}m garis lurus, sisa {coverageResult.bestAvailable.port_sisa} port).
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCoverageResult((prev) => ({
+                          ...prev,
+                          best: prev.bestAvailable,
+                          bestAvailable: prev.best,
+                          hasPortWarning: false,
+                        }));
+                      }}
+                      className="w-full py-1.5 px-3 bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-slate-950 font-black rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all shadow cursor-pointer"
+                    >
+                      <span>Alihkan ke ODP {coverageResult.bestAvailable.name}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Collapsible Alternative ODPs */}
@@ -1451,6 +1538,44 @@ export default function OdpGoogleEarthMap({
               <span>Elevasi Ketinggian:</span>
               <span className="font-bold text-gray-200">{selectedNode.alt || 0} mdpl</span>
             </div>
+
+            {/* Kapasitas Port Real-Time ODP */}
+            {selectedNode.type !== "HEADEND" && (
+              <div className="p-2.5 rounded-xl bg-gray-800/80 border border-gray-700/60 space-y-1.5 mt-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-300">
+                    Port: <b>{selectedNode.port_terpakai || 0}</b> / {selectedNode.port_kapasitas || 8} Terpakai
+                  </span>
+                  {selectedNode.port_is_full ? (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-black bg-rose-600 text-white animate-pulse">
+                      ⛔ PORT PENUH
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      Sisa {selectedNode.port_sisa} Port
+                    </span>
+                  )}
+                </div>
+                <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      selectedNode.port_is_full ? "bg-rose-500" : "bg-emerald-400"
+                    }`}
+                    style={{
+                      width: `${Math.min(100, Math.round(((selectedNode.port_terpakai || 0) / (selectedNode.port_kapasitas || 8)) * 100))}%`,
+                    }}
+                  />
+                </div>
+                {selectedNode.connected_customers && selectedNode.connected_customers.length > 0 && (
+                  <div className="pt-1 text-[11px] text-gray-400">
+                    <span>Pelanggan terhubung ({selectedNode.connected_customers.length}): </span>
+                    <span className="text-emerald-300 font-medium">
+                      {selectedNode.connected_customers.map((c) => c.nama).join(", ")}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Koordinat GPS */}
             <div className="mt-2 p-2 rounded-xl bg-gray-800/80 border border-gray-700/60 flex items-center justify-between">

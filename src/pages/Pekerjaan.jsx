@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Plus,
@@ -22,6 +22,11 @@ import {
   FileText,
   X,
   Zap,
+  Camera,
+  HardHat,
+  MessageCircle,
+  Send,
+  Coins,
 } from "lucide-react";
 import {
   pekerjaanList,
@@ -35,6 +40,18 @@ import {
 import { generatePekerjaanNotification } from "../store/notificationStore";
 import { usePersistState } from "../hooks/usePersistState";
 import CalendarView from "../components/CalendarView";
+import BuktiLapanganModal from "../components/BuktiLapanganModal";
+import DispatchTaskModal from "../components/DispatchTaskModal";
+import MasterKomisiTab from "../components/MasterKomisiTab";
+import WorkItemsChecklist from "../components/WorkItemsChecklist";
+import {
+  KOMISI_PEKERJAAN_MASTER,
+  getDefaultWorkItemsForTask,
+  calculateKomisiItemsTotal,
+  formatRupiah,
+} from "../lib/incentives";
+import { syncCustomerOnTaskCompletion } from "../lib/customerPortLifecycle";
+import { generateSpkWaUrl, formatPhoneWa } from "../lib/spkGenerator";
 
 function notify(notif) {
   if (window.__addNotification) window.__addNotification(notif);
@@ -82,41 +99,50 @@ function JenisBadge({ jenis }) {
   );
 }
 
-function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd }) {
+function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvidence, onSendWaSpk }) {
   const jc = jenisColors[item.jenis] || jenisColors.PEMASANGAN;
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, item.id)}
       onDragEnd={onDragEnd}
-      className="bg-white rounded-xl border border-gray-200 p-4 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-gray-300 transition-all group"
+      className="bg-white rounded-2xl border border-slate-200/90 p-4 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-slate-300 transition-all group relative overflow-hidden"
     >
-      <div className="flex items-start justify-between mb-2">
-        <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md ${jc.bg} ring-1 ${jc.ring}`}>
-          <div className={`w-1.5 h-1.5 rounded-full ${jc.dot}`} />
-          <span className={`text-[10px] font-bold uppercase tracking-wide ${jc.text}`}>
-            {item.jenis}
-          </span>
+      <div className="flex items-start justify-between gap-1.5 mb-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md ${jc.bg} ring-1 ${jc.ring}`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${jc.dot}`} />
+            <span className={`text-[10px] font-bold uppercase tracking-wide ${jc.text}`}>
+              {item.jenis}
+            </span>
+          </div>
+          {item.spk_no && (
+            <span className="text-[9px] font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+              {item.spk_no}
+            </span>
+          )}
         </div>
-        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(item); }}
-            className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-[#0D1B4A]"
+            className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-[#0D1B4A] transition-colors"
+            title="Edit Detail"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-            className="p-1 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500"
+            className="p-1 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors"
+            title="Hapus"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
-      <h4 className="font-bold text-gray-800 text-sm mb-1">{item.pelanggan || "Tanpa Nama"}</h4>
-      <p className="text-xs text-gray-400 mb-2 line-clamp-2">{item.alamat || "Alamat belum diatur"}</p>
+      <h4 className="font-bold text-slate-900 text-sm mb-1">{item.pelanggan || "Tanpa Nama"}</h4>
+      <p className="text-xs text-slate-500 mb-2 line-clamp-2">{item.alamat || "Alamat belum diatur"}</p>
       {item.odp && (
-        <div className="flex items-center gap-1.5 text-[11px] font-medium text-blue-700 bg-blue-50/80 px-2 py-1 rounded-lg mb-2 border border-blue-100/80">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-700 bg-blue-50/80 px-2 py-1 rounded-lg mb-2 border border-blue-100">
           <Network className="w-3.5 h-3.5 text-blue-500 shrink-0" />
           <span className="truncate">{item.odp}</span>
         </div>
@@ -132,11 +158,52 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd }) {
           )}
         </div>
       ) : null}
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#0D1B4A]/5 text-[#0D1B4A] font-bold">
-          {item.tim ? item.tim.split(" - ")[0] : "-"}
-        </span>
-        <span className="text-[10px] text-gray-400 font-medium">{item.tanggal || "-"}</span>
+      <div className="flex items-center justify-between gap-1 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#0D1B4A]/5 text-[#0D1B4A] font-bold">
+            {item.tim ? item.tim.split(" - ")[0] : "-"}
+          </span>
+          {item.komisi_total ? (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md"
+              title={`Komisi: ${formatRupiah(item.komisi_total)} (${item.komisi_items?.length || 0} item)`}
+            >
+              <Coins className="w-3 h-3 text-emerald-600" />
+              <span>{formatRupiah(item.komisi_total)}</span>
+            </span>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-1.5">
+          {onSendWaSpk && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSendWaSpk(item);
+              }}
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 px-1.5 py-0.5 rounded-md transition-colors"
+              title="Kirim / Forward SPK WhatsApp ke Tim Teknisi"
+            >
+              <MessageCircle className="w-3 h-3 text-emerald-600" />
+              <span>SPK</span>
+            </button>
+          )}
+          {onViewEvidence && (item.status === "SELESAI" || item.evidence || item.foto_opm) && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewEvidence(item);
+              }}
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 rounded-md transition-colors"
+              title="Lihat Bukti Foto Lapangan"
+            >
+              <Camera className="w-3 h-3 text-emerald-600" />
+              <span>Bukti</span>
+            </button>
+          )}
+          <span className="text-[10px] text-gray-400 font-medium">{item.tanggal || "-"}</span>
+        </div>
       </div>
       {item.keterangan && (
         <p className="text-[11px] text-gray-400 mt-2.5 pt-2.5 border-t border-gray-100 line-clamp-1">
@@ -151,14 +218,48 @@ export default function Pekerjaan() {
   const [data, setData] = usePersistState("xnet_pekerjaan", pekerjaanList);
   const [timData] = usePersistState("xnet_tim", timList);
   const [odpData] = usePersistState("xnet_odpodc", odpOdcList);
-  const [pelangganList] = usePersistState("xnet_pelanggan_radius", initialPelangganRadius);
-  const [searchParams] = useSearchParams();
+  const [pelangganList, setPelangganList] = usePersistState("xnet_pelanggan_radius", initialPelangganRadius);
+  const [masterKomisi, setMasterKomisi] = usePersistState("xnet_master_komisi", KOMISI_PEKERJAAN_MASTER);
+  const [viewEvidenceTask, setViewEvidenceTask] = useState(null);
+  const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
+  const [dispatchInitialData, setDispatchInitialData] = useState({});
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [prevQuery, setPrevQuery] = useState(searchParams.get("search"));
   if (searchParams.get("search") !== prevQuery) {
     setPrevQuery(searchParams.get("search"));
     setSearch(searchParams.get("search") || "");
   }
+
+  // Buka modal dispatch jika navigasi datang dari tombol SPK Baru (mobile/shortcut)
+  useEffect(() => {
+    if (searchParams.get("dispatch") === "1") {
+      setDispatchInitialData({ jenis: "PEMASANGAN" });
+      setDispatchModalOpen(true);
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("dispatch");
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Kirim WhatsApp SPK Langsung ke Tim Teknisi
+  const handleSendWaSpk = (task) => {
+    const targetTeam = timData.find((t) => t.nama === task.tim) || null;
+    const waUrl = generateSpkWaUrl(task, targetTeam?.telepon);
+    window.open(waUrl, "_blank");
+  };
+
+  // Simpan Penugasan Baru dari DispatchTaskModal
+  const handleSaveDispatch = (newTask, shouldSendWa) => {
+    setData((prev) => [newTask, ...prev]);
+
+    if (newTask.status === "SELESAI") {
+      syncCustomerOnTaskCompletion(newTask, pelangganList, setPelangganList);
+    }
+
+    notify(generatePekerjaanNotification(newTask, "ditambahkan"));
+    setDispatchModalOpen(false);
+  };
   const [filterJenis, setFilterJenis] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterTim, setFilterTim] = useState("ALL");
@@ -190,7 +291,29 @@ export default function Pekerjaan() {
     status: "WAITING LIST",
     tanggal: "",
     keterangan: "",
+    komisi_items: [],
+    komisi_total: 0,
   });
+
+  const handleJenisChange = (newJenis) => {
+    const defaultItems = getDefaultWorkItemsForTask(newJenis, 100, masterKomisi);
+    const defaultTotal = calculateKomisiItemsTotal(defaultItems, masterKomisi);
+    setFormData((prev) => ({
+      ...prev,
+      jenis: newJenis,
+      komisi_items: defaultItems,
+      komisi_total: defaultTotal,
+    }));
+  };
+
+  const handleKomisiItemsChange = (newItems) => {
+    const newTotal = calculateKomisiItemsTotal(newItems, masterKomisi);
+    setFormData((prev) => ({
+      ...prev,
+      komisi_items: newItems,
+      komisi_total: newTotal,
+    }));
+  };
 
   const odcList = useMemo(() => {
     const odcs = Array.from(new Set((odpData || []).map((o) => o.odc))).filter(Boolean);
@@ -240,6 +363,8 @@ export default function Pekerjaan() {
 
   const handleAdd = (defaultJenis = "PEMASANGAN") => {
     setEditingItem(null);
+    const defaultItems = getDefaultWorkItemsForTask(defaultJenis, 100, masterKomisi);
+    const defaultTotal = calculateKomisiItemsTotal(defaultItems, masterKomisi);
     setFormData({
       tim: timData[0]?.nama || "",
       jenis: defaultJenis,
@@ -252,6 +377,8 @@ export default function Pekerjaan() {
       status: "WAITING LIST",
       tanggal: new Date().toISOString().split("T")[0],
       keterangan: "",
+      komisi_items: defaultItems,
+      komisi_total: defaultTotal,
     });
     setShowModal(true);
   };
@@ -265,6 +392,13 @@ export default function Pekerjaan() {
       if (!inferredOdc) inferredOdc = parts[0];
       inferredOdp = parts.slice(1).join(" - ");
     }
+    const existingItems = Array.isArray(item.komisi_items) && item.komisi_items.length > 0
+      ? item.komisi_items
+      : getDefaultWorkItemsForTask(item.jenis, 100, masterKomisi);
+    const existingTotal = item.komisi_total !== undefined && item.komisi_total !== null
+      ? item.komisi_total
+      : calculateKomisiItemsTotal(existingItems, masterKomisi);
+
     setFormData({
       tim: item.tim,
       jenis: item.jenis,
@@ -277,6 +411,8 @@ export default function Pekerjaan() {
       status: item.status,
       tanggal: item.tanggal,
       keterangan: item.keterangan || "",
+      komisi_items: existingItems,
+      komisi_total: existingTotal,
     });
     setShowModal(true);
   };
@@ -291,7 +427,14 @@ export default function Pekerjaan() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    let finalPayload = { ...formData };
+    let finalPayload = {
+      ...formData,
+      komisi_items: formData.komisi_items || [],
+      komisi_total: formData.komisi_total !== undefined
+        ? Number(formData.komisi_total)
+        : calculateKomisiItemsTotal(formData.komisi_items || [], masterKomisi),
+    };
+
     if (formData.jenis === "PERBAIKAN KHUSUS (ODP/ODC)") {
       if (!formData.odc) {
         alert("Silakan pilih ODC terlebih dahulu!");
@@ -313,6 +456,22 @@ export default function Pekerjaan() {
       setData([...data, newItem]);
       notify(generatePekerjaanNotification(newItem, "ditambahkan"));
     }
+
+    // Otomatisasi Sinkronisasi Port & Pelanggan jika status diset SELESAI
+    if (finalPayload.status === "SELESAI" && (!editingItem || editingItem.status !== "SELESAI")) {
+      const syncResult = syncCustomerOnTaskCompletion(finalPayload, pelangganList, setPelangganList);
+      if (syncResult && window.__addNotification) {
+        notify({
+          id: Date.now(),
+          type: "INFO",
+          title: "Sinkronisasi Port & Pelanggan",
+          message: syncResult.message,
+          timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+          read: false,
+        });
+      }
+    }
+
     setShowModal(false);
   };
 
@@ -330,26 +489,26 @@ export default function Pekerjaan() {
   }, [pengajuanData, searchPemutusan]);
 
   const handleDisposisiKePekerjaan = (item) => {
-    setEditingItem(null);
     let inferredOdp = "";
     if (item.nama && item.nama.includes("-")) {
       inferredOdp = item.nama.split("-")[0].trim();
     }
-    setFormData({
+    const defaultItems = getDefaultWorkItemsForTask("PEMUTUSAN", 100, masterKomisi);
+    const defaultTotal = calculateKomisiItemsTotal(defaultItems, masterKomisi);
+
+    setDispatchInitialData({
       tim: timData[0]?.nama || "GATRA - AIS",
       jenis: "PEMUTUSAN",
       pelanggan: item.nama,
       alamat: inferredOdp ? `Area Distribusi ${inferredOdp}` : "Alamat pelanggan",
-      odc: "",
       odp: inferredOdp,
-      userTerdampak: "",
-      tanggalSelesai: "",
-      status: "WAITING LIST",
-      tanggal: item.tanggal || new Date().toISOString().split("T")[0],
-      keterangan: `Pengajuan Pemutusan: ${item.alasan || "-"} | Kontak: ${item.kontak || "-"}`,
+      telepon: item.kontak ? formatPhoneWa(item.kontak) : "",
+      keterangan: `Pengajuan Pemutusan: ${item.alasan || "-"}`,
+      komisi_items: defaultItems,
+      komisi_total: defaultTotal,
     });
     setActiveTab("pekerjaan");
-    setShowModal(true);
+    setDispatchModalOpen(true);
   };
 
   const handleDeletePemutusan = (id) => {
@@ -367,7 +526,7 @@ export default function Pekerjaan() {
     const newItem = {
       id: Date.now(),
       nama: pemutusanForm.nama.trim(),
-      kontak: pemutusanForm.kontak.trim(),
+      kontak: formatPhoneWa(pemutusanForm.kontak.trim()),
       alasan: pemutusanForm.alasan.trim(),
       tanggal: pemutusanForm.tanggal || new Date().toISOString().split("T")[0],
     };
@@ -413,6 +572,21 @@ export default function Pekerjaan() {
       const item = prev.find((i) => i.id === id);
       if (item && item.status !== targetStatus) {
         notify(generatePekerjaanNotification({ ...item, status: targetStatus }, "status"));
+        
+        // Otomatisasi Sinkronisasi Port & Pelanggan jika dipindah ke SELESAI
+        if (targetStatus === "SELESAI") {
+          const syncResult = syncCustomerOnTaskCompletion({ ...item, status: "SELESAI" }, pelangganList, setPelangganList);
+          if (syncResult && window.__addNotification) {
+            notify({
+              id: Date.now(),
+              type: "INFO",
+              title: "Sinkronisasi Port & Pelanggan",
+              message: syncResult.message,
+              timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+              read: false,
+            });
+          }
+        }
       }
       return prev.map((item) =>
         item.id === id ? { ...item, status: targetStatus } : item
@@ -463,6 +637,21 @@ export default function Pekerjaan() {
             {pengajuanData?.length || 0}
           </span>
         </button>
+
+        <button
+          onClick={() => setActiveTab("komisi")}
+          className={`pb-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
+            activeTab === "komisi"
+              ? "border-amber-500 text-amber-800"
+              : "border-transparent text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          <Coins className="w-4 h-4 shrink-0 text-amber-500" />
+          <span>Katalog Tarif Komisi</span>
+          <span className="ml-1 text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-extrabold">
+            {masterKomisi?.length || 0}
+          </span>
+        </button>
       </div>
 
       {activeTab === "pekerjaan" ? (
@@ -505,20 +694,41 @@ export default function Pekerjaan() {
               </button>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
               <button
-                onClick={() => handleAdd("PERBAIKAN KHUSUS (ODP/ODC)")}
+                type="button"
+                onClick={() => {
+                  setDispatchInitialData({ jenis: "PEMASANGAN" });
+                  setDispatchModalOpen(true);
+                }}
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-gradient-to-r from-[#0D1B4A] via-slate-900 to-black hover:from-slate-900 hover:to-black text-amber-400 font-extrabold px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm shadow-sm hover:shadow-md transition-all shrink-0 cursor-pointer active:scale-95"
+                title="Terbitkan Surat Perintah Kerja (SPK) Baru untuk Teknisi"
+              >
+                <HardHat className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>+ Terbitkan SPK</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDispatchInitialData({ jenis: "PERBAIKAN KHUSUS (ODP/ODC)" });
+                  setDispatchModalOpen(true);
+                }}
                 className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all truncate cursor-pointer active:scale-95"
               >
                 <Wrench className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span>+ ODP/ODC</span>
               </button>
               <button
-                onClick={() => handleAdd("PEMASANGAN")}
+                type="button"
+                onClick={() => {
+                  setDispatchInitialData({ jenis: "PEMASANGAN" });
+                  setDispatchModalOpen(true);
+                }}
                 className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-[#F59E0B] hover:bg-[#d97706] text-white px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all shrink-0 cursor-pointer active:scale-95"
+                title="Tambah & Terbitkan SPK Pemasangan Baru"
               >
                 <Plus className="w-4 h-4 shrink-0" />
-                <span>Tambah</span>
+                <span>+ Pasang Baru</span>
               </button>
             </div>
           </div>
@@ -589,36 +799,38 @@ export default function Pekerjaan() {
           {/* Kanban Board */}
           {viewMode === "kanban" && (
             <div>
-              {/* Mobile Column Tabs Filter */}
-              <div className="md:hidden flex items-center gap-1.5 p-1 bg-gray-100/80 rounded-xl mb-3 overflow-x-auto no-scrollbar">
+              {/* Mobile Column Tabs Filter (Segmented Pills) */}
+              <div className="md:hidden flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl mb-3 overflow-x-auto no-scrollbar border border-slate-200/80">
                 <button
                   type="button"
                   onClick={() => setMobileKanbanCol("ALL")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer min-h-[38px] ${
                     mobileKanbanCol === "ALL"
-                      ? "bg-[#0D1B4A] text-white shadow-xs"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "bg-[#0D1B4A] text-white shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  Semua Kolom
+                  Semua ({filtered.length})
                 </button>
                 {KANBAN_COLUMNS.map((col) => {
                   const count = filtered.filter((item) => item.status === col.key).length;
+                  const isSelected = mobileKanbanCol === col.key;
                   return (
                     <button
                       key={col.key}
                       type="button"
                       onClick={() => setMobileKanbanCol(col.key)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
-                        mobileKanbanCol === col.key
-                          ? "bg-[#0D1B4A] text-white shadow-xs"
-                          : "text-gray-600 hover:text-gray-900"
+                      className={`px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer min-h-[38px] ${
+                        isSelected
+                          ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                          : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: col.color }} />
                       <span>{col.label}</span>
                       <span
-                        className={`text-[10px] px-1.5 py-0.2 rounded-md ${
-                          mobileKanbanCol === col.key ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
+                        className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                          isSelected ? "bg-slate-900 text-white" : "bg-slate-200/80 text-slate-700"
                         }`}
                       >
                         {count}
@@ -677,6 +889,8 @@ export default function Pekerjaan() {
                             onDelete={handleDelete}
                             onDragStart={handleDragStart}
                             onDragEnd={handleDragEnd}
+                            onViewEvidence={setViewEvidenceTask}
+                            onSendWaSpk={handleSendWaSpk}
                           />
                         ))}
                         {colItems.length === 0 && (
@@ -739,6 +953,22 @@ export default function Pekerjaan() {
                       <span className="font-medium">{item.tanggal || "-"}</span>
                       <div className="flex items-center gap-1">
                         <button
+                          onClick={() => handleSendWaSpk(item)}
+                          className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
+                          title="Kirim / Forward SPK WhatsApp ke Tim Teknisi"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                        </button>
+                        {(item.status === "SELESAI" || item.evidence || item.foto_opm) && (
+                          <button
+                            onClick={() => setViewEvidenceTask(item)}
+                            className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
+                            title="Lihat Bukti Foto Lapangan"
+                          >
+                            <Camera className="w-3.5 h-3.5 text-emerald-600" />
+                          </button>
+                        )}
+                        <button
                           onClick={() => handleEdit(item)}
                           className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#0D1B4A] transition-colors"
                           title="Edit"
@@ -784,7 +1014,15 @@ export default function Pekerjaan() {
                             {item.tim ? item.tim.split(" - ")[0] : "-"}
                           </span>
                         </td>
-                        <td className="px-5 py-3"><JenisBadge jenis={item.jenis} /></td>
+                        <td className="px-5 py-3">
+                          <JenisBadge jenis={item.jenis} />
+                          {item.komisi_total ? (
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 mt-1">
+                              <Coins className="w-3 h-3 text-amber-500" />
+                              <span>{formatRupiah(item.komisi_total)}</span>
+                            </div>
+                          ) : null}
+                        </td>
                         <td className="px-5 py-3 font-bold text-gray-800">{item.pelanggan || "Tanpa Nama"}</td>
                         <td className="px-5 py-3 text-gray-500 max-w-[200px] truncate">{item.alamat || "-"}</td>
                         <td className="px-5 py-3">
@@ -812,14 +1050,32 @@ export default function Pekerjaan() {
                         <td className="px-5 py-3">
                           <div className="flex items-center justify-center gap-1">
                             <button
+                              onClick={() => handleSendWaSpk(item)}
+                              className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
+                              title="Kirim / Forward SPK WhatsApp ke Tim Teknisi"
+                            >
+                              <MessageCircle className="w-4 h-4 text-emerald-600" />
+                            </button>
+                            {(item.status === "SELESAI" || item.evidence || item.foto_opm) && (
+                              <button
+                                onClick={() => setViewEvidenceTask(item)}
+                                className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
+                                title="Lihat Bukti Foto Lapangan & Redaman"
+                              >
+                                <Camera className="w-4 h-4 text-emerald-600" />
+                              </button>
+                            )}
+                            <button
                               onClick={() => handleEdit(item)}
                               className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#0D1B4A] transition-colors"
+                              title="Edit Pekerjaan"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDelete(item.id)}
                               className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                              title="Hapus"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -840,7 +1096,7 @@ export default function Pekerjaan() {
             </div>
           )}
         </>
-  ) : (
+  ) : activeTab === "pemutusan" ? (
     <div className="space-y-4">
       {/* Card Summary Banner */}
       <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl p-5 border border-red-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -950,12 +1206,14 @@ export default function Pekerjaan() {
         )}
       </div>
     </div>
+  ) : (
+    <MasterKomisiTab masterList={masterKomisi} setMasterList={setMasterKomisi} />
   )}
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-100">
               <h3 className="text-lg font-bold text-gray-900">
                 {editingItem ? "Edit Pekerjaan" : "Tambah Pekerjaan Baru"}
@@ -980,8 +1238,8 @@ export default function Pekerjaan() {
                     </div>
                   </div>
 
-                  {/* Tim & Jenis */}
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Tim & Checklist Pekerjaan ODP */}
+                  <div className="space-y-3">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
                         TIM TEKNISI <span className="text-red-500">*</span>
@@ -996,20 +1254,15 @@ export default function Pekerjaan() {
                         ))}
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                        JENIS PEKERJAAN
-                      </label>
-                      <select
-                        value={formData.jenis}
-                        onChange={(e) => setFormData({ ...formData, jenis: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-purple-300 bg-purple-50/40 rounded-xl text-sm font-semibold text-purple-900 focus:ring-2 focus:ring-purple-400 outline-none"
-                      >
-                        {jenisPekerjaan.map((j) => (
-                          <option key={j} value={j}>{j}</option>
-                        ))}
-                      </select>
-                    </div>
+
+                    <WorkItemsChecklist
+                      jenis={formData.jenis}
+                      onChangeJenis={handleJenisChange}
+                      jenisList={jenisPekerjaan}
+                      value={formData.komisi_items || []}
+                      onChange={handleKomisiItemsChange}
+                      masterList={masterKomisi}
+                    />
                   </div>
 
                   {/* Cascading ODC -> ODP */}
@@ -1168,9 +1421,9 @@ export default function Pekerjaan() {
               ) : (
                 <>
                   {/* Form Standar (Pemasangan, Perbaikan Pelanggan, Pemutusan) */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tim</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tim Teknisi Lapangan</label>
                       <select
                         value={formData.tim}
                         onChange={(e) => setFormData({ ...formData, tim: e.target.value })}
@@ -1181,18 +1434,16 @@ export default function Pekerjaan() {
                         ))}
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Jenis</label>
-                      <select
-                        value={formData.jenis}
-                        onChange={(e) => setFormData({ ...formData, jenis: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none"
-                      >
-                        {jenisPekerjaan.map((j) => (
-                          <option key={j} value={j}>{j}</option>
-                        ))}
-                      </select>
-                    </div>
+
+                    {/* Dropdown Kelompok & Checklist Pekerjaan */}
+                    <WorkItemsChecklist
+                      jenis={formData.jenis}
+                      onChangeJenis={handleJenisChange}
+                      jenisList={jenisPekerjaan}
+                      value={formData.komisi_items || []}
+                      onChange={handleKomisiItemsChange}
+                      masterList={masterKomisi}
+                    />
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
@@ -1425,6 +1676,26 @@ export default function Pekerjaan() {
           </div>
         </div>
       )}
+
+      {/* Modal Bukti Lapangan & Hasil Redaman */}
+      {viewEvidenceTask && (
+        <BuktiLapanganModal
+          task={viewEvidenceTask}
+          onClose={() => setViewEvidenceTask(null)}
+        />
+      )}
+
+      {/* Modal Terpadu Penerbitan SPK Teknisi */}
+      <DispatchTaskModal
+        isOpen={dispatchModalOpen}
+        onClose={() => setDispatchModalOpen(false)}
+        initialData={dispatchInitialData || {}}
+        onSave={handleSaveDispatch}
+        odpList={odpData}
+        pelangganList={pelangganList}
+        timList={timData}
+        taskList={data}
+      />
     </div>
   );
 }

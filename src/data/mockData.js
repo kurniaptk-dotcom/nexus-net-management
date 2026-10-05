@@ -1,6 +1,6 @@
 import unifiedOdpOdc from "./unifiedOdpOdc.json";
 
-export const bulan = "September 2026";
+export const bulan = new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 
 export const timList = [];
 

@@ -24,21 +24,11 @@ import {
   Network,
   Copy,
 } from "lucide-react";
-import { initialPelangganRadius, initialTimData } from "../data/mockData";
+import { initialPelangganRadius, initialTimData, odpOdcList } from "../data/mockData";
 import { usePersistState } from "../hooks/usePersistState";
 import Toast from "../components/Toast";
-
-// Format nomor WhatsApp standar Indonesia
-function formatPhoneForWa(phone) {
-  if (!phone) return "";
-  let clean = phone.replace(/[^0-9]/g, "");
-  if (clean.startsWith("0")) {
-    clean = "62" + clean.substring(1);
-  } else if (!clean.startsWith("62")) {
-    clean = "62" + clean;
-  }
-  return clean;
-}
+import DispatchTaskModal from "../components/DispatchTaskModal";
+import { formatPhoneWa as formatPhoneForWa } from "../lib/spkGenerator";
 
 export default function PelangganRadius() {
   const navigate = useNavigate();
@@ -49,9 +39,10 @@ export default function PelangganRadius() {
     initialPelangganRadius
   );
 
-  // State Pekerjaan Lapangan & Master Tim
+  // State Pekerjaan Lapangan & Master Tim & ODP
   const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", []);
   const [timList] = usePersistState("xnet_tim", initialTimData);
+  const [odpList] = usePersistState("xnet_odpodc", odpOdcList);
 
   // API Config State (disimpan di browser, siap saat API Radius aktif)
   const [apiConfig, setApiConfig] = usePersistState("xnet_radius_api_config", {
@@ -150,63 +141,48 @@ export default function PelangganRadius() {
     }, 1200);
   };
 
-  // Buka Modal Buat Tugas Teknisi untuk pelanggan terpilih
+  // Buka Modal Buat Tugas Teknisi untuk pelanggan terpilih (Unified SPK Dispatch)
   const handleOpenAssign = (cust) => {
-    setSelectedCustomer(cust);
-
-    // Tentukan jenis penugasan default secara pintar berdasarkan status pelanggan di Radius
     let defaultJenis = "PERBAIKAN";
     let defaultKet = `Paket: ${cust.paket}`;
+    let defaultPrio = "NORMAL";
 
     if (cust.status === "BARU") {
       defaultJenis = "PEMASANGAN";
       defaultKet = `Pemasangan Baru (PSB) · Paket: ${cust.paket}`;
     } else if (cust.status === "PUTUS" || cust.status === "ISOLIR") {
       defaultJenis = "PEMUTUSAN";
-      defaultKet = `Dismantle / Penarikan Modem ONT · Status: ${cust.status}`;
+      defaultKet = `Dismantle / Penarikan Modem ONT & Kabel Dropcore · Status Pelanggan: ${cust.status}`;
+      defaultPrio = "TINGGI";
     } else {
       defaultJenis = "PERBAIKAN";
       defaultKet = `Pengecekan gangguan jaringan pelanggan · Paket: ${cust.paket}`;
     }
 
-    const defaultTim = timList[0]?.nama || "AZWAR - RIO";
-
-    setAssignForm({
+    setSelectedCustomer({
+      sourceModule: "RADIUS",
+      sourceId: cust.id,
       jenis: defaultJenis,
-      tim: defaultTim,
-      tanggal: new Date().toISOString().split("T")[0],
+      prioritas: defaultPrio,
+      pelanggan: `${cust.nama} (${cust.id_pelanggan})`,
+      telepon: cust.telepon,
+      alamat: cust.alamat,
+      odp: cust.odp,
+      paket: cust.paket,
       keterangan: defaultKet,
     });
-
-    setShowAssignModal(true);
   };
 
-  // Submit Penugasan Lapangan
-  const handleSubmitAssign = (e) => {
-    e.preventDefault();
-    if (!selectedCustomer) return;
-
-    const newTask = {
-      id: Date.now(),
-      pelanggan: `${selectedCustomer.nama} (${selectedCustomer.id_pelanggan})`,
-      telepon: selectedCustomer.telepon,
-      alamat: selectedCustomer.alamat,
-      odp: selectedCustomer.odp,
-      jenis: assignForm.jenis,
-      tim: assignForm.tim,
-      tanggal: assignForm.tanggal,
-      status: "WAITING LIST",
-      keterangan: assignForm.keterangan || `Ditugaskan dari Data Radius (${selectedCustomer.id_pelanggan})`,
-      created_at: new Date().toISOString(),
-    };
-
+  // Simpan Penugasan Lapangan (Dari DispatchTaskModal)
+  const handleSaveDispatch = (newTask, shouldSendWa) => {
     setPekerjaan((prev) => [newTask, ...prev]);
-    setShowAssignModal(false);
 
     triggerToast(
-      `Tugas ${assignForm.jenis} untuk "${selectedCustomer.nama}" berhasil dikirimkan ke Tim ${assignForm.tim}!`,
+      `Tugas ${newTask.jenis} (${newTask.spk_no}) untuk "${newTask.pelanggan}" berhasil diterbitkan ke Tim ${newTask.tim}!`,
       "success"
     );
+
+    setSelectedCustomer(null);
   };
 
   // Simpan API Config
@@ -220,8 +196,17 @@ export default function PelangganRadius() {
   // Tambah Pelanggan Baru Manual
   const handleAddCustomerSubmit = (e) => {
     e.preventDefault();
+    const cleanNama = (addForm.nama || "").trim();
+    if (!cleanNama) {
+      triggerToast("Nama pelanggan wajib diisi!", "error");
+      return;
+    }
+    const cleanTelepon = formatPhoneForWa(addForm.telepon || "");
     const newCust = {
       ...addForm,
+      nama: cleanNama,
+      telepon: cleanTelepon || (addForm.telepon || "").trim(),
+      alamat: (addForm.alamat || "").trim(),
       id: Date.now(),
       tgl_daftar: new Date().toISOString().split("T")[0],
     };
@@ -629,144 +614,18 @@ export default function PelangganRadius() {
       </div>
 
       {/* ========================================================================= */}
-      {/* MODAL 1: BUAT TUGAS TEKNISI DARI DATA RADIUS                             */}
+      {/* MODAL 1: SURAT PERINTAH KERJA (SPK) PENUGASAN TEKNISI TERPADU             */}
       {/* ========================================================================= */}
-      {showAssignModal && selectedCustomer && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-5 sm:p-7 border border-slate-200 max-h-[92vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
-                  <Zap className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Buat Tugas Teknisi Lapangan</h3>
-                  <p className="text-xs text-slate-500">Data otomatis ditarik dari Billing Radius</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAssignModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Ringkasan Data Pelanggan Terpilih */}
-            <div className="mt-4 p-3.5 rounded-2xl bg-blue-50/50 border border-blue-100 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs font-bold text-blue-900">{selectedCustomer.id_pelanggan}</span>
-                <span className="text-[11px] font-semibold text-slate-600">ODP: {selectedCustomer.odp}</span>
-              </div>
-              <h4 className="font-bold text-sm text-slate-900">{selectedCustomer.nama}</h4>
-              <p className="text-xs text-slate-600 line-clamp-2">{selectedCustomer.alamat}</p>
-              <p className="text-[11px] text-slate-500 font-medium">Paket: {selectedCustomer.paket}</p>
-            </div>
-
-            <form onSubmit={handleSubmitAssign} className="mt-4 space-y-4">
-              {/* Jenis Pekerjaan */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Jenis Penugasan Lapangan <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { key: "PEMASANGAN", label: "Pemasangan (PSB)" },
-                    { key: "PERBAIKAN", label: "Perbaikan" },
-                    { key: "PEMUTUSAN", label: "Pemutusan" },
-                  ].map((j) => (
-                    <button
-                      key={j.key}
-                      type="button"
-                      onClick={() => setAssignForm({ ...assignForm, jenis: j.key })}
-                      className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all text-center cursor-pointer border ${
-                        assignForm.jenis === j.key
-                          ? "bg-[#0D1B4A] text-amber-400 border-[#0D1B4A] shadow-xs"
-                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                      }`}
-                    >
-                      {j.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tim Teknisi & Tanggal */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                    Pilih Tim Teknisi <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={assignForm.tim}
-                    onChange={(e) => setAssignForm({ ...assignForm, tim: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-[#F59E0B] outline-none"
-                    required
-                  >
-                    {timList.length > 0 ? (
-                      timList.map((t) => (
-                        <option key={t.id || t.nama} value={t.nama}>
-                          {t.nama}
-                        </option>
-                      ))
-                    ) : (
-                      <>
-                        <option value="AZWAR - RIO">AZWAR - RIO</option>
-                        <option value="DANI - IQBAL">DANI - IQBAL</option>
-                        <option value="FATHUR - FAHRI">FATHUR - FAHRI</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                    Tanggal Pelaksanaan
-                  </label>
-                  <input
-                    type="date"
-                    value={assignForm.tanggal}
-                    onChange={(e) => setAssignForm({ ...assignForm, tanggal: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-[#F59E0B] outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Catatan Lapangan */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Catatan untuk Teknisi
-                </label>
-                <textarea
-                  rows={2}
-                  value={assignForm.keterangan}
-                  onChange={(e) => setAssignForm({ ...assignForm, keterangan: e.target.value })}
-                  placeholder="Catatan pengerjaan, nomor kontak alternatif, dsb..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-                />
-              </div>
-
-              {/* Tombol Simpan */}
-              <div className="flex gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowAssignModal(false)}
-                  className="flex-1 py-3 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="flex-2 py-3 text-xs font-bold bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Zap className="w-4 h-4 text-amber-400" />
-                  <span>Kirim ke Antrean Tugas</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <DispatchTaskModal
+        isOpen={Boolean(selectedCustomer)}
+        onClose={() => setSelectedCustomer(null)}
+        initialData={selectedCustomer || {}}
+        onSave={handleSaveDispatch}
+        odpList={odpList}
+        pelangganList={pelangganList}
+        timList={timList}
+        taskList={pekerjaan}
+      />
 
       {/* ========================================================================= */}
       {/* MODAL 2: KONFIGURASI API BILLING RADIUS                                   */}

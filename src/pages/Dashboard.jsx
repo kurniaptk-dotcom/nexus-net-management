@@ -32,6 +32,9 @@ import {
   CalendarClock,
   CalendarCheck,
   Sparkles,
+  Eye,
+  EyeOff,
+  Coins,
 } from "lucide-react";
 import {
   BarChart,
@@ -59,6 +62,7 @@ import {
   odcMasterList,
 } from "../data/mockData";
 import { usePersistState } from "../hooks/usePersistState";
+import { calculateTaskIncentive, formatRupiah, MASTER_KOMISI_ITEMS } from "../lib/incentives";
 
 const PIE_COLORS = ["#0D1B4A", "#F59E0B", "#F97316", "#10B981", "#6366F1", "#EC4899"];
 
@@ -108,19 +112,19 @@ function getSystemTodayStr() {
 
 function StatCard({ icon: Icon, label, value, subtext, changeType = "up", bgColor, href }) {
   const content = (
-    <div className="bg-white rounded-2xl p-3 sm:p-5 border border-gray-100 hover:shadow-lg hover:shadow-gray-200/50 hover:border-gray-200 transition-all duration-300 group cursor-pointer relative overflow-hidden h-full flex flex-col justify-between">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-900/5 transition-all duration-300 group cursor-pointer relative overflow-hidden h-full flex flex-col justify-between active:scale-[0.98]">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider truncate">{label}</p>
-          <p className="text-xl sm:text-3xl font-black text-gray-900 mt-0.5 sm:mt-1 tracking-tight truncate">{value}</p>
+          <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider truncate">{label}</p>
+          <p className="text-xl sm:text-3xl font-black text-slate-900 mt-0.5 sm:mt-1 tracking-tight truncate">{value}</p>
           {subtext && (
             <div
-              className={`flex items-center gap-1 mt-1.5 sm:mt-2 text-[10px] sm:text-xs font-semibold ${
+              className={`inline-flex items-center gap-1 mt-1.5 sm:mt-2 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full ${
                 changeType === "up"
-                  ? "text-emerald-600"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200/70"
                   : changeType === "down"
-                  ? "text-red-500"
-                  : "text-gray-500"
+                  ? "bg-rose-50 text-rose-700 border border-rose-200/70"
+                  : "bg-slate-50 text-slate-600 border border-slate-200"
               }`}
             >
               {changeType === "up" ? (
@@ -133,9 +137,9 @@ function StatCard({ icon: Icon, label, value, subtext, changeType = "up", bgColo
           )}
         </div>
         <div
-          className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${bgColor} group-hover:scale-105 shadow-sm transition-transform duration-300`}
+          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0 ${bgColor} group-hover:scale-105 shadow-md shadow-slate-900/10 transition-transform duration-300 ring-2 ring-white`}
         >
-          <Icon className="w-4.5 h-4.5 sm:w-6 sm:h-6 text-white" />
+          <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
         </div>
       </div>
     </div>
@@ -175,6 +179,7 @@ export default function Dashboard() {
   const [timData] = usePersistState("xnet_tim", initialTimData);
   const [odpData] = usePersistState("xnet_odpodc", odpOdcList);
   const [odcList] = usePersistState("xnet_odc_list", odcMasterList);
+  const [masterKomisi] = usePersistState("xnet_master_komisi", MASTER_KOMISI_ITEMS);
 
   const [, setRefreshKey] = useState(0);
 
@@ -197,6 +202,10 @@ export default function Dashboard() {
   const [scheduleTab, setScheduleTab] = useState("ALL");
   const [showDetailPekerjaan, setShowDetailPekerjaan] = usePersistState(
     "xnet_dashboard_show_detail_pekerjaan",
+    true
+  );
+  const [showJadwalTerdekat, setShowJadwalTerdekat] = usePersistState(
+    "xnet_dashboard_show_jadwal_terdekat",
     true
   );
   const [includeLeadsTrend, setIncludeLeadsTrend] = useState(false);
@@ -279,6 +288,12 @@ export default function Dashboard() {
   const dijadwalkan = useMemo(() => filteredPekerjaan.filter((d) => d.status === "DIJADWALKAN").length, [filteredPekerjaan]);
   const gagal = useMemo(() => filteredPekerjaan.filter((d) => d.status === "GAGAL").length, [filteredPekerjaan]);
   const completionRate = totalPekerjaan > 0 ? ((selesai / totalPekerjaan) * 100).toFixed(0) : "0";
+
+  const totalBebanKomisi = useMemo(() => {
+    return filteredPekerjaan
+      .filter((p) => p.status === "SELESAI")
+      .reduce((sum, p) => sum + (p.komisi_total !== undefined ? Number(p.komisi_total) : calculateTaskIncentive(p, undefined, masterKomisi).total), 0);
+  }, [filteredPekerjaan, masterKomisi]);
 
   // Detail Pekerjaan per Kategori Layanan
   const detailPekerjaan = useMemo(() => {
@@ -835,12 +850,16 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => {
-                  setCustomStartDate("2026-09-01");
-                  setCustomEndDate("2026-09-30");
+                  const now = new Date();
+                  const y = now.getFullYear();
+                  const m = String(now.getMonth() + 1).padStart(2, "0");
+                  const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+                  setCustomStartDate(`${y}-${m}-01`);
+                  setCustomEndDate(`${y}-${m}-${lastDay}`);
                 }}
                 className="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-colors"
               >
-                September 2026
+                Bulan Ini
               </button>
             </div>
           </div>
@@ -916,8 +935,8 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* 5 Dynamic Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4">
+      {/* 6 Dynamic Stat Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
         <StatCard
           icon={Wrench}
           label="Total Pekerjaan"
@@ -946,34 +965,41 @@ export default function Dashboard() {
           href="/pekerjaan"
         />
         <StatCard
+          icon={Coins}
+          label="Beban Komisi"
+          value={formatRupiah(totalBebanKomisi)}
+          subtext={`${selesai} tugas diverifikasi`}
+          changeType="up"
+          bgColor="bg-amber-500"
+          href="/laporan"
+        />
+        <StatCard
           icon={AlertTriangle}
           label="Total Gangguan"
           value={totalGangguan}
-          subtext={`${gangguanBelumSelesai} belum selesai · ${gangguanAman} aman`}
+          subtext={`${gangguanBelumSelesai} belum · ${gangguanAman} aman`}
           changeType={gangguanBelumSelesai > 0 ? "down" : "up"}
           bgColor="bg-red-600"
           href="/gangguan"
         />
-        <div className="col-span-2 sm:col-span-2 lg:col-span-1">
-          <StatCard
-            icon={Network}
-            label="Infrastruktur ODP"
-            value={`${totalOdp} ODP`}
-            subtext={`${totalOdc} ODC · ${odpLinkedCount} linked`}
-            changeType="up"
-            bgColor="bg-indigo-600"
-            href="/odp"
-          />
-        </div>
+        <StatCard
+          icon={Network}
+          label="Infrastruktur ODP"
+          value={`${totalOdp} ODP`}
+          subtext={`${totalOdc} ODC · ${odpLinkedCount} linked`}
+          changeType="up"
+          bgColor="bg-indigo-600"
+          href="/odp"
+        />
       </div>
 
-      {/* 2 Dedicated Cards Side-by-Side: Detail Pekerjaan & Jadwal Terdekat */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* 2 Dedicated Cards Side-by-Side: Detail Pekerjaan & Jadwal Terdekat (Masing-masing Bisa di-Hide) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         {/* Card 1: Detail Pekerjaan */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm h-full flex flex-col justify-between space-y-3">
+        <div className={`bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm transition-all flex flex-col justify-between ${showDetailPekerjaan ? "h-full space-y-3" : "space-y-0"}`}>
           {/* Header of Detail Pekerjaan */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
-            <div className="flex items-center gap-3">
+          <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${showDetailPekerjaan ? "border-b border-gray-100 pb-3" : ""}`}>
+            <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-[#0D1B4A] flex items-center justify-center text-white shadow-sm shrink-0">
                 <Wrench className="w-5 h-5" />
               </div>
@@ -985,28 +1011,57 @@ export default function Dashboard() {
                   <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-blue-50 text-blue-700 ring-1 ring-blue-200">
                     {totalPekerjaan} Total
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">
-                    {filterLabel}
-                  </span>
+                  {showDetailPekerjaan && (
+                    <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">
+                      {filterLabel}
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5 truncate">
-                  Rincian volume, progres, dan status per kategori layanan
+                  {showDetailPekerjaan
+                    ? "Rincian volume, progres, dan status per kategori layanan"
+                    : "Bagian rincian pekerjaan disembunyikan"}
                 </p>
               </div>
             </div>
 
-            <Link
-              to="/pekerjaan"
-              className="inline-flex items-center gap-1 px-3 py-1.5 sm:py-2 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all self-start sm:self-auto group shadow-2xs shrink-0"
-              title="Buka Manajemen Pekerjaan"
-            >
-              <span>Buka</span>
-              <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-            </Link>
+            <div className="flex items-center gap-1.5 self-start sm:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowDetailPekerjaan(!showDetailPekerjaan)}
+                className={`inline-flex items-center gap-1 px-2.5 py-1.5 sm:py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  showDetailPekerjaan
+                    ? "text-gray-500 hover:text-gray-800 bg-gray-100 hover:bg-gray-200"
+                    : "text-[#0D1B4A] bg-blue-50 hover:bg-blue-100 border border-blue-200/80 shadow-2xs"
+                }`}
+                title={showDetailPekerjaan ? "Sembunyikan bagian ini" : "Tampilkan bagian ini"}
+              >
+                {showDetailPekerjaan ? (
+                  <>
+                    <EyeOff className="w-3.5 h-3.5" />
+                    <span>Hide</span>
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Tampilkan</span>
+                  </>
+                )}
+              </button>
+              <Link
+                to="/pekerjaan"
+                className="inline-flex items-center gap-1 px-3 py-1.5 sm:py-2 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all group shadow-2xs"
+                title="Buka Manajemen Pekerjaan"
+              >
+                <span>Buka</span>
+                <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            </div>
           </div>
 
           {/* 4 Category Cards Grid (Enlarged 2x2, without Komposisi Status) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+          {showDetailPekerjaan && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 animate-in fade-in duration-200 pt-1">
             {/* 1: Pemasangan Baru */}
             <Link
               to="/pekerjaan?search=PEMASANGAN"
@@ -1158,13 +1213,14 @@ export default function Dashboard() {
               </div>
             </Link>
           </div>
-        </div>
+        )}
+      </div>
 
       {/* Card 2: Jadwal & Penugasan Terdekat */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm h-full flex flex-col justify-between space-y-3">
+      <div className={`bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm transition-all flex flex-col justify-between ${showJadwalTerdekat ? "h-full space-y-3" : "space-y-0"}`}>
         {/* Header of Jadwal Terdekat */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
-          <div className="flex items-center gap-3">
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${showJadwalTerdekat ? "border-b border-gray-100 pb-3" : ""}`}>
+          <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-[#0D1B4A] flex items-center justify-center text-white shadow-sm shrink-0">
               <CalendarClock className="w-5 h-5" />
             </div>
@@ -1179,148 +1235,184 @@ export default function Dashboard() {
                     {scheduleData.todayJobs.length} Hari Ini
                   </span>
                 )}
+                {scheduleData.waitingJobs.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-amber-50 text-amber-700 ring-1 ring-amber-200">
+                    {scheduleData.waitingJobs.length} Waiting
+                  </span>
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-0.5 truncate">
-                Antrian tugas terdekat teknisi lapangan
+                {showJadwalTerdekat
+                  ? "Antrian tugas terdekat teknisi lapangan"
+                  : "Bagian antrian jadwal disembunyikan"}
               </p>
             </div>
           </div>
 
-          <Link
-            to="/pekerjaan"
-            className="inline-flex items-center gap-1 px-3 py-1.5 sm:py-2 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all self-start sm:self-auto group shadow-2xs shrink-0"
-            title="Buka Manajemen Pekerjaan"
-          >
-            <span>Buka</span>
-            <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-        </div>
-
-        {/* Tab Pills Filter Row */}
-        <div className="flex items-center justify-between gap-2 bg-gray-50 p-1 rounded-xl border border-gray-100 text-xs font-semibold">
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
-            {[
-              { id: "ALL", label: `Semua (${scheduleData.displayList.length})` },
-              { id: "TODAY", label: `Hari Ini (${scheduleData.todayJobs.length})` },
-              { id: "UPCOMING", label: `Mendatang (${scheduleData.upcomingJobs.length})` },
-              { id: "WAITING", label: `Waiting (${scheduleData.waitingJobs.length})` },
-            ].map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setScheduleTab(t.id)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                  scheduleTab === t.id
-                    ? "bg-[#0D1B4A] text-white shadow-2xs"
-                    : "text-gray-500 hover:text-gray-900 hover:bg-white"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-1.5 self-start sm:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowJadwalTerdekat(!showJadwalTerdekat)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1.5 sm:py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                showJadwalTerdekat
+                  ? "text-gray-500 hover:text-gray-800 bg-gray-100 hover:bg-gray-200"
+                  : "text-[#0D1B4A] bg-blue-50 hover:bg-blue-100 border border-blue-200/80 shadow-2xs"
+              }`}
+              title={showJadwalTerdekat ? "Sembunyikan bagian ini" : "Tampilkan bagian ini"}
+            >
+              {showJadwalTerdekat ? (
+                <>
+                  <EyeOff className="w-3.5 h-3.5" />
+                  <span>Hide</span>
+                </>
+              ) : (
+                <>
+                  <Eye className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Tampilkan</span>
+                </>
+              )}
+            </button>
+            <Link
+              to="/pekerjaan"
+              className="inline-flex items-center gap-1 px-3 py-1.5 sm:py-2 text-xs font-bold text-[#0D1B4A] bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200/60 transition-all group shadow-2xs"
+              title="Buka Manajemen Pekerjaan"
+            >
+              <span>Buka</span>
+              <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+            </Link>
           </div>
         </div>
 
-        {/* Compact Single-Line Rows with clean scroll container */}
-        {filteredScheduleList.length > 0 ? (
-          <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden flex-1 min-h-[140px] max-h-[420px] overflow-y-auto">
-            {filteredScheduleList.map((item) => {
-              const jc =
-                item.jenis === "PEMASANGAN"
-                  ? "bg-blue-50 text-blue-700 border-blue-200"
-                  : item.jenis === "PERBAIKAN"
-                  ? "bg-orange-50 text-orange-700 border-orange-200"
-                  : item.jenis === "PERBAIKAN KHUSUS (ODP/ODC)"
-                  ? "bg-purple-50 text-purple-700 border-purple-200"
-                  : "bg-rose-50 text-rose-700 border-rose-200";
+        {/* Schedule Body */}
+        {showJadwalTerdekat && (
+          <div className="space-y-3 flex-1 flex flex-col justify-between animate-in fade-in duration-200 pt-1">
+            {/* Tab Pills Filter Row */}
+            <div className="flex items-center justify-between gap-2 bg-gray-50 p-1 rounded-xl border border-gray-100 text-xs font-semibold">
+              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                {[
+                  { id: "ALL", label: `Semua (${scheduleData.displayList.length})` },
+                  { id: "TODAY", label: `Hari Ini (${scheduleData.todayJobs.length})` },
+                  { id: "UPCOMING", label: `Mendatang (${scheduleData.upcomingJobs.length})` },
+                  { id: "WAITING", label: `Waiting (${scheduleData.waitingJobs.length})` },
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setScheduleTab(t.id)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      scheduleTab === t.id
+                        ? "bg-[#0D1B4A] text-white shadow-2xs"
+                        : "text-gray-500 hover:text-gray-900 hover:bg-white"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-              const sc =
-                item.status === "SELESAI"
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                  : item.status === "DIJADWALKAN"
-                  ? "bg-blue-50 text-blue-700 border-blue-200"
-                  : item.status === "GAGAL"
-                  ? "bg-red-50 text-red-700 border-red-200"
-                  : "bg-amber-50 text-amber-700 border-amber-200";
+            {/* Compact Single-Line Rows with clean scroll container */}
+            {filteredScheduleList.length > 0 ? (
+              <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden flex-1 min-h-[140px] max-h-[420px] overflow-y-auto">
+                {filteredScheduleList.map((item) => {
+                  const jc =
+                    item.jenis === "PEMASANGAN"
+                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                      : item.jenis === "PERBAIKAN"
+                      ? "bg-orange-50 text-orange-700 border-orange-200"
+                      : item.jenis === "PERBAIKAN KHUSUS (ODP/ODC)"
+                      ? "bg-purple-50 text-purple-700 border-purple-200"
+                      : "bg-rose-50 text-rose-700 border-rose-200";
 
-              return (
-                <div
-                  key={item.id}
-                  className="px-3 py-1.5 hover:bg-blue-50/30 transition-colors flex items-center justify-between gap-3 text-xs group"
-                >
-                  {/* Left: Timing Pill, Pelanggan, Kategori, Lokasi, ODP */}
-                  <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
-                    <div className="shrink-0">
-                      {item.isToday ? (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                          HARI INI
+                  const sc =
+                    item.status === "SELESAI"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : item.status === "DIJADWALKAN"
+                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                      : item.status === "GAGAL"
+                      ? "bg-red-50 text-red-700 border-red-200"
+                      : "bg-amber-50 text-amber-700 border-amber-200";
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="px-3 py-1.5 hover:bg-blue-50/30 transition-colors flex items-center justify-between gap-3 text-xs group"
+                    >
+                      {/* Left: Timing Pill, Pelanggan, Kategori, Lokasi, ODP */}
+                      <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
+                        <div className="shrink-0">
+                          {item.isToday ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                              HARI INI
+                            </span>
+                          ) : item.diffDays === 1 ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                              BESOK
+                            </span>
+                          ) : item.diffDays > 1 ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                              {item.diffDays}h lagi
+                            </span>
+                          ) : item.isWaiting ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              Waiting
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-600">
+                              {item.tanggal}
+                            </span>
+                          )}
+                        </div>
+
+                        <Link
+                          to={`/pekerjaan?search=${encodeURIComponent(item.pelanggan)}`}
+                          className="font-bold text-gray-900 text-xs hover:text-blue-600 transition-colors truncate shrink-0 max-w-[140px]"
+                        >
+                          {item.pelanggan}
+                        </Link>
+
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border shrink-0 ${jc}`}>
+                          {item.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" ? "ODP" : item.jenis}
                         </span>
-                      ) : item.diffDays === 1 ? (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                          BESOK
+
+                        <span className="text-[11px] text-gray-400 truncate hidden sm:inline">
+                          · {item.alamat || "Alamat belum diatur"}
                         </span>
-                      ) : item.diffDays > 1 ? (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                          {item.diffDays}h lagi
+
+                        {item.odp && (
+                          <span className="hidden md:inline-flex items-center gap-1 text-[9px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 truncate max-w-[150px]">
+                            <Network className="w-2.5 h-2.5 text-blue-500 shrink-0" />
+                            <span className="truncate">{item.odp}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Right: Tim, Status, Link */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] text-gray-500 font-semibold hidden md:inline-flex items-center gap-1">
+                          <Users className="w-2.5 h-2.5 text-gray-400" />
+                          {item.tim ? item.tim.split(" - ")[0] : "Belum Ditugaskan"}
                         </span>
-                      ) : item.isWaiting ? (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          Waiting
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border ${sc}`}>
+                          {item.status}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-600">
-                          {item.tanggal}
-                        </span>
-                      )}
+                        <Link
+                          to={`/pekerjaan?search=${encodeURIComponent(item.pelanggan)}`}
+                          className="p-1 text-gray-400 hover:text-[#0D1B4A] hover:bg-gray-100 rounded transition-colors"
+                          title="Detail Pekerjaan"
+                        >
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </div>
                     </div>
-
-                    <Link
-                      to={`/pekerjaan?search=${encodeURIComponent(item.pelanggan)}`}
-                      className="font-bold text-gray-900 text-xs hover:text-blue-600 transition-colors truncate shrink-0 max-w-[140px]"
-                    >
-                      {item.pelanggan}
-                    </Link>
-
-                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border shrink-0 ${jc}`}>
-                      {item.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" ? "ODP" : item.jenis}
-                    </span>
-
-                    <span className="text-[11px] text-gray-400 truncate hidden sm:inline">
-                      · {item.alamat || "Alamat belum diatur"}
-                    </span>
-
-                    {item.odp && (
-                      <span className="hidden md:inline-flex items-center gap-1 text-[9px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 truncate max-w-[150px]">
-                        <Network className="w-2.5 h-2.5 text-blue-500 shrink-0" />
-                        <span className="truncate">{item.odp}</span>
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Right: Tim, Status, Link */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] text-gray-500 font-semibold hidden md:inline-flex items-center gap-1">
-                      <Users className="w-2.5 h-2.5 text-gray-400" />
-                      {item.tim ? item.tim.split(" - ")[0] : "Belum Ditugaskan"}
-                    </span>
-                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border ${sc}`}>
-                      {item.status}
-                    </span>
-                    <Link
-                      to={`/pekerjaan?search=${encodeURIComponent(item.pelanggan)}`}
-                      className="p-1 text-gray-400 hover:text-[#0D1B4A] hover:bg-gray-100 rounded transition-colors"
-                      title="Detail Pekerjaan"
-                    >
-                      <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="py-8 text-center text-gray-400 text-xs">
-            <p>Tidak ada antrian pekerjaan pada kategori ini.</p>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-8 text-center text-gray-400 text-xs">
+                <p>Tidak ada antrian pekerjaan pada kategori ini.</p>
+              </div>
+            )}
           </div>
         )}
       </div>

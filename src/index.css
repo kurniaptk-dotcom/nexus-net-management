@@ -48,3 +48,81 @@ html, body {
   color: #0D1B4A;
 }
 
+/* Ergonomi Mobile: Cegah auto-zoom browser iOS hanya pada form input teks */
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="tel"],
+  input[type="email"],
+  input[type="search"],
+  input[type="password"],
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ========================================================================== */
+/* PRINT STYLESHEET (Cetak Slip Insentif & Surat Perintah Kerja Lapangan)      */
+/* ========================================================================== */
+@media print {
+  @page {
+    size: auto;
+    margin: 10mm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Sembunyikan navigasi, sidebar, header, dan elemen non-cetak */
+  nav, aside, header, footer,
+  .print\:hidden,
+  button:not(.print-allow) {
+    display: none !important;
+  }
+
+  /* Sembunyikan konten latar belakang dashboard saat modal slip sedang dicetak */
+  body:has(.print-modal-container) main > *:not(.print-modal-container),
+  body:has(.print-slip-card) main > *:not(.print-modal-container) {
+    display: none !important;
+  }
+
+  /* Posisikan modal slip bersih di atas kertas cetak */
+  .print-modal-container,
+  .fixed.inset-0:has(.print-slip-card) {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .print-slip-card {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+
+  .print\:border-none {
+    border: none !important;
+  }
+
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+}
+
+

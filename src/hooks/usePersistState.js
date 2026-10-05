@@ -12,8 +12,31 @@ const TABLE_MAP = {
   xnet_pelanggan_radius: "pelanggan_radius",
 };
 
+const BASE_PEKERJAAN_COLUMNS = ["tim", "jenis", "alamat", "pelanggan", "odp", "status", "tanggal", "keterangan"];
+
 const ALLOWED_COLUMNS = {
-  pekerjaan: ["tim", "jenis", "alamat", "pelanggan", "status", "tanggal", "keterangan"],
+  pekerjaan: [
+    "tim",
+    "jenis",
+    "alamat",
+    "pelanggan",
+    "odp",
+    "status",
+    "tanggal",
+    "keterangan",
+    "spk_no",
+    "prioritas",
+    "sesi",
+    "telepon",
+    "port",
+    "shareloc",
+    "redaman",
+    "sn_modem",
+    "evidence",
+    "komisi_items",
+    "komisi_total",
+    "waktu_selesai",
+  ],
   daftar_gangguan: ["nama", "keterangan", "kontak", "tanggal_mulai", "follow_up", "hasil_fu"],
   gangguan: ["tanggal", "kategori", "pelanggan", "alamat", "status", "keterangan", "user_terdampak"],
   leads: [
@@ -47,8 +70,11 @@ const ALLOWED_COLUMNS = {
   ],
 };
 
-function sanitizeForTable(tableName, row) {
-  const allowed = ALLOWED_COLUMNS[tableName];
+function sanitizeForTable(tableName, row, useBaseColumnsOnly = false) {
+  let allowed = ALLOWED_COLUMNS[tableName];
+  if (tableName === "pekerjaan" && useBaseColumnsOnly) {
+    allowed = BASE_PEKERJAAN_COLUMNS;
+  }
   if (!allowed) return row;
   const clean = {};
   for (const col of allowed) {
@@ -146,6 +172,79 @@ if (typeof window !== "undefined" && !localStorage.getItem(RESET_STORAGE_KEY)) {
   localStorage.setItem(RESET_STORAGE_KEY, "done");
 }
 
+/**
+ * Penyimpanan LocalStorage Aman dengan Proteksi Batas Kuota Browser (5MB limit)
+ * - Mencegah crash jika kuota browser penuh saat upload foto teknisi
+ * - Otomatis memangkas foto base64 pada tugas selesai lama (>7 hari) jika kuota menipis
+ * - Menjaga data pekerjaan, tanggal, komisi, dan status tetap 100% utuh
+ */
+export function safeSetLocalStorage(key, value) {
+  if (typeof window === "undefined" || !window.localStorage) return;
+  const stringified = JSON.stringify(value);
+  try {
+    localStorage.setItem(key, stringified);
+  } catch (err) {
+    const isQuotaErr =
+      err &&
+      (err.name === "QuotaExceededError" ||
+        err.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+        err.code === 22 ||
+        err.code === 1014);
+
+    if (isQuotaErr) {
+      console.warn(`[STORAGE QUOTA] Kuota browser penuh saat menyimpan "${key}". Memulai auto-pruning foto riwayat...`);
+      try {
+        const rawPekerjaan = localStorage.getItem("xnet_pekerjaan");
+        if (rawPekerjaan) {
+          const list = JSON.parse(rawPekerjaan);
+          if (Array.isArray(list)) {
+            let prunedCount = 0;
+            const now = Date.now();
+            const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+            const prunedList = list.map((task) => {
+              const taskDate = task.tanggal ? new Date(task.tanggal).getTime() : 0;
+              const isOldCompleted = task.status === "SELESAI" && (now - taskDate > sevenDaysMs || !taskDate);
+
+              if (isOldCompleted) {
+                const hadPhoto = task.foto_opm || task.foto_dropcore || task.foto_modem;
+                if (hadPhoto) prunedCount++;
+                return {
+                  ...task,
+                  foto_opm: typeof task.foto_opm === "string" && task.foto_opm.startsWith("data:") ? "[Tersimpan di Cloud/Lokal]" : task.foto_opm,
+                  foto_dropcore: typeof task.foto_dropcore === "string" && task.foto_dropcore.startsWith("data:") ? "[Tersimpan di Cloud/Lokal]" : task.foto_dropcore,
+                  foto_modem: typeof task.foto_modem === "string" && task.foto_modem.startsWith("data:") ? "[Tersimpan di Cloud/Lokal]" : task.foto_modem,
+                  evidence: task.evidence
+                    ? {
+                        ...task.evidence,
+                        foto_opm: typeof task.evidence.foto_opm === "string" && task.evidence.foto_opm.startsWith("data:") ? "[Cloud Backup]" : task.evidence.foto_opm,
+                        foto_dropcore: typeof task.evidence.foto_dropcore === "string" && task.evidence.foto_dropcore.startsWith("data:") ? "[Cloud Backup]" : task.evidence.foto_dropcore,
+                        foto_modem: typeof task.evidence.foto_modem === "string" && task.evidence.foto_modem.startsWith("data:") ? "[Cloud Backup]" : task.evidence.foto_modem,
+                      }
+                    : task.evidence,
+                };
+              }
+              return task;
+            });
+
+            if (prunedCount > 0) {
+              localStorage.setItem("xnet_pekerjaan", JSON.stringify(prunedList));
+              console.info(`[STORAGE QUOTA] Berhasil membebaskan kuota dari ${prunedCount} foto tugas historis.`);
+            }
+          }
+        }
+
+        // Coba simpan kembali item target
+        localStorage.setItem(key, stringified);
+      } catch (retryErr) {
+        console.error(`[STORAGE QUOTA] Gagal menyimpan item "${key}" bahkan setelah pruning:`, retryErr);
+      }
+    } else {
+      console.warn(`usePersistState safeSetLocalStorage "${key}":`, err);
+    }
+  }
+}
+
 export function usePersistState(key, initialValue) {
   const table = TABLE_MAP[key];
 
@@ -230,7 +329,7 @@ export function usePersistState(key, initialValue) {
               const list = Array.isArray(prev) ? prev : [];
               if (list.some((r) => r.id === newItem.id)) return prev;
               const next = [newItem, ...list];
-              localStorage.setItem(key, JSON.stringify(next));
+              safeSetLocalStorage(key, next);
               window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
               return next;
             });
@@ -239,7 +338,7 @@ export function usePersistState(key, initialValue) {
             setState((prev) => {
               const list = Array.isArray(prev) ? prev : [];
               const next = list.map((r) => (r.id === updatedItem.id ? { ...r, ...updatedItem } : r));
-              localStorage.setItem(key, JSON.stringify(next));
+              safeSetLocalStorage(key, next);
               window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
               return next;
             });
@@ -249,7 +348,7 @@ export function usePersistState(key, initialValue) {
               setState((prev) => {
                 const list = Array.isArray(prev) ? prev : [];
                 const next = list.filter((r) => r.id !== deletedId);
-                localStorage.setItem(key, JSON.stringify(next));
+                safeSetLocalStorage(key, next);
                 window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
                 return next;
               });
@@ -264,13 +363,9 @@ export function usePersistState(key, initialValue) {
     };
   }, [table, key]);
 
-  // Persist to localStorage on change
+  // Persist to localStorage on change safely
   useEffect(() => {
-    try {
-      localStorage.setItem(key, JSON.stringify(state));
-    } catch (err) {
-      console.warn(`usePersistState localStorage ${key}:`, err);
-    }
+    safeSetLocalStorage(key, state);
   }, [key, state]);
 
   // Smart Sync to Supabase: handles insert, update, and delete cleanly without schema error
@@ -308,13 +403,31 @@ export function usePersistState(key, initialValue) {
             if (inserted && inserted.id) {
               setState((current) => {
                 const updated = (current || []).map((row) => (row.id === a.id ? { ...row, id: inserted.id } : row));
-                localStorage.setItem(key, JSON.stringify(updated));
+                safeSetLocalStorage(key, updated);
                 window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: updated } }));
                 return updated;
               });
             }
           } catch (e) {
-            console.warn(`[SYNC] Insert ${table} error:`, e.message);
+            // Auto fallback jika database Supabase belum menjalankan SQL migrasi kolom extended
+            if (table === "pekerjaan" && e.message && /column.*does not exist/i.test(e.message)) {
+              try {
+                const baseSnake = sanitizeForTable(table, toSnake(a), true);
+                const inserted = await db.insert(table, baseSnake);
+                if (inserted && inserted.id) {
+                  setState((current) => {
+                    const updated = (current || []).map((row) => (row.id === a.id ? { ...row, id: inserted.id } : row));
+                    safeSetLocalStorage(key, updated);
+                    window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: updated } }));
+                    return updated;
+                  });
+                }
+              } catch (innerErr) {
+                console.warn(`[SYNC] Insert ${table} fallback error:`, innerErr.message);
+              }
+            } else {
+              console.warn(`[SYNC] Insert ${table} error:`, e.message);
+            }
           }
         }
 
@@ -329,7 +442,17 @@ export function usePersistState(key, initialValue) {
             const snake = sanitizeForTable(table, toSnake(u));
             await db.update(table, u.id, snake);
           } catch (e) {
-            console.warn(`[SYNC] Update ${table} id=${u.id} error:`, e.message);
+            // Auto fallback jika database Supabase belum menjalankan SQL migrasi kolom extended
+            if (table === "pekerjaan" && e.message && /column.*does not exist/i.test(e.message)) {
+              try {
+                const baseSnake = sanitizeForTable(table, toSnake(u), true);
+                await db.update(table, u.id, baseSnake);
+              } catch (innerErr) {
+                console.warn(`[SYNC] Update ${table} fallback error:`, innerErr.message);
+              }
+            } else {
+              console.warn(`[SYNC] Update ${table} id=${u.id} error:`, e.message);
+            }
           }
         }
       } catch (err) {
@@ -341,12 +464,8 @@ export function usePersistState(key, initialValue) {
   const setPersistState = useCallback((updater) => {
     setState((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      try {
-        localStorage.setItem(key, JSON.stringify(next));
-        window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
-      } catch (e) {
-        console.warn(`usePersistState set ${key}:`, e);
-      }
+      safeSetLocalStorage(key, next);
+      window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
       syncToSupabase(prev, next);
       return next;
     });

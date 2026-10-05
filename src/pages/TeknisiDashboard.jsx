@@ -37,29 +37,67 @@ import {
   RotateCcw,
   Star,
   Info,
+  Camera,
+  Image as ImageIcon,
+  Trash2,
+  Eye,
+  Upload,
+  Network,
+  PhoneCall,
+  BookOpen,
+  ShieldCheck,
+  HelpCircle,
+  Activity,
+  Signal,
+  Zap,
+  AlertCircle,
+  Calendar,
+  Gift,
+  PieChart,
+  Bell,
+  ChevronDown,
+  ArrowUpRight,
+  ArrowRight,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { usePersistState } from "../hooks/usePersistState";
-import { pekerjaanList, initialTimData, odpOdcList } from "../data/mockData";
+import { pekerjaanList, initialTimData, odpOdcList, initialPelangganRadius } from "../data/mockData";
 import {
+  KOMISI_PEKERJAAN_MASTER,
+  KOMISI_MAP,
   DEFAULT_INCENTIVE_CONFIG,
   formatRupiah,
   calculateTeamIncentives,
   calculateTaskIncentive,
+  getDefaultWorkItemsForTask,
   extractDbmFromKeterangan,
 } from "../lib/incentives";
+import { compressAndWatermarkImage, getCurrentLocation } from "../lib/imageCompressor";
+import { getOdpPortMap, checkPortCollision, extractPortNumber } from "../lib/portCollision";
+import BuktiLapanganModal from "../components/BuktiLapanganModal";
+import { enrichOdpWithPortUtilization } from "../lib/odpUtilization";
+import { uploadTaskEvidenceBundle } from "../lib/storageUpload";
+import { syncCustomerOnTaskCompletion } from "../lib/customerPortLifecycle";
 import Toast from "../components/Toast";
+import { formatPhoneWa as formatPhoneForWa } from "../lib/spkGenerator";
 
-// Format nomor WhatsApp standar Indonesia
-function formatPhoneForWa(phone) {
-  if (!phone) return "";
-  let clean = phone.replace(/[^0-9]/g, "");
-  if (clean.startsWith("0")) {
-    clean = "62" + clean.substring(1);
-  } else if (!clean.startsWith("62")) {
-    clean = "62" + clean;
+function parseRecordDate(dStr) {
+  if (!dStr) return null;
+  const s = String(dStr).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(y, m - 1, d);
   }
-  return clean;
+  const match = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$/);
+  if (match) {
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    let year = parseInt(match[3], 10);
+    if (year < 100) year += 2000;
+    return new Date(year, month, day);
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 // Format nomor telepon rapi
@@ -100,6 +138,31 @@ function getDbmQuality(val) {
     dot: "bg-rose-500",
   };
 }
+
+// Status Siaga Teknisi Lapangan
+const DUTY_STATUS_MAP = {
+  READY: {
+    key: "READY",
+    label: "Siap Bertugas",
+    badge: "bg-emerald-100 text-emerald-800 border-emerald-300",
+    dot: "bg-emerald-500",
+    desc: "Siap menerima penugasan & menuju lokasi pelanggan",
+  },
+  ON_SITE: {
+    key: "ON_SITE",
+    label: "Sedang di Lokasi",
+    badge: "bg-amber-100 text-amber-800 border-amber-300",
+    dot: "bg-amber-500",
+    desc: "Sedang instalasi/perbaikan di tiang atau rumah pelanggan",
+  },
+  BREAK: {
+    key: "BREAK",
+    label: "Istirahat / Off",
+    badge: "bg-slate-100 text-slate-700 border-slate-300",
+    dot: "bg-slate-400",
+    desc: "Sedang istirahat makan / sholat sementara",
+  },
+};
 
 // 4 Kolom Kanban Sesuai Mockup
 const KANBAN_COLS = [
@@ -152,25 +215,85 @@ export default function TeknisiDashboard() {
   const isSupervisor = profile?.role === "admin" || profile?.role === "user";
 
   // Tim Aktif
-  const assignedTeam = profile?.tim || "AZWAR - RIO";
+  const assignedTeam = profile?.tim || "GATRA - AIS";
   const [selectedTeam, setSelectedTeam] = usePersistState("xnet_active_tech_team", assignedTeam);
   const activeTeam = isTechnician && profile?.tim ? profile.tim : selectedTeam;
 
-  // View Mode: KANBAN | LIST | ODP_TOOL
-  const [viewMode, setViewMode] = useState("KANBAN");
+  // View Mode: DASHBOARD | KANBAN | LIST | ODP_TOOL | WALLET
+  const [viewMode, setViewMode] = usePersistState("xnet_active_tech_view_mode", "DASHBOARD");
+  const [dashboardStatusPeriod, setDashboardStatusPeriod] = useState("September 2026");
+  const [dashboardStatPeriod, setDashboardStatPeriod] = useState("Mingguan");
+  const [activeActionTaskId, setActiveActionTaskId] = useState(null);
+
+  // Status Siaga Operasional Teknisi (Interactive Duty Presence)
+  const [dutyStatus, setDutyStatus] = usePersistState("xnet_tech_duty_status", "READY");
+  const [showOpmGuideModal, setShowOpmGuideModal] = useState(false);
+  const [showNocContactModal, setShowNocContactModal] = useState(false);
+  const [showSopModal, setShowSopModal] = useState(false);
 
   // Search & Filter Kolom Mobile
   const [search, setSearch] = useState("");
   const [mobileKanbanCol, setMobileKanbanCol] = useState("ALL");
 
+  // State Pelanggan Radius untuk live port calculation ODP & sinkronisasi port otomatis
+  const [pelangganList, setPelangganList] = usePersistState("xnet_pelanggan_radius", initialPelangganRadius);
+  const [viewEvidenceTask, setViewEvidenceTask] = useState(null);
+  const [isSubmittingCompletion, setIsSubmittingCompletion] = useState(false);
+
   // Completion Modal State
   const [selectedTask, setSelectedTask] = useState(null);
+  const [selectedOdpForTask, setSelectedOdpForTask] = useState("");
   const [completionForm, setCompletionForm] = useState({
     redaman: "-19.5",
     serialNumber: "",
-    odpPort: "",
+    odp: "",
     catatan: "",
+    fotoOpm: null,
+    fotoDropcore: null,
+    fotoModem: null,
   });
+  const [completionWorkItems, setCompletionWorkItems] = useState([]);
+  const [selectedAddItem, setSelectedAddItem] = useState("");
+
+  // Handler Upload Foto Bukti Lapangan dengan Kompresi Client-Side Otomatis & Watermark GPS
+  const handlePhotoUpload = async (e, type) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      triggerToast("Mengambil titik GPS & membubuhkan watermark QC...", "info");
+      const location = await getCurrentLocation();
+
+      const typeLabels = {
+        fotoOpm: "Hasil Redaman OPM",
+        fotoDropcore: "Tiang Dropcore ODP",
+        fotoModem: "Barcode Modem ONT",
+      };
+
+      const watermarkOptions = {
+        label: typeLabels[type] || "Dokumentasi Lapangan",
+        odp: selectedOdpForTask || selectedTask?.odp || "ODP",
+        customer: selectedTask?.pelanggan || "Pelanggan",
+        technician: selectedTask?.tim || activeTeam || "Tim Teknisi",
+        location: location,
+      };
+
+      const base64 = await compressAndWatermarkImage(file, watermarkOptions, 800, 800, 0.65);
+      setCompletionForm((prev) => ({
+        ...prev,
+        [type]: base64,
+      }));
+      triggerToast(`Foto ${typeLabels[type]} berhasil distempel GPS & dikompres!`, "success");
+    } catch (err) {
+      triggerToast("Gagal memproses foto: " + err.message, "error");
+    }
+  };
+
+  const handleRemovePhoto = (type) => {
+    setCompletionForm((prev) => ({
+      ...prev,
+      [type]: null,
+    }));
+  };
 
   // Trouble Modal State
   const [kendalaTask, setKendalaTask] = useState(null);
@@ -183,7 +306,7 @@ export default function TeknisiDashboard() {
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
 
-  // ODP Search Tool
+  // ODP Search Tool & Port Enrichment
   const [odpQuery, setOdpQuery] = useState("");
 
   // Toast
@@ -194,10 +317,86 @@ export default function TeknisiDashboard() {
   };
 
   // Sistem Insentif, Fee & Bonus Teknisi
-  const [incentiveConfig, setIncentiveConfig] = usePersistState("xnet_incentive_config", DEFAULT_INCENTIVE_CONFIG);
+  const [masterKomisi, setMasterKomisi] = usePersistState("xnet_master_komisi", KOMISI_PEKERJAAN_MASTER);
+  const [rawIncentiveConfig, setIncentiveConfig] = usePersistState("xnet_incentive_config", DEFAULT_INCENTIVE_CONFIG);
+  const incentiveConfig = useMemo(() => {
+    const masterRates = (masterKomisi || []).reduce((acc, m) => {
+      acc[m.id] = m.tarif;
+      return acc;
+    }, {});
+    return {
+      ...DEFAULT_INCENTIVE_CONFIG,
+      ...(rawIncentiveConfig || {}),
+      itemRates: {
+        ...DEFAULT_INCENTIVE_CONFIG.itemRates,
+        ...masterRates,
+        ...(rawIncentiveConfig?.itemRates || {}),
+      },
+      qualityBonus: {
+        ...DEFAULT_INCENTIVE_CONFIG.qualityBonus,
+        ...(rawIncentiveConfig?.qualityBonus || {}),
+        enabled: false,
+        amount: 0,
+      },
+    };
+  }, [rawIncentiveConfig, masterKomisi]);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showSlipModal, setShowSlipModal] = useState(false);
   const [configForm, setConfigForm] = useState(incentiveConfig);
+
+  // Periode Cut-off Penggajian Dompet Teknisi
+  const [walletPeriod, setWalletPeriod] = useState("THIS_MONTH"); // "THIS_MONTH", "LAST_MONTH", "ALL", "CUSTOM"
+  const [cutoffStart, setCutoffStart] = useState("");
+  const [cutoffEnd, setCutoffEnd] = useState("");
+
+  // Filter tugas berdasarkan periode cut-off dompet
+  const walletFilteredTasks = useMemo(() => {
+    if (walletPeriod === "ALL") return pekerjaan;
+
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+
+    return pekerjaan.filter((p) => {
+      const dateStr = p.waktu_selesai || p.tanggal;
+      if (!dateStr) return true;
+
+      const d = parseRecordDate(dateStr) || new Date(dateStr);
+      if (isNaN(d.getTime())) return true;
+
+      if (walletPeriod === "THIS_MONTH") {
+        return d.getFullYear() === curYear && d.getMonth() === curMonth;
+      }
+      if (walletPeriod === "LAST_MONTH") {
+        const lastMonthDate = new Date(curYear, curMonth - 1, 1);
+        return d.getFullYear() === lastMonthDate.getFullYear() && d.getMonth() === lastMonthDate.getMonth();
+      }
+      if (walletPeriod === "CUSTOM") {
+        const start = cutoffStart ? new Date(cutoffStart + "T00:00:00") : null;
+        const end = cutoffEnd ? new Date(cutoffEnd + "T23:59:59") : null;
+        const t = d.getTime();
+        if (start && t < start.getTime()) return false;
+        if (end && t > end.getTime()) return false;
+        return true;
+      }
+      return true;
+    });
+  }, [pekerjaan, walletPeriod, cutoffStart, cutoffEnd]);
+
+  const walletPeriodLabel = useMemo(() => {
+    const now = new Date();
+    if (walletPeriod === "THIS_MONTH") {
+      return `Bulan Ini (${now.toLocaleDateString("id-ID", { month: "long", year: "numeric" })})`;
+    }
+    if (walletPeriod === "LAST_MONTH") {
+      const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      return `Bulan Lalu (${prev.toLocaleDateString("id-ID", { month: "long", year: "numeric" })})`;
+    }
+    if (walletPeriod === "CUSTOM") {
+      return `${cutoffStart || "Awal"} s/d ${cutoffEnd || "Sekarang"}`;
+    }
+    return "Semua Periode";
+  }, [walletPeriod, cutoffStart, cutoffEnd]);
 
   // Filter tugas untuk tim aktif
   const teamTasks = useMemo(() => {
@@ -205,10 +404,10 @@ export default function TeknisiDashboard() {
     return pekerjaan.filter((p) => (p.tim || "").toUpperCase() === activeTeam.toUpperCase());
   }, [pekerjaan, activeTeam]);
 
-  // Perhitungan insentif otomatis tim aktif
+  // Perhitungan insentif otomatis tim aktif sesuai cut-off periode dompet
   const teamIncentives = useMemo(() => {
-    return calculateTeamIncentives(pekerjaan, activeTeam, incentiveConfig);
-  }, [pekerjaan, activeTeam, incentiveConfig]);
+    return calculateTeamIncentives(walletFilteredTasks, activeTeam, incentiveConfig, masterKomisi);
+  }, [walletFilteredTasks, activeTeam, incentiveConfig, masterKomisi]);
 
   // Pencarian
   const searchedTasks = useMemo(() => {
@@ -251,31 +450,97 @@ export default function TeknisiDashboard() {
     triggerToast(`Status tugas ${task.pelanggan} diubah: Sedang Dikerjakan.`, "info");
   };
 
-  // Handle Submit Completion
-  const handleCompleteSubmit = (e) => {
+  // Handle Submit Completion (Upload Bukti Lapangan ke Storage & Auto Sync Port Pelanggan)
+  const handleCompleteSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedTask) return;
+    if (!selectedTask || isSubmittingCompletion) return;
+    setIsSubmittingCompletion(true);
 
-    const redamanStr = completionForm.redaman ? `Redaman: ${completionForm.redaman} dBm` : "";
-    const snStr = completionForm.serialNumber ? `SN ONT: ${completionForm.serialNumber}` : "";
-    const portStr = completionForm.odpPort ? `Port: ${completionForm.odpPort}` : "";
-    const extraDetails = [redamanStr, snStr, portStr, completionForm.catatan].filter(Boolean).join(" | ");
+    try {
+      const redamanStr = completionForm.redaman ? `Redaman: ${completionForm.redaman} dBm` : "";
+      const snStr = completionForm.serialNumber ? `SN ONT: ${completionForm.serialNumber}` : "";
+      const odpStr = selectedOdpForTask ? `ODP: ${selectedOdpForTask}` : "";
+      const photoCountStr = [completionForm.fotoOpm, completionForm.fotoDropcore, completionForm.fotoModem].filter(Boolean).length;
+      const photoStr = photoCountStr > 0 ? `📷 ${photoCountStr} Foto Bukti Lapangan` : "";
+      const extraDetails = [redamanStr, snStr, odpStr, photoStr, completionForm.catatan].filter(Boolean).join(" | ");
 
-    setPekerjaan((prev) =>
-      prev.map((t) =>
-        t.id === selectedTask.id
-          ? {
-              ...t,
-              status: "SELESAI",
-              keterangan: extraDetails || "Pekerjaan selesai dilaksanakan tim teknisi.",
-            }
-          : t
-      )
-    );
+      const rawEvidence = {
+        foto_opm: completionForm.fotoOpm,
+        foto_dropcore: completionForm.fotoDropcore,
+        foto_modem: completionForm.fotoModem,
+        redaman: completionForm.redaman,
+        sn_modem: completionForm.serialNumber,
+        odp: selectedOdpForTask || selectedTask.odp,
+        catatan: completionForm.catatan,
+        waktu_selesai: new Date().toISOString(),
+      };
 
-    triggerToast(`Laporan pekerjaan "${selectedTask.pelanggan}" berhasil disimpan sebagai Selesai.`, "success");
-    setSelectedTask(null);
-    setCompletionForm({ redaman: "-19.5", serialNumber: "", odpPort: "", catatan: "" });
+      // 1. Upload foto bukti ke Supabase Storage (dengan graceful offline/local fallback)
+      let finalEvidence = rawEvidence;
+      try {
+        finalEvidence = await uploadTaskEvidenceBundle(rawEvidence, selectedTask.id);
+      } catch (uploadErr) {
+        console.warn("Storage upload exception, fallback to local data:", uploadErr);
+      }
+
+      // Hitung komisi riil tugas ini berdasarkan rincian item pekerjaan
+      const totalKomisi = (completionWorkItems || []).reduce((acc, it) => {
+        const rate = incentiveConfig?.itemRates?.[it.id] !== undefined
+          ? incentiveConfig.itemRates[it.id]
+          : (KOMISI_MAP[it.id]?.tarif || 0);
+        return acc + (Number(it.qty) || 0) * rate;
+      }, 0);
+
+      const itemsSummaryStr = (completionWorkItems || [])
+        .filter((it) => (Number(it.qty) || 0) > 0)
+        .map((it) => `${KOMISI_MAP[it.id]?.nama || it.id}: ${it.qty} ${KOMISI_MAP[it.id]?.satuan || ""}`)
+        .join(", ");
+
+      const finalTask = {
+        ...selectedTask,
+        status: "SELESAI",
+        redaman: completionForm.redaman,
+        sn_modem: completionForm.serialNumber,
+        odp: selectedOdpForTask || selectedTask.odp,
+        foto_opm: finalEvidence.foto_opm,
+        foto_dropcore: finalEvidence.foto_dropcore,
+        foto_modem: finalEvidence.foto_modem,
+        evidence: finalEvidence,
+        komisi_items: completionWorkItems,
+        komisi_total: totalKomisi,
+        keterangan: [extraDetails, itemsSummaryStr ? `Rincian: ${itemsSummaryStr}` : ""].filter(Boolean).join(" | ") || "Pekerjaan selesai dilaksanakan tim teknisi.",
+      };
+
+      // 2. Simpan status pekerjaan
+      setPekerjaan((prev) =>
+        prev.map((t) => (t.id === selectedTask.id ? finalTask : t))
+      );
+
+      // 3. Otomatisasi Sinkronisasi Port Pelanggan (Pemasangan -> isi port, Pemutusan -> lepas port)
+      const lifecycleResult = syncCustomerOnTaskCompletion(finalTask, pelangganList, setPelangganList);
+
+      const toastMessage = lifecycleResult?.message
+        ? `Laporan selesai! ${lifecycleResult.message}`
+        : `Laporan & bukti foto pekerjaan "${selectedTask.pelanggan}" berhasil disimpan. Komisi: ${formatRupiah(totalKomisi)}`;
+      triggerToast(toastMessage, "success");
+
+      setSelectedTask(null);
+      setCompletionWorkItems([]);
+      setCompletionForm({
+        redaman: "-19.5",
+        serialNumber: "",
+        odp: "",
+        catatan: "",
+        fotoOpm: null,
+        fotoDropcore: null,
+        fotoModem: null,
+      });
+    } catch (err) {
+      console.error("Gagal menyelesaikan pekerjaan:", err);
+      triggerToast("Gagal menyimpan pekerjaan: " + err.message, "error");
+    } finally {
+      setIsSubmittingCompletion(false);
+    }
   };
 
   // Handle Submit Kendala (GAGAL)
@@ -325,11 +590,18 @@ export default function TeknisiDashboard() {
 
     if (targetStatus === "SELESAI") {
       setSelectedTask(task);
+      const defaultItems = Array.isArray(task.komisi_items) && task.komisi_items.length > 0
+        ? task.komisi_items
+        : getDefaultWorkItemsForTask(task.jenis, 100, masterKomisi);
+      setCompletionWorkItems(defaultItems);
       setCompletionForm({
         redaman: "-19.5",
         serialNumber: "",
         odpPort: task.odp || "",
         catatan: "",
+        fotoOpm: null,
+        fotoDropcore: null,
+        fotoModem: null,
       });
       return;
     }
@@ -349,17 +621,21 @@ export default function TeknisiDashboard() {
     triggerToast(`Pekerjaan "${task.pelanggan}" dipindahkan ke ${targetStatus}.`, "info");
   };
 
-  // ODP Filter
+  // ODP Real-Time Port Enrichment & Search
+  const enrichedOdps = useMemo(() => {
+    return enrichOdpWithPortUtilization(odpList, pelangganList);
+  }, [odpList, pelangganList]);
+
   const filteredOdps = useMemo(() => {
-    if (!odpQuery.trim()) return odpList.slice(0, 9);
+    if (!odpQuery.trim()) return enrichedOdps.slice(0, 9);
     const q = odpQuery.toLowerCase().trim();
-    return odpList.filter(
+    return enrichedOdps.filter(
       (o) =>
         (o.nama || "").toLowerCase().includes(q) ||
         (o.odc || "").toLowerCase().includes(q) ||
         (o.keterangan || "").toLowerCase().includes(q)
     );
-  }, [odpList, odpQuery]);
+  }, [enrichedOdps, odpQuery]);
 
   const dbmQuality = useMemo(() => getDbmQuality(completionForm.redaman), [completionForm.redaman]);
 
@@ -380,8 +656,17 @@ export default function TeknisiDashboard() {
   const handleSaveConfig = (e) => {
     e.preventDefault();
     setIncentiveConfig(configForm);
+    // Sinkronkan juga tarif ke masterKomisi agar sinkron dua arah (Admin & Teknisi)
+    if (configForm?.itemRates) {
+      setMasterKomisi((prev) =>
+        (prev || []).map((m) => ({
+          ...m,
+          tarif: configForm.itemRates[m.id] !== undefined ? configForm.itemRates[m.id] : m.tarif,
+        }))
+      );
+    }
     setShowConfigModal(false);
-    triggerToast("Pengaturan tarif insentif teknisi berhasil disimpan.", "success");
+    triggerToast("Pengaturan tarif insentif teknisi berhasil disimpan & disinkronkan ke Master Komisi.", "success");
   };
 
   // Handle Reset Konfigurasi Tarif
@@ -389,86 +674,184 @@ export default function TeknisiDashboard() {
     if (window.confirm("Kembalikan konfigurasi tarif ke pengaturan standar?")) {
       setConfigForm(DEFAULT_INCENTIVE_CONFIG);
       setIncentiveConfig(DEFAULT_INCENTIVE_CONFIG);
+      setMasterKomisi(KOMISI_PEKERJAAN_MASTER);
       setShowConfigModal(false);
       triggerToast("Tarif insentif dikembalikan ke standar awal.", "info");
     }
   };
 
-  // Render Kanban Card persis seperti di Mockup
-  const renderCard = (task) => {
+  // Render Kanban / List Card yang Informatif & Lengkap untuk Teknisi
+  const renderCard = (task, runSheetIndex = null) => {
     const isCompleted = task.status === "SELESAI";
     const isScheduled = task.status === "DIJADWALKAN";
     const cleanWaPhone = formatPhoneForWa(task.telepon || "081234567890");
     const waMessage = `Halo Bpk/Ibu ${task.pelanggan}, kami dari Tim Teknisi Nexus Net (${activeTeam}). Kami sedang memproses pekerjaan ${task.jenis} di lokasi Anda: ${task.alamat}.`;
+
+    // Redaman & insentif evaluasi
+    const rawDbm = task.redaman ? parseFloat(task.redaman) : extractDbmFromKeterangan(task.keterangan);
+    const dbmEval = getDbmQuality(rawDbm);
+    const taskIncentive = isCompleted ? calculateTaskIncentive(task, incentiveConfig, masterKomisi) : null;
+    const hasEvidence = Boolean(task.foto_opm || task.foto_dropcore || task.foto_modem || task.evidence);
 
     return (
       <div
         key={task.id}
         draggable
         onDragStart={(e) => handleDragStart(e, task.id)}
-        className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all cursor-grab active:cursor-grabbing space-y-2.5 relative group"
+        className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all cursor-grab active:cursor-grabbing space-y-3 relative group"
       >
-        {/* Top: Jenis Pekerjaan Badge & 3-dots */}
-        <div className="flex items-center justify-between">
-          <span
-            className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider ${
-              task.jenis === "PEMASANGAN"
-                ? "bg-blue-50 text-blue-700 border border-blue-200/80"
-                : task.jenis === "PERBAIKAN"
-                ? "bg-amber-50 text-amber-700 border border-amber-200/80"
-                : task.jenis === "PEMUTUSAN"
-                ? "bg-rose-50 text-rose-600 border border-rose-200/80"
-                : "bg-purple-50 text-purple-700 border border-purple-200/80"
-            }`}
-          >
-            {task.jenis}
-          </span>
+        {/* Top: Jenis Pekerjaan Badge + ODP Chip + Run-Sheet Index */}
+        <div className="flex items-center justify-between gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {runSheetIndex && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#0D1B4A] text-amber-400">
+                #{runSheetIndex}
+              </span>
+            )}
+            <span
+              className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${
+                task.jenis === "PEMASANGAN"
+                  ? "bg-blue-50 text-blue-700 border border-blue-200/80"
+                  : task.jenis === "PERBAIKAN"
+                  ? "bg-amber-50 text-amber-700 border border-amber-200/80"
+                  : task.jenis === "PEMUTUSAN"
+                  ? "bg-rose-50 text-rose-600 border border-rose-200/80"
+                  : "bg-purple-50 text-purple-700 border border-purple-200/80"
+              }`}
+            >
+              {task.jenis}
+            </span>
 
-          <button className="text-slate-300 hover:text-slate-600 p-0.5 rounded cursor-pointer">
-            <MoreVertical className="w-4 h-4" />
-          </button>
+            {/* Target ODP Badge */}
+            {task.odp && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80" title="Target ODP">
+                <Wifi className="w-3 h-3 text-blue-600" />
+                <span>{task.odp}</span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1">
+            {task.paket && (
+              <span className="text-[10px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 hidden sm:inline-block">
+                {task.paket}
+              </span>
+            )}
+            <button className="text-slate-300 hover:text-slate-600 p-0.5 rounded cursor-pointer">
+              <MoreVertical className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Pelanggan & Alamat */}
-        <div>
-          <h4 className="font-bold text-sm text-slate-900 leading-snug">
-            {task.pelanggan}
-          </h4>
-          <div className="flex items-start gap-1 text-xs text-slate-500 mt-0.5">
+        <div className="space-y-1">
+          <div className="flex items-start justify-between gap-2">
+            <h4 className="font-bold text-sm text-slate-900 leading-snug">
+              {task.pelanggan}
+            </h4>
+            {task.telepon && (
+              <span className="text-[11px] font-mono text-slate-500 whitespace-nowrap">
+                {formatPhoneDisplay(task.telepon)}
+              </span>
+            )}
+          </div>
+          <div className="flex items-start gap-1.5 text-xs text-slate-500">
             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
             <span className="line-clamp-2 leading-relaxed">{task.alamat}</span>
           </div>
         </div>
 
-        {/* Catatan / Keterangan (e.g. Sedang menuju lokasi pengerjaan) */}
+        {/* Keterangan / Status Khusus */}
         {task.keterangan && (
-          <p className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded-lg border border-slate-100 line-clamp-2">
+          <p className="text-[11px] text-slate-600 italic bg-slate-50 p-2 rounded-xl border border-slate-100/90 line-clamp-2">
             {task.keterangan}
           </p>
         )}
 
+        {/* Technical Data Bar untuk Tugas Selesai */}
+        {isCompleted && (
+          <div className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/70 space-y-1.5">
+            <div className="flex items-center justify-between flex-wrap gap-1">
+              {dbmEval ? (
+                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border ${dbmEval.color}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${dbmEval.dot}`} />
+                  <span>{task.redaman ? `${task.redaman} dBm` : "Redaman OK"}</span>
+                  <span className="text-[9px] font-normal opacity-90">({dbmEval.status})</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Redaman QC OK
+                </span>
+              )}
+
+              {taskIncentive && (
+                <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded border border-emerald-200" title="Fee Pengerjaan">
+                  +{formatRupiah(taskIncentive.total)}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between text-[10px] text-slate-600 pt-0.5">
+              <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                SN: <b>{task.sn_modem || "ONT Ready"}</b>
+              </span>
+              {hasEvidence && (
+                <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                  <Camera className="w-3 h-3" /> Bukti OK
+                </span>
+              )}
+            </div>
+
+            {Array.isArray(task.komisi_items) && task.komisi_items.length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-1.5 border-t border-slate-200/60">
+                {task.komisi_items.map((it, idx) => {
+                  const master = KOMISI_MAP[it.id];
+                  return (
+                    <span
+                      key={idx}
+                      className="text-[9px] font-medium text-slate-600 bg-white px-1.5 py-0.5 rounded border border-slate-200"
+                    >
+                      {master?.nama || it.id}: <b>{it.qty} {master?.satuan || ""}</b>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Bottom Actions Bar */}
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1.5">
-          {/* Quick Round Icons: WhatsApp & Maps */}
-          <div className="flex items-center gap-1.5">
+          {/* Quick Contact & Navigation Toolbar */}
+          <div className="flex items-center gap-1">
+            {task.telepon && (
+              <a
+                href={`tel:${task.telepon}`}
+                className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center border border-blue-200 transition-colors"
+                title="Panggilan Telepon Langsung"
+              >
+                <PhoneCall className="w-3.5 h-3.5" />
+              </a>
+            )}
+
             <a
               href={`https://wa.me/${cleanWaPhone}?text=${encodeURIComponent(waMessage)}`}
               target="_blank"
               rel="noreferrer"
-              className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center border border-emerald-200 transition-colors"
+              className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center border border-emerald-200 transition-colors"
               title="Chat WhatsApp"
             >
-              <MessageCircle className="w-4 h-4" />
+              <MessageCircle className="w-3.5 h-3.5" />
             </a>
 
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.alamat)}`}
               target="_blank"
               rel="noreferrer"
-              className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center border border-blue-200 transition-colors"
+              className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center border border-slate-200 transition-colors"
               title="Navigasi Maps"
             >
-              <Navigation className="w-4 h-4" />
+              <Navigation className="w-3.5 h-3.5" />
             </a>
           </div>
 
@@ -479,7 +862,7 @@ export default function TeknisiDashboard() {
                 {!isScheduled && (
                   <button
                     onClick={() => handleStartTask(task)}
-                    className="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold border border-blue-200 transition-all cursor-pointer"
+                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold border border-blue-200 transition-all cursor-pointer"
                   >
                     Mulai
                   </button>
@@ -487,17 +870,27 @@ export default function TeknisiDashboard() {
 
                 <button
                   onClick={() => {
+                    const taskOdp = task.odp || (odpList && odpList[0]?.nama) || "ODP 1.1";
                     setSelectedTask(task);
+                    setSelectedOdpForTask(taskOdp);
+                    const defaultItems = Array.isArray(task.komisi_items) && task.komisi_items.length > 0
+                      ? task.komisi_items
+                      : getDefaultWorkItemsForTask(task.jenis);
+                    setCompletionWorkItems(defaultItems);
                     setCompletionForm({
-                      redaman: "-19.5",
-                      serialNumber: "",
-                      odpPort: task.odp || "",
+                      redaman: task.jenis === "PEMUTUSAN" ? "N/A" : "-19.5",
+                      serialNumber: task.sn_modem || "",
+                      odp: taskOdp,
                       catatan: "",
+                      fotoOpm: null,
+                      fotoDropcore: null,
+                      fotoModem: null,
                     });
                   }}
-                  className="px-3.5 py-1 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer"
+                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center gap-1"
                 >
-                  Selesai
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Selesai</span>
                 </button>
 
                 <button
@@ -515,9 +908,15 @@ export default function TeknisiDashboard() {
                 </button>
               </>
             ) : (
-              <span className="text-slate-400 p-1">
-                <ChevronRight className="w-4 h-4" />
-              </span>
+              <button
+                type="button"
+                onClick={() => setViewEvidenceTask(task)}
+                className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-[11px] font-bold border border-emerald-200 transition-all cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95"
+                title="Lihat Bukti Foto & Parameter Lapangan"
+              >
+                <Camera className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Bukti Foto</span>
+              </button>
             )}
           </div>
         </div>
@@ -533,205 +932,23 @@ export default function TeknisiDashboard() {
       )}
 
       {/* ========================================================================= */}
-      {/* 1. HERO CARD (SESUAI GAMBAR MOCKUP DENGAN MENARA BTS DI KANAN)           */}
-      {/* ========================================================================= */}
-      <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200 shadow-sm relative overflow-hidden">
-        {/* Background Graphic Tower BTS di pojok kanan persis gambar */}
-        <div className="absolute right-0 top-0 bottom-0 w-80 md:w-96 pointer-events-none opacity-25 md:opacity-35 hidden sm:block">
-          <img
-            src="/telecom_tower.jpg"
-            alt="BTS Tower"
-            className="w-full h-full object-cover object-right"
-            style={{
-              maskImage: "linear-gradient(to left, rgba(0,0,0,1) 40%, transparent 100%)",
-              WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,1) 40%, transparent 100%)",
-            }}
-          />
-        </div>
-
-        <div className="relative z-10 space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            {/* Left Content */}
-            <div className="space-y-2 max-w-xl">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100/80 px-3 py-0.5 rounded-full border border-amber-200/80">
-                  {isTechnician ? "Tim Lapangan Resmi" : "SUPERVISOR & MONITORING"}
-                </span>
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-100/80 px-3 py-0.5 rounded-full border border-emerald-200/80">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Siaga Operasional
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3.5 pt-1">
-                <div className="w-13 h-13 rounded-2xl bg-[#0D1B4A] flex items-center justify-center text-amber-400 shrink-0 shadow-md">
-                  <Users className="w-6 h-6" />
-                </div>
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
-                    Dashboard Tim: <span className="text-[#F59E0B]">{activeTeam === "ALL" ? "Semua Tim Lapangan" : activeTeam}</span>
-                  </h1>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                    Halo, <span className="font-semibold text-slate-800">{profile?.full_name || "Teknisi"}</span>!{" "}
-                    {isTechnician ? (
-                      <span>Anda bertugas di tim <b>{activeTeam}</b>.</span>
-                    ) : (
-                      <span>Anda login sebagai <b>{profile?.role === "admin" ? "Administrator" : "Operator"}</b> (Mode Supervisi).</span>
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Card: Supervisor Tim Box */}
-            <div className="self-start md:self-auto shrink-0">
-              {isSupervisor ? (
-                <div className="bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-slate-200 shadow-sm min-w-[260px] space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
-                    <span className="flex items-center gap-1.5 font-bold">
-                      <Users className="w-3.5 h-3.5 text-blue-600" /> Supervisi Tim:
-                    </span>
-                    <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
-                      Admin Mode
-                    </span>
-                  </div>
-                  <select
-                    value={activeTeam}
-                    onChange={(e) => setSelectedTeam(e.target.value)}
-                    className="w-full bg-slate-50 text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 outline-none cursor-pointer focus:bg-white focus:ring-2 focus:ring-[#F59E0B]"
-                  >
-                    <option value="ALL">🌐 Semua Tim (Monitoring Global)</option>
-                    {teamMasterList.map((t) => (
-                      <option key={t.id || t.nama} value={t.nama}>
-                        Tim: {t.nama}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="bg-white/95 backdrop-blur-md px-4 py-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-400 text-[#0D1B4A] flex items-center justify-center font-bold text-xs shrink-0">
-                    <HardHat className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Regu Anda</p>
-                    <p className="text-sm font-black text-slate-900 tracking-tight">{activeTeam}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Progress Bar Pengerjaan Tim (Persis seperti Mockup) */}
-          <div className="pt-3 border-t border-slate-100">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs font-bold mb-1.5">
-              <span className="text-slate-800 flex items-center gap-1.5">
-                <Share2 className="w-4 h-4 text-blue-600" />
-                Progres Pekerjaan Tim {activeTeam}
-              </span>
-              <div className="flex items-center gap-3">
-                <span className="text-slate-900">
-                  {stats.selesai} dari {stats.total} Selesai ({stats.percentage}%)
-                </span>
-                <button
-                  onClick={() => setViewMode("WALLET")}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition-colors cursor-pointer"
-                >
-                  <Coins className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Insentif: {formatRupiah(teamIncentives.grandTotal)}</span>
-                  <ChevronRight className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-            <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
-              <div
-                className="h-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 rounded-full transition-all duration-500 shadow-xs"
-                style={{ width: `${stats.percentage}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 2. 4 KARTU METRIK PERSIS GAMBAR MOCKUP                                    */}
-      {/* ========================================================================= */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Total Tugas Tim */}
-        <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-            <Layers className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[10px] sm:text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-              Total Tugas Tim
-            </p>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-2xl sm:text-3xl font-black text-slate-900">{stats.total}</span>
-              <span className="text-xs font-bold text-emerald-600">↑ 12%</span>
-            </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block">Dari periode sebelumnya</p>
-          </div>
-        </div>
-
-        {/* Waiting List */}
-        <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-            <Clock className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[10px] sm:text-[11px] font-bold tracking-wider text-amber-600 uppercase">
-              Waiting List
-            </p>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-2xl sm:text-3xl font-black text-amber-500">{stats.waiting}</span>
-              <span className="text-xs font-bold text-emerald-600">↑ 8%</span>
-            </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block">Menunggu penugasan</p>
-          </div>
-        </div>
-
-        {/* Selesai Berhasil */}
-        <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-            <Check className="w-6 h-6 stroke-[3]" />
-          </div>
-          <div>
-            <p className="text-[10px] sm:text-[11px] font-bold tracking-wider text-emerald-700 uppercase">
-              Selesai Berhasil
-            </p>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-2xl sm:text-3xl font-black text-emerald-600">{stats.selesai}</span>
-              <span className="text-xs font-bold text-emerald-600">↑ 20%</span>
-            </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block">Pekerjaan selesai</p>
-          </div>
-        </div>
-
-        {/* Ada Kendala */}
-        <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[10px] sm:text-[11px] font-bold tracking-wider text-rose-600 uppercase">
-              Ada Kendala
-            </p>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-2xl sm:text-3xl font-black text-rose-600">{stats.gagal}</span>
-              <span className="text-xs font-medium text-slate-400">0%</span>
-            </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block">Perlu perhatian</p>
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 3. TABS SWITCHER & SEARCH (PERSIS SEPERTI GAMBAR)                         */}
+      {/* NAVIGATION TABS SWITCHER & SEARCH (PERSIS KEBUTUHAN PORTAL TEKNISI)        */}
       {/* ========================================================================= */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
         {/* Buttons Switcher */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+          <button
+            onClick={() => setViewMode("DASHBOARD")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+              viewMode === "DASHBOARD"
+                ? "bg-[#0D1B4A] text-white shadow-xs"
+                : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
+            }`}
+          >
+            <PieChart className="w-4 h-4 text-blue-400" />
+            <span>Dashboard</span>
+          </button>
+
           <button
             onClick={() => setViewMode("KANBAN")}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
@@ -794,7 +1011,7 @@ export default function TeknisiDashboard() {
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Cari pelanggan / alamat..."
+              placeholder="Cari pekerjaan, pelanggan, atau alamat..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] outline-none shadow-2xs"
@@ -809,32 +1026,737 @@ export default function TeknisiDashboard() {
       </div>
 
       {/* ========================================================================= */}
+      {/* TAMPILAN UTAMA: DASHBOARD PORTAL TEKNISI (SESUAI KONSEP & LAYOUT MOCKUP)  */}
+      {/* ========================================================================= */}
+      {viewMode === "DASHBOARD" && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* 1. HERO WELCOME BANNER (PERSIS GAMBAR MOCKUP) */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm relative overflow-hidden">
+            {/* Background Graphic Tower BTS di sebelah kanan */}
+            <div className="absolute right-0 top-0 bottom-0 w-72 sm:w-96 pointer-events-none opacity-25 md:opacity-35 hidden sm:block">
+              <img
+                src="/telecom_tower.jpg"
+                alt="BTS Tower"
+                className="w-full h-full object-cover object-right"
+                style={{
+                  maskImage: "linear-gradient(to left, rgba(0,0,0,1) 40%, transparent 100%)",
+                  WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,1) 40%, transparent 100%)",
+                }}
+              />
+            </div>
+
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+              {/* Sisi Kiri: Greeting & Quick Action Buttons */}
+              <div className="space-y-3 max-w-xl">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    DASHBOARD
+                  </span>
+                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    Halo, {profile?.full_name || "Demo Admin"}! 👋
+                  </h1>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {isSupervisor
+                      ? "Anda login sebagai Administrator (Mode Supervisi)."
+                      : `Anda login sebagai Teknisi Lapangan Tim ${activeTeam}.`}
+                  </p>
+                </div>
+
+                {/* 3 Quick Action Field Toolkit Buttons */}
+                <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowOpmGuideModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/90 hover:bg-blue-100 text-blue-700 border border-blue-200/80 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-blue-600 fill-blue-600" />
+                    <span>Standar Redaman OPM</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowNocContactModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50/90 hover:bg-rose-100 text-rose-700 border border-rose-200/80 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
+                  >
+                    <PhoneCall className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Hotline NOC & OLT</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowSopModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50/90 hover:bg-amber-100 text-amber-800 border border-amber-200/80 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-amber-700" />
+                    <span>SOP Instalasi & K3</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Sisi Kanan: Kartu Info Tim & Shift */}
+              <div className="bg-slate-50/90 sm:bg-white/95 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs min-w-[240px] sm:min-w-[260px] space-y-3 self-start lg:self-auto">
+                {/* Selector / Info Tim */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold leading-tight">Tim Lapangan</span>
+                      <div className="relative">
+                        {isSupervisor ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-bold text-slate-800">Tim:</span>
+                            <select
+                              value={activeTeam}
+                              onChange={(e) => setSelectedTeam(e.target.value)}
+                              className="text-xs font-black text-slate-900 bg-transparent pr-4 outline-none cursor-pointer hover:text-blue-600 appearance-none font-sans"
+                            >
+                              <option value="GATRA - AIS">GATRA - AIS</option>
+                              <option value="AZWAR - RIO">AZWAR - RIO</option>
+                              {teamMasterList
+                                .filter((t) => t.nama !== "GATRA - AIS" && t.nama !== "AZWAR - RIO")
+                                .map((t) => (
+                                  <option key={t.id || t.nama} value={t.nama}>
+                                    {t.nama}
+                                  </option>
+                                ))}
+                            </select>
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                          </div>
+                        ) : (
+                          <span className="text-xs font-black text-slate-900">Tim: {activeTeam}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Shift Lapangan */}
+                <div className="pt-2 border-t border-slate-200/70 flex items-center gap-2.5 text-xs">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block font-semibold leading-tight">Shift Lapangan</span>
+                    <span className="text-xs font-black text-slate-800">08:00 – 17:00 WIB</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. BARIS 4 KARTU METRIK FINANSIAL & TARGET (PERSIS GAMBAR MOCKUP) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1: Total Komisi & Insentif Teknisi */}
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm flex flex-col justify-between relative group hover:border-slate-200 transition-all">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <Wallet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-800 leading-snug">
+                    Total Komisi & Insentif Teknisi
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Periode September 2026
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-baseline justify-between">
+                <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Rp 1.065.000
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("WALLET")}
+                  className="w-7 h-7 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-all cursor-pointer group-hover:translate-x-0.5"
+                  title="Lihat Rincian Dompet"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Card 2: Fee Pokok */}
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm flex flex-col justify-between hover:border-slate-200 transition-all">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-800 leading-snug">
+                    Fee Pokok
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Dari 22 tugas selesai
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-baseline justify-between">
+                <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Rp 1.065.000
+                </span>
+              </div>
+            </div>
+
+            {/* Card 3: Bonus Redaman (QC) */}
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm flex flex-col justify-between hover:border-slate-200 transition-all">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                  <Gift className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-800 leading-snug">
+                    Bonus Redaman (QC)
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    0 titik prima
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-baseline justify-between">
+                <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Rp 0
+                </span>
+              </div>
+            </div>
+
+            {/* Card 4: Target Bulanan */}
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm flex flex-col justify-between hover:border-slate-200 transition-all">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <Target className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-800 leading-snug">
+                    Target Bulanan
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Target Silver (25 Tugas)
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-1.5">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    88%
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                    style={{ width: "88%" }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. BARIS 2 GRAFIK: STATUS PEKERJAAN (DONUT) & STATISTIK PEKERJAAN (LINE AREA) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Grafik Kiri: Status Pekerjaan */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between">
+              {/* Header Chart */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <PieChart className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-extrabold text-sm text-slate-900">
+                    Status Pekerjaan
+                  </h3>
+                </div>
+
+                <div className="relative">
+                  <select
+                    value={dashboardStatusPeriod}
+                    onChange={(e) => setDashboardStatusPeriod(e.target.value)}
+                    className="text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg px-2.5 py-1 pr-6 outline-none cursor-pointer hover:border-slate-300 appearance-none shadow-2xs"
+                  >
+                    <option value="September 2026">September 2026</option>
+                    <option value="Agustus 2026">Agustus 2026</option>
+                    <option value="Semua Waktu">Semua Waktu</option>
+                  </select>
+                  <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Body Chart Donut */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-4">
+                {/* SVG Donut */}
+                <div className="relative w-44 h-44 flex items-center justify-center shrink-0">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
+                    <circle cx="80" cy="80" r="56" fill="none" stroke="#F1F5F9" strokeWidth="18" />
+                    {/* Selesai: 61% = 214.8 stroke dash (dari circumference ~351.86) */}
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r="56"
+                      fill="none"
+                      stroke="#10B981"
+                      strokeWidth="18"
+                      strokeDasharray="214.8 351.86"
+                      strokeDashoffset="0"
+                      className="transition-all duration-700"
+                    />
+                    {/* Menunggu: 39% = 137.0 stroke dash */}
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r="56"
+                      fill="none"
+                      stroke="#F59E0B"
+                      strokeWidth="18"
+                      strokeDasharray="137.0 351.86"
+                      strokeDashoffset="-214.8"
+                      className="transition-all duration-700"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                    <span className="text-3xl font-black text-slate-900 tracking-tight leading-none">
+                      36
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-400 mt-1">
+                      Total Tugas
+                    </span>
+                  </div>
+                </div>
+
+                {/* Legend List */}
+                <div className="flex-1 w-full space-y-2.5">
+                  <div className="flex items-center justify-between text-xs py-1 border-b border-slate-50">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="font-semibold text-slate-700">Selesai</span>
+                    </div>
+                    <span className="font-bold text-slate-900">22 (61%)</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs py-1 border-b border-slate-50">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                      <span className="font-semibold text-slate-700">Menunggu</span>
+                    </div>
+                    <span className="font-bold text-slate-900">14 (39%)</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs py-1 border-b border-slate-50">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+                      <span className="font-semibold text-slate-700">Dalam Proses</span>
+                    </div>
+                    <span className="font-bold text-slate-900">0 (0%)</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs py-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
+                      <span className="font-semibold text-slate-700">Tertunda</span>
+                    </div>
+                    <span className="font-bold text-slate-900">0 (0%)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Grafik Kanan: Statistik Pekerjaan */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between">
+              {/* Header Chart */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-extrabold text-sm text-slate-900">
+                    Statistik Pekerjaan
+                  </h3>
+                </div>
+
+                <div className="relative">
+                  <select
+                    value={dashboardStatPeriod}
+                    onChange={(e) => setDashboardStatPeriod(e.target.value)}
+                    className="text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg px-2.5 py-1 pr-6 outline-none cursor-pointer hover:border-slate-300 appearance-none shadow-2xs"
+                  >
+                    <option value="Mingguan">Mingguan</option>
+                    <option value="Bulanan">Bulanan</option>
+                  </select>
+                  <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Body Chart Line Kurva */}
+              <div className="py-2">
+                <div className="relative h-44 w-full">
+                  <svg className="w-full h-full overflow-visible" viewBox="0 0 500 160" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="techBlueGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#2563EB" stopOpacity="0.22" />
+                        <stop offset="100%" stopColor="#2563EB" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* Grid Lines Horizontal */}
+                    <line x1="25" y1="20" x2="490" y2="20" stroke="#F1F5F9" strokeWidth="1" />
+                    <line x1="25" y1="60" x2="490" y2="60" stroke="#F1F5F9" strokeWidth="1" />
+                    <line x1="25" y1="100" x2="490" y2="100" stroke="#F1F5F9" strokeWidth="1" />
+                    <line x1="25" y1="140" x2="490" y2="140" stroke="#E2E8F0" strokeWidth="1" />
+
+                    {/* Y-axis Labels */}
+                    <text x="5" y="24" className="text-[10px] fill-slate-400 font-medium">15</text>
+                    <text x="5" y="64" className="text-[10px] fill-slate-400 font-medium">10</text>
+                    <text x="10" y="104" className="text-[10px] fill-slate-400 font-medium">5</text>
+                    <text x="10" y="144" className="text-[10px] fill-slate-400 font-medium">0</text>
+
+                    {/* Area under curve */}
+                    <path
+                      d="M 40 130 C 95 125, 115 112, 150 108 C 190 102, 220 62, 260 60 C 300 58, 335 90, 370 86 C 410 82, 440 25, 475 20 L 475 140 L 40 140 Z"
+                      fill="url(#techBlueGrad)"
+                    />
+
+                    {/* Smooth Curved Line */}
+                    <path
+                      d="M 40 130 C 95 125, 115 112, 150 108 C 190 102, 220 62, 260 60 C 300 58, 335 90, 370 86 C 410 82, 440 25, 475 20"
+                      fill="none"
+                      stroke="#2563EB"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+
+                    {/* Data Points */}
+                    {[
+                      { cx: 40, cy: 130 },
+                      { cx: 150, cy: 108 },
+                      { cx: 260, cy: 60 },
+                      { cx: 370, cy: 86 },
+                      { cx: 475, cy: 20 },
+                    ].map((pt, i) => (
+                      <circle
+                        key={i}
+                        cx={pt.cx}
+                        cy={pt.cy}
+                        r="4.5"
+                        fill="#2563EB"
+                        stroke="#FFFFFF"
+                        strokeWidth="2.5"
+                        className="hover:scale-125 transition-transform cursor-pointer"
+                      />
+                    ))}
+                  </svg>
+                </div>
+
+                {/* X-axis Labels */}
+                <div className="flex items-center justify-between pl-6 pr-2 pt-1 text-[11px] font-semibold text-slate-500">
+                  <span>1 Sep</span>
+                  <span>8 Sep</span>
+                  <span>15 Sep</span>
+                  <span>22 Sep</span>
+                  <span>30 Sep</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. BARIS 2 KOMPONEN: DAFTAR TUGAS (RUN-SHEET) & NOTIFIKASI & INFO */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Kiri: Daftar Tugas (Run-Sheet) */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <ClipboardList className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-900">
+                      Daftar Tugas (Run-Sheet)
+                    </h3>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("LIST")}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+                  >
+                    <span>Lihat Semua</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Table Run Sheet */}
+                <div className="overflow-x-auto mt-2">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        <th className="py-2.5 px-2">#</th>
+                        <th className="py-2.5 px-2">Pelanggan / Alamat</th>
+                        <th className="py-2.5 px-2 hidden sm:table-cell">Jenis Pekerjaan</th>
+                        <th className="py-2.5 px-2">Status</th>
+                        <th className="py-2.5 px-2 hidden sm:table-cell">Jadwal</th>
+                        <th className="py-2.5 px-1 text-center"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs">
+                      {/* Row 1: Budi Santoso */}
+                      <tr className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3 px-2 font-mono font-bold text-slate-400">001</td>
+                        <td className="py-3 px-2">
+                          <p className="font-bold text-slate-900 leading-snug">Budi Santoso</p>
+                          <p className="text-[11px] text-slate-400 truncate max-w-[160px] sm:max-w-[200px]">
+                            Jl. Ahmad Yani, Pontianak
+                          </p>
+                        </td>
+                        <td className="py-3 px-2 hidden sm:table-cell">
+                          <span className="font-semibold text-slate-700">Instalasi Baru</span>
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
+                            Menunggu
+                          </span>
+                        </td>
+                        <td className="py-3 px-2 hidden sm:table-cell">
+                          <p className="font-semibold text-slate-700 text-[11px]">30 Sep 2026</p>
+                          <p className="text-[10px] text-slate-400">09:00 - 11:00</p>
+                        </td>
+                        <td className="py-3 px-1 text-center relative">
+                          <button
+                            type="button"
+                            onClick={() => setActiveActionTaskId(activeActionTaskId === 1 ? null : 1)}
+                            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                          {activeActionTaskId === 1 && (
+                            <div className="absolute right-2 top-8 z-30 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 min-w-[150px] text-left text-xs font-semibold animate-in fade-in duration-150">
+                              <button
+                                onClick={() => {
+                                  setActiveActionTaskId(null);
+                                  setViewMode("KANBAN");
+                                }}
+                                className="w-full px-3 py-1.5 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Buka di Kanban</span>
+                              </button>
+                              <a
+                                href={`https://wa.me/6281234567890`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-full px-3 py-1.5 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Chat WhatsApp</span>
+                              </a>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+
+                      {/* Row 2: PT. Maju Abadi */}
+                      <tr className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3 px-2 font-mono font-bold text-slate-400">002</td>
+                        <td className="py-3 px-2">
+                          <p className="font-bold text-slate-900 leading-snug">PT. Maju Abadi</p>
+                          <p className="text-[11px] text-slate-400 truncate max-w-[160px] sm:max-w-[200px]">
+                            Jl. Khatulistiwa, Kubu Raya
+                          </p>
+                        </td>
+                        <td className="py-3 px-2 hidden sm:table-cell">
+                          <span className="font-semibold text-slate-700">Perbaikan</span>
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                            Selesai
+                          </span>
+                        </td>
+                        <td className="py-3 px-2 hidden sm:table-cell">
+                          <p className="font-semibold text-slate-700 text-[11px]">30 Sep 2026</p>
+                          <p className="text-[10px] text-slate-400">10:00 - 11:30</p>
+                        </td>
+                        <td className="py-3 px-1 text-center relative">
+                          <button
+                            type="button"
+                            onClick={() => setActiveActionTaskId(activeActionTaskId === 2 ? null : 2)}
+                            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* Row 3: Siti Rahma */}
+                      <tr className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3 px-2 font-mono font-bold text-slate-400">003</td>
+                        <td className="py-3 px-2">
+                          <p className="font-bold text-slate-900 leading-snug">Siti Rahma</p>
+                          <p className="text-[11px] text-slate-400 truncate max-w-[160px] sm:max-w-[200px]">
+                            Jl. Parit H. Husin II, Pontianak
+                          </p>
+                        </td>
+                        <td className="py-3 px-2 hidden sm:table-cell">
+                          <span className="font-semibold text-slate-700">Migrasi</span>
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                            Selesai
+                          </span>
+                        </td>
+                        <td className="py-3 px-2 hidden sm:table-cell">
+                          <p className="font-semibold text-slate-700 text-[11px]">30 Sep 2026</p>
+                          <p className="text-[10px] text-slate-400">13:00 - 14:00</p>
+                        </td>
+                        <td className="py-3 px-1 text-center relative">
+                          <button
+                            type="button"
+                            onClick={() => setActiveActionTaskId(activeActionTaskId === 3 ? null : 3)}
+                            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Kanan: Notifikasi & Info */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <Bell className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-900">
+                      Notifikasi & Info
+                    </h3>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => triggerToast("Semua riwayat notifikasi operasional termonitor secara real-time.", "info")}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+                  >
+                    <span>Lihat Semua</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Notifications List */}
+                <div className="divide-y divide-slate-100 mt-1">
+                  {/* Item 1: Tugas baru masuk */}
+                  <div className="py-3 flex items-start justify-between gap-3 text-xs">
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0 mt-1" />
+                      <div>
+                        <p className="font-bold text-slate-900">Tugas baru masuk</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Instalasi baru – Budi Santoso
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] text-slate-400 whitespace-nowrap">
+                      2 jam lalu
+                    </span>
+                  </div>
+
+                  {/* Item 2: Tugas selesai */}
+                  <div className="py-3 flex items-start justify-between gap-3 text-xs">
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 mt-1" />
+                      <div>
+                        <p className="font-bold text-slate-900">Tugas selesai</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Perbaikan – PT. Maju Abadi
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] text-slate-400 whitespace-nowrap">
+                      4 jam lalu
+                    </span>
+                  </div>
+
+                  {/* Item 3: Update target bulanan */}
+                  <div className="py-3 flex items-start justify-between gap-3 text-xs">
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0 mt-1" />
+                      <div>
+                        <p className="font-bold text-slate-900">Update target bulanan</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Pencapaian 88% dari target Silver
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] text-slate-400 whitespace-nowrap">
+                      6 jam lalu
+                    </span>
+                  </div>
+
+                  {/* Item 4: Gangguan jaringan */}
+                  <div className="py-3 flex items-start justify-between gap-3 text-xs">
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0 mt-1" />
+                      <div>
+                        <p className="font-bold text-slate-900">Gangguan jaringan</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Laporan gangguan di area Sungai Raya
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] text-slate-400 whitespace-nowrap">
+                      7 jam lalu
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* 4. KANBAN 4 KOLOM PERSIS GAMBAR MOCKUP                                    */}
       {/* ========================================================================= */}
       {viewMode === "KANBAN" && (
         <div>
-          {/* Mobile Column Quick Filter Pills (sm:hidden) */}
-          <div className="sm:hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2">
+          {/* Mobile Column Quick Filter Pills (Segmented Control) */}
+          <div className="sm:hidden flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl mb-3 overflow-x-auto no-scrollbar border border-slate-200/80">
             <button
               onClick={() => setMobileKanbanCol("ALL")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                mobileKanbanCol === "ALL" ? "bg-[#0D1B4A] text-white" : "bg-white text-slate-600 border border-slate-200"
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all min-h-[38px] cursor-pointer ${
+                mobileKanbanCol === "ALL"
+                  ? "bg-[#0D1B4A] text-white shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Semua ({searchedTasks.length})
             </button>
             {KANBAN_COLS.map((col) => {
               const count = searchedTasks.filter((t) => t.status === col.key).length;
+              const isSelected = mobileKanbanCol === col.key;
               return (
                 <button
                   key={col.key}
                   onClick={() => setMobileKanbanCol(col.key)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all ${
-                    mobileKanbanCol === col.key ? "bg-[#0D1B4A] text-white" : "bg-white text-slate-600 border border-slate-200"
+                  className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all min-h-[38px] cursor-pointer ${
+                    isSelected
+                      ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                      : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${col.color === "blue" ? "bg-blue-500" : col.color === "emerald" ? "bg-emerald-500" : col.color === "amber" ? "bg-amber-500" : "bg-rose-500"}`} />
                   <span>{col.label}</span>
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 text-slate-700">
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                      isSelected ? "bg-slate-900 text-white" : "bg-slate-200/80 text-slate-700"
+                    }`}
+                  >
                     {count}
                   </span>
                 </button>
@@ -905,7 +1827,33 @@ export default function TeknisiDashboard() {
       {/* 5. DAFTAR TUGAS (RUN SHEET)                                               */}
       {/* ========================================================================= */}
       {viewMode === "LIST" && (
-        <div className="space-y-3 max-w-4xl mx-auto">
+        <div className="space-y-4 max-w-4xl mx-auto">
+          {/* Header Info Run-Sheet */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#0D1B4A] text-amber-400 flex items-center justify-center font-bold shrink-0">
+                <ListFilter className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900 leading-tight">
+                  Run-Sheet Harian Tim {activeTeam}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Daftar antrean rute pengerjaan urut dari prioritas tertinggi
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200">
+                {searchedTasks.filter((t) => t.status !== "SELESAI").length} Belum Selesai
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
+                {searchedTasks.filter((t) => t.status === "SELESAI").length} Selesai
+              </span>
+            </div>
+          </div>
+
           {searchedTasks.length === 0 ? (
             <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-xs">
               <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto opacity-30 mb-2" />
@@ -913,7 +1861,14 @@ export default function TeknisiDashboard() {
               <p className="text-xs text-slate-400 mt-1">Semua pekerjaan terpantau aman.</p>
             </div>
           ) : (
-            searchedTasks.map((task) => renderCard(task))
+            <div className="space-y-3">
+              {[...searchedTasks]
+                .sort((a, b) => {
+                  const priority = { DIJADWALKAN: 1, "WAITING LIST": 2, GAGAL: 3, SELESAI: 4 };
+                  return (priority[a.status] || 99) - (priority[b.status] || 99);
+                })
+                .map((task, idx) => renderCard(task, idx + 1))}
+            </div>
           )}
         </div>
       )}
@@ -951,22 +1906,53 @@ export default function TeknisiDashboard() {
               return (
                 <div
                   key={odp.id}
-                  className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-md transition-all space-y-1.5"
+                  className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-md transition-all space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{odp.odc}</span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                        isAman
-                          ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                          : "bg-amber-100 text-amber-800 border border-amber-200"
-                      }`}
-                    >
-                      {odp.status || "Siap"}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {odp.port_is_full ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200">
+                          ⛔ Port Penuh
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          Sisa {odp.port_sisa} Port
+                        </span>
+                      )}
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                          isAman
+                            ? "bg-slate-100 text-slate-700"
+                            : "bg-amber-100 text-amber-800 border border-amber-200"
+                        }`}
+                      >
+                        {odp.status || "Siap"}
+                      </span>
+                    </div>
                   </div>
                   <h4 className="font-bold text-sm text-slate-900">{odp.nama}</h4>
-                  <p className="text-xs text-slate-500">{odp.keterangan || "Jalur fiber optik normal"}</p>
+
+                  <div className="flex items-center justify-between text-xs text-slate-600 pt-0.5">
+                    <span className="font-medium">
+                      Port: <b>{odp.port_terpakai || 0}</b> / {odp.port_kapasitas || 8} Terpakai
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      {odp.connected_customers?.length || 0} Pelanggan
+                    </span>
+                  </div>
+
+                  {/* Progress bar kapasitas port */}
+                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        odp.port_is_full ? "bg-rose-500" : odp.port_is_near_full ? "bg-amber-500" : "bg-emerald-500"
+                      }`}
+                      style={{ width: `${odp.port_percent || 0}%` }}
+                    />
+                  </div>
+
+                  <p className="text-xs text-slate-500 pt-0.5">{odp.keterangan || "Jalur fiber optik normal"}</p>
                 </div>
               );
             })}
@@ -1001,42 +1987,99 @@ export default function TeknisiDashboard() {
       {viewMode === "WALLET" && (
         <div className="space-y-5">
           {/* Header Bar Dompet */}
-          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
-                  <Wallet className="w-4 h-4" />
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                    Dompet & Insentif Tim: <span className="text-[#F59E0B]">{activeTeam}</span>
+                  </h3>
                 </div>
-                <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                  Dompet & Insentif Tim: <span className="text-[#F59E0B]">{activeTeam}</span>
-                </h3>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Akumulasi fee pokok pekerjaan, bonus redaman optik prima, dan bonus target kinerja bulanan.
+                </p>
               </div>
-              <p className="text-xs sm:text-sm text-slate-500">
-                Akumulasi fee pokok pekerjaan, bonus redaman optik prima, dan bonus target kinerja bulanan.
-              </p>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {isSupervisor && (
+                  <button
+                    onClick={() => {
+                      setConfigForm(incentiveConfig);
+                      setShowConfigModal(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors cursor-pointer"
+                  >
+                    <Settings className="w-4 h-4 text-slate-600" />
+                    <span>Atur Tarif</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setShowSlipModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#0D1B4A] hover:bg-[#1a237e] text-white shadow-xs transition-all cursor-pointer"
+                >
+                  <Printer className="w-4 h-4 text-amber-400" />
+                  <span>Cetak Slip Insentif</span>
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
-              {isSupervisor && (
-                <button
-                  onClick={() => {
-                    setConfigForm(incentiveConfig);
-                    setShowConfigModal(true);
-                  }}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors cursor-pointer"
-                >
-                  <Settings className="w-4 h-4 text-slate-600" />
-                  <span>Atur Tarif</span>
-                </button>
-              )}
+            {/* Cut-Off Period Filter Controls */}
+            <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  Periode Cut-Off:
+                </span>
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                  {[
+                    { id: "THIS_MONTH", label: "Bulan Ini" },
+                    { id: "LAST_MONTH", label: "Bulan Lalu" },
+                    { id: "ALL", label: "Semua" },
+                    { id: "CUSTOM", label: "Kustom" },
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setWalletPeriod(p.id)}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        walletPeriod === p.id
+                          ? "bg-[#0D1B4A] text-white shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
 
-              <button
-                onClick={() => setShowSlipModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#0D1B4A] hover:bg-[#1a237e] text-white shadow-xs transition-all cursor-pointer"
-              >
-                <Printer className="w-4 h-4 text-amber-400" />
-                <span>Cetak Slip Insentif</span>
-              </button>
+                {walletPeriod === "CUSTOM" && (
+                  <div className="flex items-center gap-1.5 mt-1 sm:mt-0">
+                    <input
+                      type="date"
+                      value={cutoffStart}
+                      onChange={(e) => setCutoffStart(e.target.value)}
+                      className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none"
+                    />
+                    <span className="text-slate-400 text-xs">s/d</span>
+                    <input
+                      type="date"
+                      value={cutoffEnd}
+                      onChange={(e) => setCutoffEnd(e.target.value)}
+                      className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 text-slate-500">
+                <span className="hidden sm:inline">Periode Aktif:</span>
+                <span className="font-bold text-[#0D1B4A] bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-lg text-[11px]">
+                  {walletPeriodLabel}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -1065,11 +2108,11 @@ export default function TeknisiDashboard() {
               </div>
             </div>
 
-            {/* 2. Fee Pokok Pekerjaan */}
+            {/* 2. Komisi Pekerjaan */}
             <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">
-                  Fee Pokok Tugas
+                  Komisi Pekerjaan
                 </span>
                 <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
                   <Wrench className="w-5 h-5" />
@@ -1084,30 +2127,30 @@ export default function TeknisiDashboard() {
                 </p>
               </div>
               <div className="text-[10px] text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg">
-                Tarif standar per jenis tugas
+                Dihitung dari volume item pekerjaan
               </div>
             </div>
 
-            {/* 3. Bonus Redaman Prima */}
+            {/* 3. Volume Item Terverifikasi */}
             <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
-                  Bonus Redaman Prima
+                  Volume Item Dikerjakan
                 </span>
                 <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5" />
+                  <Layers className="w-5 h-5" />
                 </div>
               </div>
               <div className="my-2">
                 <h3 className="text-2xl font-black text-emerald-600">
-                  {formatRupiah(teamIncentives.totalQualityBonus)}
+                  {teamIncentives.itemsAggregated?.reduce((acc, item) => acc + item.totalQty, 0) || 0}
                 </h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  {teamIncentives.primaCount} titik redaman terbaik
+                  Dari {teamIncentives.itemsAggregated?.length || 0} macam jenis pekerjaan
                 </p>
               </div>
               <div className="text-[10px] text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                +{formatRupiah(incentiveConfig.qualityBonus.amount)} per redaman -15 s/d -22.9 dBm
+                Tabel Komisi Pekerjaan Team Nexus
               </div>
             </div>
 
@@ -1216,29 +2259,83 @@ export default function TeknisiDashboard() {
             </div>
           </div>
 
-          {/* Rujukan Tarif Aktif */}
-          <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-slate-700">
-            <div className="flex items-center gap-2 font-bold text-[#0D1B4A]">
-              <Info className="w-4 h-4 text-blue-600 shrink-0" />
-              <span>Daftar Tarif Insentif Aktif:</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs">
-              <span>
-                Pemasangan: <b>{formatRupiah(incentiveConfig.tariffs.PEMASANGAN)}</b>
-              </span>
-              <span>
-                Perbaikan: <b>{formatRupiah(incentiveConfig.tariffs.PERBAIKAN)}</b>
-              </span>
-              <span>
-                Pemutusan: <b>{formatRupiah(incentiveConfig.tariffs.PEMUTUSAN)}</b>
-              </span>
-              <span>
-                ODP/ODC: <b>{formatRupiah(incentiveConfig.tariffs["PERBAIKAN KHUSUS (ODP/ODC)"])}</b>
-              </span>
-              <span className="text-emerald-700 font-bold">
-                Redaman Prima: +{formatRupiah(incentiveConfig.qualityBonus.amount)}/titik
+          {/* Rujukan Tarif Komisi Resmi Team Nexus */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                  <Coins className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900">
+                    Rekapitulasi Volume Pekerjaan Tim (Tabel Komisi Team Nexus)
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    Akumulasi pekerjaan lapangan yang telah diverifikasi dan siap dibayarkan
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-black text-amber-700 bg-amber-50 px-3 py-1 rounded-xl border border-amber-200 w-fit">
+                Total Komisi Item: {formatRupiah(teamIncentives.totalBaseFee)}
               </span>
             </div>
+
+            {/* Tabel Ringkasan Item Terakumulasi */}
+            {teamIncentives.itemsAggregated && teamIncentives.itemsAggregated.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wider font-semibold text-[10px]">
+                      <th className="py-2 px-3">Keterangan Pekerjaan</th>
+                      <th className="py-2 px-3 text-center">Satuan</th>
+                      <th className="py-2 px-3 text-right">Tarif Komisi</th>
+                      <th className="py-2 px-3 text-center">Volume Total</th>
+                      <th className="py-2 px-3 text-right">Subtotal Komisi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {teamIncentives.itemsAggregated.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-2.5 px-3">
+                          <p className="font-bold text-slate-900">{item.nama}</p>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {item.kategori} · {item.taskCount} tugas terkait
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700">
+                            {item.satuan}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-medium text-slate-600">
+                          {formatRupiah(item.tarif)}
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-black text-slate-900">
+                          {item.totalQty.toLocaleString("id-ID")} {item.satuan}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-black text-emerald-700">
+                          {formatRupiah(item.totalAmount)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-slate-200 bg-slate-50/70 font-black">
+                      <td colSpan={4} className="py-2.5 px-3 text-right text-slate-700">
+                        TOTAL KOMISI VOLUME PEKERJAAN:
+                      </td>
+                      <td className="py-2.5 px-3 text-right text-sm text-slate-900">
+                        {formatRupiah(teamIncentives.totalBaseFee)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 italic py-2">
+                Belum ada volume pekerjaan lapangan tercatat pada periode ini.
+              </p>
+            )}
           </div>
 
           {/* Rincian Item Pekerjaan yang Selesai */}
@@ -1246,10 +2343,10 @@ export default function TeknisiDashboard() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div>
                 <h4 className="text-base font-bold text-slate-900">
-                  Rincian Pekerjaan Selesai ({filteredWalletBreakdown.length} Tugas)
+                  Rincian Tugas Selesai ({filteredWalletBreakdown.length} Pekerjaan)
                 </h4>
                 <p className="text-xs text-slate-500">
-                  Daftar seluruh pekerjaan yang telah diselesaikan beserta perolehan fee dan bonus
+                  Daftar seluruh pekerjaan yang telah diselesaikan beserta perolehan komisi riil
                 </p>
               </div>
 
@@ -1271,7 +2368,7 @@ export default function TeknisiDashboard() {
                 <FileCheck className="w-10 h-10 text-slate-300 mx-auto" />
                 <p className="text-sm font-bold text-slate-700">Belum ada tugas selesai</p>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  Selesaikan pekerjaan di tab Kanban Board atau Daftar Tugas untuk mulai mengakumulasikan insentif tim Anda.
+                  Selesaikan pekerjaan di tab Kanban Board atau Daftar Tugas untuk mulai mengakumulasikan komisi tim Anda.
                 </p>
               </div>
             ) : (
@@ -1283,10 +2380,9 @@ export default function TeknisiDashboard() {
                       <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wider font-semibold text-[10px]">
                         <th className="py-2.5 px-3">Pelanggan / Alamat</th>
                         <th className="py-2.5 px-3">Jenis Tugas</th>
+                        <th className="py-2.5 px-3">Rincian Item Dikerjakan</th>
                         <th className="py-2.5 px-3">Redaman Optik</th>
-                        <th className="py-2.5 px-3">Fee Pokok</th>
-                        <th className="py-2.5 px-3">Bonus Kualitas</th>
-                        <th className="py-2.5 px-3 text-right">Total Fee</th>
+                        <th className="py-2.5 px-3 text-right">Total Komisi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1302,35 +2398,36 @@ export default function TeknisiDashboard() {
                             </span>
                           </td>
                           <td className="py-3 px-3">
-                            {task.incentive.redaman !== null ? (
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-mono font-bold text-slate-700">
-                                  {task.incentive.redaman} dBm
-                                </span>
-                                {task.incentive.hasQualityBonus && (
-                                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200">
-                                    <Sparkles className="w-2.5 h-2.5" /> Prima
+                            {Array.isArray(task.incentive?.items) && task.incentive.items.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {task.incentive.items.map((it, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-semibold"
+                                  >
+                                    <span>{it.nama}:</span>
+                                    <b className="font-bold">{it.qty} {it.satuan}</b>
+                                    <span className="text-amber-600 font-mono">({formatRupiah(it.subtotal)})</span>
                                   </span>
-                                )}
+                                ))}
                               </div>
+                            ) : (
+                              <span className="text-slate-500 text-[11px] italic">
+                                Tarif standar jenis tugas
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3">
+                            {task.incentive?.redaman !== null && task.incentive?.redaman !== undefined ? (
+                              <span className="font-mono font-bold text-slate-700">
+                                {task.incentive.redaman} dBm
+                              </span>
                             ) : (
                               <span className="text-slate-400 italic text-[11px]">-</span>
                             )}
                           </td>
-                          <td className="py-3 px-3 font-semibold text-slate-700">
-                            {formatRupiah(task.incentive.baseFee)}
-                          </td>
-                          <td className="py-3 px-3">
-                            {task.incentive.qualityBonus > 0 ? (
-                              <span className="text-emerald-700 font-bold">
-                                +{formatRupiah(task.incentive.qualityBonus)}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400">-</span>
-                            )}
-                          </td>
                           <td className="py-3 px-3 text-right font-black text-slate-900 text-sm">
-                            {formatRupiah(task.incentive.total)}
+                            {formatRupiah(task.incentive?.total || 0)}
                           </td>
                         </tr>
                       ))}
@@ -1350,7 +2447,7 @@ export default function TeknisiDashboard() {
                           {task.jenis}
                         </span>
                         <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
-                          {formatRupiah(task.incentive.total)}
+                          {formatRupiah(task.incentive?.total || 0)}
                         </span>
                       </div>
 
@@ -1359,20 +2456,29 @@ export default function TeknisiDashboard() {
                         <p className="text-xs text-slate-500 line-clamp-1">{task.alamat}</p>
                       </div>
 
+                      {Array.isArray(task.incentive?.items) && task.incentive.items.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {task.incentive.items.map((it, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 text-[9px] font-semibold border border-amber-200"
+                            >
+                              <span>{it.nama}</span>
+                              <b>{it.qty} {it.satuan}</b>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
                       <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between text-xs text-slate-600">
                         <div className="flex items-center gap-1.5">
                           <Gauge className="w-3.5 h-3.5 text-slate-400" />
                           <span>
-                            {task.incentive.redaman !== null ? `${task.incentive.redaman} dBm` : "N/A"}
+                            {task.incentive?.redaman !== null && task.incentive?.redaman !== undefined ? `${task.incentive.redaman} dBm` : "N/A"}
                           </span>
-                          {task.incentive.hasQualityBonus && (
-                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">
-                              +5rb Prima
-                            </span>
-                          )}
                         </div>
-                        <span className="text-slate-400 text-[11px]">
-                          Fee: {formatRupiah(task.incentive.baseFee)}
+                        <span className="text-slate-500 text-[11px] font-bold">
+                          Komisi: {formatRupiah(task.incentive?.total || 0)}
                         </span>
                       </div>
                     </div>
@@ -1411,34 +2517,49 @@ export default function TeknisiDashboard() {
             </div>
 
             <form onSubmit={handleCompleteSubmit} className="mt-4 space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Hasil Redaman Optik (dBm) <span className="text-rose-500">*</span>
-                  </label>
-                  {dbmQuality && (
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${dbmQuality.color}`}>
-                      <span className={`w-2 h-2 rounded-full ${dbmQuality.dot}`} />
-                      {dbmQuality.label}
+              {selectedTask.jenis === "PEMUTUSAN" ? (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-900 space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-extrabold text-rose-700">
+                    <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>Instruksi Pemutusan (Dismantle Perangkat)</span>
+                  </div>
+                  <p className="text-[11px] text-rose-800 leading-relaxed">
+                    1. Cabut kabel dropcore dari port tiang ODP <b>{selectedTask.odp || ""}</b>.<br />
+                    2. Tarik kembali unit modem ONT & adaptor dari rumah pelanggan.<br />
+                    3. Foto perangkat yang ditarik & barcode nomor seri modem.<br />
+                    <b>1 Port ODP otomatis dibebaskan</b> saat Anda menyimpan laporan ini.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                      Hasil Redaman Optik (dBm) <span className="text-rose-500">*</span>
+                    </label>
+                    {dbmQuality && (
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${dbmQuality.color}`}>
+                        <span className={`w-2 h-2 rounded-full ${dbmQuality.dot}`} />
+                        {dbmQuality.label}
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Gauge className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      required
+                      value={completionForm.redaman}
+                      onChange={(e) => setCompletionForm({ ...completionForm, redaman: e.target.value })}
+                      placeholder="Contoh: -19.5"
+                      className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                      dBm
                     </span>
-                  )}
+                  </div>
                 </div>
-                <div className="relative">
-                  <Gauge className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    required
-                    value={completionForm.redaman}
-                    onChange={(e) => setCompletionForm({ ...completionForm, redaman: e.target.value })}
-                    placeholder="Contoh: -19.5"
-                    className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
-                  />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-                    dBm
-                  </span>
-                </div>
-              </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
@@ -1454,17 +2575,35 @@ export default function TeknisiDashboard() {
                 />
               </div>
 
+              {/* Konfirmasi Tiang ODP Tujuan */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  ODP & Nomor Port Terpakai
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Wifi className="w-3.5 h-3.5 text-blue-600" />
+                    <span>ODP / Tiang Distribusi</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-normal">
+                    (Sinkron Radius / MikroTik)
+                  </span>
                 </label>
-                <input
-                  type="text"
-                  value={completionForm.odpPort}
-                  onChange={(e) => setCompletionForm({ ...completionForm, odpPort: e.target.value })}
-                  placeholder="Contoh: ODP 1.2 Port 4"
-                  className="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-                />
+                <select
+                  value={selectedOdpForTask}
+                  onChange={(e) => {
+                    const newOdp = e.target.value;
+                    setSelectedOdpForTask(newOdp);
+                    setCompletionForm((prev) => ({
+                      ...prev,
+                      odp: newOdp,
+                    }));
+                  }}
+                  className="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none cursor-pointer"
+                >
+                  {(odpList || []).map((o) => (
+                    <option key={o.id || o.nama} value={o.nama}>
+                      {o.nama} ({o.odc}) — {o.status || "Aman"}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -1480,6 +2619,262 @@ export default function TeknisiDashboard() {
                 />
               </div>
 
+              {/* Rincian Item Pekerjaan & Klaim Komisi (Team Nexus) */}
+              <div className="p-3.5 sm:p-4 bg-amber-50/70 border border-amber-200/90 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                      <Coins className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">Rincian Pekerjaan Lapangan</h4>
+                      <p className="text-[10px] text-slate-500">Tabel Komisi Pekerjaan Team Nexus</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-500 block">Total Komisi Tugas:</span>
+                    <span className="text-sm font-black text-amber-700">
+                      {formatRupiah(
+                        (completionWorkItems || []).reduce((acc, it) => {
+                          const rate = incentiveConfig?.itemRates?.[it.id] !== undefined
+                            ? incentiveConfig.itemRates[it.id]
+                            : (KOMISI_MAP[it.id]?.tarif || 0);
+                          return acc + (Number(it.qty) || 0) * rate;
+                        }, 0)
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {/* List Item Pekerjaan */}
+                <div className="space-y-2">
+                  {completionWorkItems.map((item, idx) => {
+                    const master = KOMISI_MAP[item.id] || { nama: item.id, satuan: "Unit", tarif: 0 };
+                    const rate = incentiveConfig?.itemRates?.[item.id] !== undefined ? incentiveConfig.itemRates[item.id] : master.tarif;
+                    const subtotal = (Number(item.qty) || 0) * rate;
+
+                    return (
+                      <div key={item.id || idx} className="p-2.5 bg-white rounded-xl border border-amber-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate">{master.nama}</p>
+                          <p className="text-[10px] text-slate-400">
+                            {formatRupiah(rate)} / {master.satuan}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                          <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const step = master.satuan === "Meter" ? 10 : 1;
+                                const newQty = Math.max(0, (Number(item.qty) || 0) - step);
+                                setCompletionWorkItems((prev) =>
+                                  prev.map((it, i) => (i === idx ? { ...it, qty: newQty } : it))
+                                );
+                              }}
+                              className="px-2.5 py-1 hover:bg-slate-200 text-slate-600 font-bold text-xs cursor-pointer select-none"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              min={0}
+                              value={item.qty}
+                              onChange={(e) => {
+                                const val = Math.max(0, Number(e.target.value) || 0);
+                                setCompletionWorkItems((prev) =>
+                                  prev.map((it, i) => (i === idx ? { ...it, qty: val } : it))
+                                );
+                              }}
+                              className="w-16 text-center text-xs font-bold py-1 bg-white outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const step = master.satuan === "Meter" ? 10 : 1;
+                                const newQty = (Number(item.qty) || 0) + step;
+                                setCompletionWorkItems((prev) =>
+                                  prev.map((it, i) => (i === idx ? { ...it, qty: newQty } : it))
+                                );
+                              }}
+                              className="px-2.5 py-1 hover:bg-slate-200 text-slate-600 font-bold text-xs cursor-pointer select-none"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <span className="text-[10px] font-semibold text-slate-500 w-9">{master.satuan}</span>
+                          <span className="text-xs font-black text-slate-900 w-20 text-right">
+                            {formatRupiah(subtotal)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCompletionWorkItems((prev) => prev.filter((_, i) => i !== idx));
+                            }}
+                            className="p-1 text-slate-300 hover:text-rose-500 rounded cursor-pointer"
+                            title="Hapus Item"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Dropdown Tambah Pekerjaan Lain */}
+                <div className="flex items-center gap-2 pt-1">
+                  <select
+                    value={selectedAddItem}
+                    onChange={(e) => setSelectedAddItem(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 outline-none"
+                  >
+                    <option value="">+ Tambah item pekerjaan lain...</option>
+                    {masterKomisi.filter(
+                      (m) => !completionWorkItems.some((it) => it.id === m.id)
+                    ).map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nama} — {formatRupiah(incentiveConfig?.itemRates?.[m.id] ?? m.tarif)}/{m.satuan}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={!selectedAddItem}
+                    onClick={() => {
+                      if (!selectedAddItem) return;
+                      const master = KOMISI_MAP[selectedAddItem];
+                      const defaultQty = master?.satuan === "Meter" ? 50 : 1;
+                      setCompletionWorkItems((prev) => [...prev, { id: selectedAddItem, qty: defaultQty }]);
+                      setSelectedAddItem("");
+                    }}
+                    className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-[#0D1B4A] rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Tambah
+                  </button>
+                </div>
+              </div>
+
+              {/* Upload 3 Bukti Dokumentasi Lapangan */}
+              <div className="pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Foto Bukti Lapangan (SOP QC)
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    Kamera HP / Galeri
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2.5">
+                  {/* 1. Foto Redaman OPM */}
+                  <div className="border border-slate-200 rounded-2xl p-2 bg-slate-50/80 flex flex-col items-center justify-center text-center relative group min-h-[105px]">
+                    {completionForm.fotoOpm ? (
+                      <div className="relative w-full h-22 rounded-xl overflow-hidden shadow-xs">
+                        <img src={completionForm.fotoOpm} alt="Foto OPM" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePhoto("fotoOpm")}
+                          className="absolute top-1 right-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm transition-colors cursor-pointer"
+                          title="Hapus Foto"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.2 rounded bg-black/70 text-white text-[8px] font-bold">
+                          1. OPM
+                        </span>
+                      </div>
+                    ) : (
+                      <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-1.5 hover:bg-slate-100/90 rounded-xl transition-colors">
+                        <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mb-1">
+                          <Camera className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-700">1. Foto OPM</span>
+                        <span className="text-[8px] text-slate-400">Bukti dBm</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => handlePhotoUpload(e, "fotoOpm")}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* 2. Foto Dropcore & Tiang */}
+                  <div className="border border-slate-200 rounded-2xl p-2 bg-slate-50/80 flex flex-col items-center justify-center text-center relative group min-h-[105px]">
+                    {completionForm.fotoDropcore ? (
+                      <div className="relative w-full h-22 rounded-xl overflow-hidden shadow-xs">
+                        <img src={completionForm.fotoDropcore} alt="Foto Dropcore" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePhoto("fotoDropcore")}
+                          className="absolute top-1 right-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm transition-colors cursor-pointer"
+                          title="Hapus Foto"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.2 rounded bg-black/70 text-white text-[8px] font-bold">
+                          2. Tiang
+                        </span>
+                      </div>
+                    ) : (
+                      <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-1.5 hover:bg-slate-100/90 rounded-xl transition-colors">
+                        <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center mb-1">
+                          <Camera className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-700">2. Foto Tiang</span>
+                        <span className="text-[8px] text-slate-400">Dropcore</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => handlePhotoUpload(e, "fotoDropcore")}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* 3. Foto Barcode Modem ONT */}
+                  <div className="border border-slate-200 rounded-2xl p-2 bg-slate-50/80 flex flex-col items-center justify-center text-center relative group min-h-[105px]">
+                    {completionForm.fotoModem ? (
+                      <div className="relative w-full h-22 rounded-xl overflow-hidden shadow-xs">
+                        <img src={completionForm.fotoModem} alt="Foto Barcode ONT" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePhoto("fotoModem")}
+                          className="absolute top-1 right-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm transition-colors cursor-pointer"
+                          title="Hapus Foto"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.2 rounded bg-black/70 text-white text-[8px] font-bold">
+                          3. Barcode
+                        </span>
+                      </div>
+                    ) : (
+                      <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-1.5 hover:bg-slate-100/90 rounded-xl transition-colors">
+                        <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center mb-1">
+                          <Camera className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-700">3. Foto ONT</span>
+                        <span className="text-[8px] text-slate-400">Barcode/MAC</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => handlePhotoUpload(e, "fotoModem")}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="flex gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -1490,9 +2885,17 @@ export default function TeknisiDashboard() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-2 py-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-md transition-all cursor-pointer"
+                  disabled={isSubmittingCompletion}
+                  className="flex-2 py-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  Konfirmasi Selesai
+                  {isSubmittingCompletion ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Mengunggah & Menyimpan...</span>
+                    </>
+                  ) : (
+                    <span>Konfirmasi Selesai</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -1579,8 +2982,8 @@ export default function TeknisiDashboard() {
       {/* 8. MODAL CETAK SLIP INSENTIF RESMI                                        */}
       {/* ========================================================================= */}
       {showSlipModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
-          <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl p-6 sm:p-8 border border-slate-200 max-h-[95vh] overflow-y-auto print:p-0 print:border-none print:shadow-none">
+        <div className="print-modal-container fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+          <div className="print-slip-card bg-white w-full max-w-xl rounded-3xl shadow-2xl p-6 sm:p-8 border border-slate-200 max-h-[95vh] overflow-y-auto print:p-0 print:border-none print:shadow-none">
             {/* Header Slip */}
             <div className="flex items-start justify-between pb-4 border-b-2 border-slate-900">
               <div className="space-y-0.5">
@@ -1618,67 +3021,75 @@ export default function TeknisiDashboard() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-slate-400 font-semibold uppercase text-[10px]">Periode Perhitungan:</p>
-                <p className="font-bold text-slate-900">
-                  {new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
+                <p className="text-slate-400 font-semibold uppercase text-[10px]">Periode Perhitungan / Cut-Off:</p>
+                <p className="font-bold text-slate-900 text-sm">
+                  {walletPeriodLabel}
                 </p>
                 <p className="text-slate-400 text-[10px] mt-1">
-                  Tanggal: {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                  Dicetak pada: {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                 </p>
               </div>
             </div>
 
-            {/* Rincian Komponen Insentif */}
+            {/* Rincian Komponen Insentif Berdasarkan Tabel Komisi Team Nexus */}
             <div className="py-4 space-y-3">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-500 text-[10px] font-bold uppercase">
-                    <th className="py-2 text-left">Komponen Insentif</th>
-                    <th className="py-2 text-center">Volume</th>
+                    <th className="py-2 text-left">Rincian Pekerjaan Lapangan</th>
+                    <th className="py-2 text-center">Volume Total</th>
                     <th className="py-2 text-right">Subtotal</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
-                  <tr>
-                    <td className="py-2.5">Fee Pokok Pekerjaan Selesai</td>
-                    <td className="py-2.5 text-center font-bold">{teamIncentives.totalCompleted} Tugas</td>
-                    <td className="py-2.5 text-right font-bold text-slate-900">
-                      {formatRupiah(teamIncentives.totalBaseFee)}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-2.5">
-                      Bonus Kualitas Redaman Prima
-                      <span className="block text-[10px] text-slate-400">
-                        Kualitas -15.0 s/d -22.9 dBm (+{formatRupiah(incentiveConfig.qualityBonus.amount)})
-                      </span>
-                    </td>
-                    <td className="py-2.5 text-center font-bold text-emerald-700">
-                      {teamIncentives.primaCount} Titik
-                    </td>
-                    <td className="py-2.5 text-right font-bold text-emerald-700">
-                      {formatRupiah(teamIncentives.totalQualityBonus)}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-2.5">
-                      Bonus Target Prestasi Bulanan
-                      <span className="block text-[10px] text-slate-400">
-                        {teamIncentives.achievedTierLabel || "Belum mencapai tier minimal"}
-                      </span>
-                    </td>
-                    <td className="py-2.5 text-center font-bold text-amber-700">
-                      {teamIncentives.activeTierBonus > 0 ? "1 Tier" : "-"}
-                    </td>
-                    <td className="py-2.5 text-right font-bold text-amber-700">
-                      {formatRupiah(teamIncentives.activeTierBonus)}
-                    </td>
-                  </tr>
+                  {teamIncentives.itemsAggregated && teamIncentives.itemsAggregated.length > 0 ? (
+                    teamIncentives.itemsAggregated.map((it) => (
+                      <tr key={it.id}>
+                        <td className="py-2.5">
+                          <p className="font-semibold text-slate-900">{it.nama}</p>
+                          <span className="block text-[10px] text-slate-400">
+                            Tarif: {formatRupiah(it.tarif)} / {it.satuan} ({it.taskCount} tugas)
+                          </span>
+                        </td>
+                        <td className="py-2.5 text-center font-bold">
+                          {it.totalQty.toLocaleString("id-ID")} {it.satuan}
+                        </td>
+                        <td className="py-2.5 text-right font-bold text-slate-900">
+                          {formatRupiah(it.totalAmount)}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="py-2.5">Komisi Pekerjaan Selesai</td>
+                      <td className="py-2.5 text-center font-bold">{teamIncentives.totalCompleted} Tugas</td>
+                      <td className="py-2.5 text-right font-bold text-slate-900">
+                        {formatRupiah(teamIncentives.totalBaseFee)}
+                      </td>
+                    </tr>
+                  )}
+
+                  {teamIncentives.activeTierBonus > 0 && (
+                    <tr>
+                      <td className="py-2.5">
+                        Bonus Target Prestasi Bulanan
+                        <span className="block text-[10px] text-slate-400">
+                          {teamIncentives.achievedTierLabel}
+                        </span>
+                      </td>
+                      <td className="py-2.5 text-center font-bold text-amber-700">
+                        1 Tier
+                      </td>
+                      <td className="py-2.5 text-right font-bold text-amber-700">
+                        {formatRupiah(teamIncentives.activeTierBonus)}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-slate-900">
                     <td colSpan={2} className="py-3 text-sm font-black text-slate-900 uppercase">
-                      Total Insentif Bersih:
+                      Total Komisi Bersih:
                     </td>
                     <td className="py-3 text-right text-base font-black text-slate-900">
                       {formatRupiah(teamIncentives.grandTotal)}
@@ -1750,114 +3161,61 @@ export default function TeknisiDashboard() {
 
             <form onSubmit={handleSaveConfig} className="mt-4 space-y-4">
               <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                  <Wrench className="w-3.5 h-3.5 text-blue-600" /> Tarif Fee Pokok per Pekerjaan (Rp)
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      Pemasangan Baru (PSB)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={5000}
-                      value={configForm.tariffs.PEMASANGAN}
-                      onChange={(e) =>
-                        setConfigForm((prev) => ({
-                          ...prev,
-                          tariffs: { ...prev.tariffs, PEMASANGAN: Number(e.target.value) || 0 },
-                        }))
-                      }
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      Perbaikan Gangguan
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={5000}
-                      value={configForm.tariffs.PERBAIKAN}
-                      onChange={(e) =>
-                        setConfigForm((prev) => ({
-                          ...prev,
-                          tariffs: { ...prev.tariffs, PERBAIKAN: Number(e.target.value) || 0 },
-                        }))
-                      }
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      Pemutusan / Dismantle
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={5000}
-                      value={configForm.tariffs.PEMUTUSAN}
-                      onChange={(e) =>
-                        setConfigForm((prev) => ({
-                          ...prev,
-                          tariffs: { ...prev.tariffs, PEMUTUSAN: Number(e.target.value) || 0 },
-                        }))
-                      }
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      Perbaikan Khusus ODP/ODC
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={5000}
-                      value={configForm.tariffs["PERBAIKAN KHUSUS (ODP/ODC)"]}
-                      onChange={(e) =>
-                        setConfigForm((prev) => ({
-                          ...prev,
-                          tariffs: {
-                            ...prev.tariffs,
-                            "PERBAIKAN KHUSUS (ODP/ODC)": Number(e.target.value) || 0,
-                          },
-                        }))
-                      }
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-                    />
-                  </div>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <Coins className="w-3.5 h-3.5 text-amber-600" /> Tabel Komisi Pekerjaan Team Nexus
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-medium">{masterKomisi.length} Item Terdaftar</span>
                 </div>
-              </div>
 
-              {/* Bonus Redaman Prima */}
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Bonus Kualitas Redaman Prima (Rp)
-                </h4>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                    Nominal Tambahan per Titik (-15.0 s/d -22.9 dBm)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1000}
-                    value={configForm.qualityBonus.amount}
-                    onChange={(e) =>
-                      setConfigForm((prev) => ({
-                        ...prev,
-                        qualityBonus: { ...prev.qualityBonus, amount: Number(e.target.value) || 0 },
-                      }))
-                    }
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
-                  />
+                <div className="space-y-2 max-h-[42vh] overflow-y-auto pr-1">
+                  {masterKomisi.map((item) => {
+                    const currentRate = configForm.itemRates?.[item.id] !== undefined
+                      ? configForm.itemRates[item.id]
+                      : item.tarif;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between gap-3"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate">{item.nama}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded">
+                              Per {item.satuan}
+                            </span>
+                            <span className="text-[10px] text-slate-400 truncate">{item.keterangan}</span>
+                          </div>
+                        </div>
+
+                        <div className="w-32 shrink-0">
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">
+                              Rp
+                            </span>
+                            <input
+                              type="number"
+                              min={0}
+                              step={item.satuan === "Meter" ? 50 : 500}
+                              value={currentRate}
+                              onChange={(e) => {
+                                const val = Number(e.target.value) || 0;
+                                setConfigForm((prev) => ({
+                                  ...prev,
+                                  itemRates: {
+                                    ...(prev.itemRates || {}),
+                                    [item.id]: val,
+                                  },
+                                }));
+                              }}
+                              className="w-full pl-8 pr-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-right focus:ring-2 focus:ring-amber-400 outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1975,6 +3333,346 @@ export default function TeknisiDashboard() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 10. MODAL PANDUAN STANDAR REDAMAN OPM (OPTICAL POWER METER)               */}
+      {/* ========================================================================= */}
+      {showOpmGuideModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+          <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl p-5 sm:p-6 border border-slate-200 max-h-[90vh] overflow-y-auto space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                  <Gauge className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Standar Redaman Optik (OPM)</h3>
+                  <p className="text-xs text-slate-500">Toleransi daya optik Rx ONT & panduan troubleshooting kabel</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowOpmGuideModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Standar Redaman Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-1">
+                <div className="flex items-center gap-1.5 text-emerald-800 font-extrabold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <span>PRIMA (SOP)</span>
+                </div>
+                <p className="text-sm font-black text-emerald-900">-15.0 s/d -22.9 dBm</p>
+                <p className="text-[11px] text-emerald-700 leading-relaxed">
+                  Kualitas terbaik, bebas packet loss, dan berhak atas bonus insentif teknisi.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 space-y-1">
+                <div className="flex items-center gap-1.5 text-amber-800 font-extrabold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  <span>WASPADA</span>
+                </div>
+                <p className="text-sm font-black text-amber-900">-23.0 s/d -25.9 dBm</p>
+                <p className="text-[11px] text-amber-700 leading-relaxed">
+                  Cukup online, namun rentan drop saat hujan. Periksa tekukan kabel dropcore.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 space-y-1">
+                <div className="flex items-center gap-1.5 text-rose-800 font-extrabold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                  <span>KRITIS / LOS</span>
+                </div>
+                <p className="text-sm font-black text-rose-900">&gt; -26.0 dBm</p>
+                <p className="text-[11px] text-rose-700 leading-relaxed">
+                  Potensi LOS (Lampu PON merah), wajib perbaiki sambungan sebelum ditinggal.
+                </p>
+              </div>
+            </div>
+
+            {/* Parameter Panjang Gelombang */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+              <h4 className="font-bold text-slate-800 flex items-center gap-1.5">
+                <Radio className="w-4 h-4 text-blue-600" /> Kalibrasi Panjang Gelombang (Lambda):
+              </h4>
+              <ul className="space-y-1 text-slate-600 list-disc list-inside text-[11px]">
+                <li><b>1490 nm:</b> Downstream data internet GPON dari OLT ke ONT (Gunakan ini saat ukur di OPM).</li>
+                <li><b>1310 nm:</b> Upstream transmisi dari ONT ke OLT.</li>
+                <li><b>1550 nm:</b> Jalur siaran TV kabel / RF overlay fiber optik.</li>
+              </ul>
+            </div>
+
+            {/* Tips Penanganan Redaman Tinggi */}
+            <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80 space-y-2 text-xs">
+              <h4 className="font-bold text-blue-950 flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-blue-600" /> Tips Mengatasi Redaman Jelek di Tiang:
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-blue-900">
+                <div className="p-2 rounded-xl bg-white border border-blue-100">
+                  <b>1. Fast Connector Kotor</b>
+                  <p className="text-slate-500 mt-0.5">Bersihkan ferrule konektor SC dengan alkohol pad 99%.</p>
+                </div>
+                <div className="p-2 rounded-xl bg-white border border-blue-100">
+                  <b>2. Macrobending Dropcore</b>
+                  <p className="text-slate-500 mt-0.5">Pastikan radius tekukan kabel minimal 3 cm di klem tiang.</p>
+                </div>
+                <div className="p-2 rounded-xl bg-white border border-blue-100">
+                  <b>3. Cleaver Miring</b>
+                  <p className="text-slate-500 mt-0.5">Kupas ulang fiber dan potong 90° dengan cleaver presisi.</p>
+                </div>
+                <div className="p-2 rounded-xl bg-white border border-blue-100">
+                  <b>4. Splitter ODP Drop</b>
+                  <p className="text-slate-500 mt-0.5">Ukur port ODP lain atau laporkan ke NOC jika port ODP drop.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 text-right">
+              <button
+                type="button"
+                onClick={() => setShowOpmGuideModal(false)}
+                className="px-4 py-2 bg-[#0D1B4A] text-white text-xs font-bold rounded-xl shadow-xs hover:bg-[#1a237e] transition-all cursor-pointer"
+              >
+                Tutup Panduan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 11. MODAL HOTLINE NOC & DISPATCHER LAPANGAN                               */}
+      {/* ========================================================================= */}
+      {showNocContactModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-5 sm:p-6 border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100">
+                  <PhoneCall className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Hotline NOC & Eskalasi</h3>
+                  <p className="text-xs text-slate-500">Kontak darurat operasional jaringan OLT & Dispatcher</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNocContactModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              {/* NOC OLT Core */}
+              <div className="p-3.5 rounded-2xl border border-slate-200 hover:border-slate-300 bg-slate-50/60 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black text-slate-900">NOC Network & OLT Core</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Cek Unregistered ONT / LOS OLT / Reboot PON</p>
+                  <p className="text-xs font-bold text-blue-700 mt-1 font-mono">0812-8899-7701</p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <a
+                    href="tel:081288997701"
+                    className="p-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
+                    title="Telepon NOC"
+                  >
+                    <Phone className="w-4 h-4" />
+                  </a>
+                  <a
+                    href="https://wa.me/6281288997701?text=Halo%20NOC%2C%20mohon%20bantuan%20cek%20status%20GPON%20di%20lapangan."
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                    title="WhatsApp NOC"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Dispatcher Lapangan */}
+              <div className="p-3.5 rounded-2xl border border-slate-200 hover:border-slate-300 bg-slate-50/60 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black text-slate-900">Dispatcher & Helpdesk</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Reschedule pelanggan / kendala akses tiang PLN</p>
+                  <p className="text-xs font-bold text-blue-700 mt-1 font-mono">0813-7722-1144</p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <a
+                    href="tel:081377221144"
+                    className="p-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
+                    title="Telepon Dispatcher"
+                  >
+                    <Phone className="w-4 h-4" />
+                  </a>
+                  <a
+                    href="https://wa.me/6281377221144?text=Halo%20Dispatcher%2C%20ada%20kendala%20jadwal%20tugas%20di%20lapangan."
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                    title="WhatsApp Dispatcher"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Billing & Radius Provisioning */}
+              <div className="p-3.5 rounded-2xl border border-slate-200 hover:border-slate-300 bg-slate-50/60 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black text-slate-900">Billing & Radius PPPoE</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Aktivasi akun PPPoE pelanggan baru & reset auth</p>
+                  <p className="text-xs font-bold text-blue-700 mt-1 font-mono">0811-5566-3322</p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <a
+                    href="tel:081155663322"
+                    className="p-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
+                    title="Telepon Billing"
+                  >
+                    <Phone className="w-4 h-4" />
+                  </a>
+                  <a
+                    href="https://wa.me/6281155663322?text=Halo%20Admin%20Radius%2C%20mohon%20bantuan%20aktivasi%20user%20PPPoE."
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                    title="WhatsApp Radius"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 text-right">
+              <button
+                type="button"
+                onClick={() => setShowNocContactModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 12. MODAL SOP & CHECKLIST INSTALASI K3                                    */}
+      {/* ========================================================================= */}
+      {showSopModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-5 sm:p-6 border border-slate-200 max-h-[90vh] overflow-y-auto space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">SOP Standar Instalasi & K3</h3>
+                  <p className="text-xs text-slate-500">Checklist kepatuhan mutu kerja lapangan telekomunikasi</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSopModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 text-xs">
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 font-black text-xs">
+                  1
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900">Periksa Ketersediaan Port & Redaman ODP</p>
+                  <p className="text-slate-500 text-[11px] mt-0.5">
+                    Sebelum menarik kabel ke rumah pelanggan, ukur dahulu port splitter di ODP tiang. Pastikan sinyal normal (-15 s/d -20 dBm).
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 font-black text-xs">
+                  2
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900">Penarikan Dropcore & Pemasangan Klem</p>
+                  <p className="text-slate-500 text-[11px] mt-0.5">
+                    Gunakan clamp S-clamp / dead-end dengan kencang tanpa meremukkan selongsong fiber. Hindari gesekan dengan kawat tegangan tinggi PLN.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 font-black text-xs">
+                  3
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900">Terminasi Fast Connector SC-UPC</p>
+                  <p className="text-slate-500 text-[11px] mt-0.5">
+                    Kupas fiber, bersihkan dengan alkohol, dan kunci konektor dengan rapi di dalam Roset / Faceplate dinding.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 font-black text-xs">
+                  4
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900">Konfigurasi ONT & Tes Koneksi Speedtest</p>
+                  <p className="text-slate-500 text-[11px] mt-0.5">
+                    Set PPPoE credentials, pastikan lampu PON menyala hijau solid, dan tes browsing bersama pelanggan.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 font-black text-xs">
+                  5
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900">Upload 3 Foto Bukti Ber-Watermark GPS</p>
+                  <p className="text-slate-500 text-[11px] mt-0.5">
+                    Ambil foto redaman OPM, tiang ODP, dan barcode MAC modem melalui tombol Selesai di aplikasi ini.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 text-right">
+              <button
+                type="button"
+                onClick={() => setShowSopModal(false)}
+                className="px-4 py-2 bg-[#0D1B4A] text-white text-xs font-bold rounded-xl shadow-xs hover:bg-[#1a237e] transition-all cursor-pointer"
+              >
+                Saya Mengerti & Patuhi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Bukti Dokumentasi Lapangan Teknisi */}
+      {viewEvidenceTask && (
+        <BuktiLapanganModal
+          task={viewEvidenceTask}
+          onClose={() => setViewEvidenceTask(null)}
+        />
       )}
     </div>
   );
