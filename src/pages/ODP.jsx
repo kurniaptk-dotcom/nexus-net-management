@@ -628,6 +628,7 @@ export default function ODP() {
           <OdpGoogleEarthMap
             allOdcs={allOdcs}
             odpList={enrichedData}
+            pelangganList={pelangganList}
             onEditOdp={handleOpenEditOdp}
             onEditOdc={handleOpenEditOdc}
             onToggleStatus={handleToggleStatus}

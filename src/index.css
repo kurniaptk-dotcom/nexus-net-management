@@ -125,4 +125,36 @@ html, body {
   }
 }
 
+/* Animasi Aliran Sinyal Laser Fiber Optik (GIS Topology Flow) */
+@keyframes opticalFlow {
+  from {
+    stroke-dashoffset: 40;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.leaflet-pane svg path.optical-feeder-flow {
+  stroke-dasharray: 12, 14 !important;
+  animation: opticalFlow 0.9s linear infinite !important;
+}
+
+.leaflet-pane svg path.optical-dist-flow {
+  stroke-dasharray: 8, 12 !important;
+  animation: opticalFlow 1.3s linear infinite !important;
+}
+
+.leaflet-pane svg path.optical-drop-flow {
+  stroke-dasharray: 5, 8 !important;
+  animation: opticalFlow 1.6s linear infinite !important;
+}
+
+.leaflet-pane svg path.optical-trace-active {
+  stroke-dasharray: 10, 10 !important;
+  animation: opticalFlow 0.5s linear infinite !important;
+  filter: drop-shadow(0 0 6px #F59E0B) !important;
+}
+
+
 

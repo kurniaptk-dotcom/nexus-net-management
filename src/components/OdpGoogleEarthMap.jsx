@@ -36,6 +36,11 @@ import {
   ChevronDown,
   ChevronUp,
   MessageCircle,
+  Activity,
+  Zap,
+  Info,
+  Users,
+  Network,
 } from "lucide-react";
 import defaultKmlData from "../data/kmlNetworkData.json";
 import {
@@ -44,6 +49,11 @@ import {
   calculateDropcoreCost,
   generateSurveyWhatsAppMessage,
 } from "../lib/surveySimulation";
+import {
+  generateCustomerPremisePoints,
+  traceNetworkPath,
+  estimateOpticalBudget,
+} from "../lib/networkTopology";
 
 // Helper: Hitung jarak Haversine (dalam meter)
 function getDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -63,6 +73,7 @@ function getDistanceMeters(lat1, lon1, lat2, lon2) {
 export default function OdpGoogleEarthMap({
   allOdcs = [],
   odpList = [],
+  pelangganList = [],
   onEditOdp,
   onEditOdc,
   onToggleStatus,
@@ -76,6 +87,9 @@ export default function OdpGoogleEarthMap({
   const tileLayerRef = useRef(null);
   const markersLayerRef = useRef(null);
   const polylinesLayerRef = useRef(null);
+  const customersLayerRef = useRef(null);
+  const dropcoreLayerRef = useRef(null);
+  const traceLayerRef = useRef(null);
   const rulerLayerRef = useRef(null);
   const coverageLayerRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -92,6 +106,17 @@ export default function OdpGoogleEarthMap({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copiedText, setCopiedText] = useState("");
+
+  // Topology Flow & Customer Visualization States
+  const [showCustomers, setShowCustomers] = useState(true);
+  const [showSignalFlow, setShowSignalFlow] = useState(true);
+  const [activeTrace, setActiveTrace] = useState(null);
+  const [showTopologyLegend, setShowTopologyLegend] = useState(true);
+
+  // Memoized Titik Rumah Pelanggan di Sekitar ODP Induknya
+  const customerPoints = useMemo(() => {
+    return generateCustomerPremisePoints(pelangganList, kmlData?.points || []);
+  }, [pelangganList, kmlData]);
 
   // Ruler state
   const [isRulerActive, setIsRulerActive] = useState(false);
@@ -210,14 +235,20 @@ export default function OdpGoogleEarthMap({
       TILE_LAYERS[mapType].url,
       TILE_LAYERS[mapType].options
     ).addTo(map);
-    const markersLayer = L.layerGroup().addTo(map);
     const polylinesLayer = L.layerGroup().addTo(map);
+    const dropcoreLayer = L.layerGroup().addTo(map);
+    const traceLayer = L.layerGroup().addTo(map);
+    const markersLayer = L.layerGroup().addTo(map);
+    const customersLayer = L.layerGroup().addTo(map);
     const rulerLayer = L.layerGroup().addTo(map);
     const coverageLayer = L.layerGroup().addTo(map);
 
     tileLayerRef.current = tileLayer;
-    markersLayerRef.current = markersLayer;
     polylinesLayerRef.current = polylinesLayer;
+    dropcoreLayerRef.current = dropcoreLayer;
+    traceLayerRef.current = traceLayer;
+    markersLayerRef.current = markersLayer;
+    customersLayerRef.current = customersLayer;
     rulerLayerRef.current = rulerLayer;
     coverageLayerRef.current = coverageLayer;
     mapInstanceRef.current = map;
@@ -258,16 +289,17 @@ export default function OdpGoogleEarthMap({
       TILE_LAYERS[mapType].url,
       TILE_LAYERS[mapType].options
     ).addTo(mapInstanceRef.current);
-    tileLayerRef.current = newLayer;
   }, [mapType]);
 
-  // Render Real KML Markers & Fiber Optic Cable Routes
+  // Render Real KML Markers, Fiber Optic Cable Routes, Customers & Dropcore
   useEffect(() => {
     if (!mapInstanceRef.current || !markersLayerRef.current || !polylinesLayerRef.current)
       return;
 
     markersLayerRef.current.clearLayers();
     polylinesLayerRef.current.clearLayers();
+    if (customersLayerRef.current) customersLayerRef.current.clearLayers();
+    if (dropcoreLayerRef.current) dropcoreLayerRef.current.clearLayers();
 
     const points = kmlData?.points || [];
     const lines = kmlData?.lines || [];
@@ -287,21 +319,26 @@ export default function OdpGoogleEarthMap({
       return matchType && matchSearch;
     });
 
-    // 1. Gambar Jalur Kabel Fiber Optik Asli (Real KML Cable Routes)
+    // 1. Gambar Jalur Kabel Fiber Optik Asli (Real KML Cable Routes) dengan Animasi Alur Sinyal
     if (showFiberLines) {
       lines.forEach((line) => {
         const isMainTrunk =
           line.name.toLowerCase().includes("kantor") ||
-          line.name.toLowerCase().includes("odc 1 --> odc 2");
+          line.name.toLowerCase().includes("odc 1 --> odc 2") ||
+          line.name.toLowerCase().includes("feeder");
 
-        const lineColor = isMainTrunk ? "#F59E0B" : "#10B981"; // Amber untuk Backbone, Emerald untuk Distribusi
+        const lineColor = isMainTrunk ? "#F59E0B" : "#10B981"; // Amber untuk Feeder/Backbone, Emerald untuk Distribusi
         const lineWeight = isMainTrunk ? 4 : 2.5;
+        const lineClass = showSignalFlow
+          ? (isMainTrunk ? "optical-feeder-flow" : "optical-dist-flow")
+          : "";
 
         const poly = L.polyline(line.coords, {
           color: lineColor,
           weight: lineWeight,
           opacity: 0.85,
-          dashArray: isMainTrunk ? null : "6, 6",
+          dashArray: isMainTrunk ? (showSignalFlow ? "12, 14" : null) : (showSignalFlow ? "8, 12" : "6, 6"),
+          className: lineClass,
           lineCap: "round",
           lineJoin: "round",
         });
@@ -318,7 +355,7 @@ export default function OdpGoogleEarthMap({
         }
 
         poly.bindTooltip(
-          `<b>${line.name}</b><br/><span style="color:#F59E0B">Panjang Kabel: ${totalMeters} meter</span>`,
+          `<b>${line.name}</b><br/><span style="color:#F59E0B">Panjang Kabel: ${totalMeters} meter</span><br/><span style="color:#10B981;font-size:10px">Kategori: ${isMainTrunk ? "Feeder / Backbone" : "Kabel Distribusi"}</span>`,
           { sticky: true, className: "fiber-tooltip" }
         );
 
@@ -326,7 +363,81 @@ export default function OdpGoogleEarthMap({
       });
     }
 
-    // 2. Gambar Marker Titik Jaringan Asli (Headend, ODC, ODP)
+    // 2. Gambar Tarikan Kabel Dropcore & Marker Rumah Pelanggan
+    if (showCustomers && customersLayerRef.current && dropcoreLayerRef.current) {
+      customerPoints.forEach((cust) => {
+        // Tarikan Kabel Dropcore ke Tiang ODP
+        if (cust.dropcorePolyline) {
+          const dropPoly = L.polyline(cust.dropcorePolyline, {
+            color: "#A855F7",
+            weight: 2,
+            opacity: 0.8,
+            dashArray: showSignalFlow ? "5, 8" : "4, 6",
+            className: showSignalFlow ? "optical-drop-flow" : "",
+            lineCap: "round",
+          });
+          dropPoly.bindTooltip(
+            `<b>Dropcore: ${cust.nama}</b><br/>Menancap ke: <b>${cust.odp}</b><br/><span style="color:#C084FC">Panjang: ${cust.dropcoreDistance}m</span>`,
+            { sticky: true, className: "fiber-tooltip" }
+          );
+          dropcoreLayerRef.current.addLayer(dropPoly);
+        }
+
+        // Marker Rumah Pelanggan (CPE ONT Modem)
+        const isAktif = cust.status === "AKTIF";
+        const isBaru = cust.status === "BARU";
+        const badgeColor = isAktif
+          ? "bg-gradient-to-tr from-purple-600 to-indigo-600 ring-purple-400/50"
+          : isBaru
+          ? "bg-gradient-to-tr from-amber-500 to-yellow-500 ring-amber-400/50"
+          : "bg-slate-700 ring-slate-500/50";
+
+        const custHtml = `
+          <div class="relative group cursor-pointer transition-transform hover:scale-135">
+            <div class="w-6 h-6 rounded-xl ${badgeColor} text-white flex items-center justify-center shadow-lg border-2 border-white ring-2">
+              <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+              </svg>
+            </div>
+            <div class="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-purple-950/90 text-purple-200 text-[8px] font-bold px-1.5 py-0.2 rounded shadow pointer-events-none border border-purple-400/30">
+              ${cust.nama.split(" ")[0]}
+            </div>
+          </div>
+        `;
+
+        const custMarkerIcon = L.divIcon({
+          html: custHtml,
+          className: "custom-customer-marker",
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+        });
+
+        const custMarker = L.marker([cust.lat, cust.lng], { icon: custMarkerIcon });
+        custMarker.on("click", () => {
+          const trace = traceNetworkPath(cust, kmlData, customerPoints);
+          setActiveTrace(trace);
+          setSelectedNode({
+            id: `cust-${cust.id || cust.id_pelanggan}`,
+            name: cust.nama,
+            type: "CUSTOMER",
+            lat: cust.lat,
+            lng: cust.lng,
+            paket: cust.paket,
+            status: cust.status,
+            odp: cust.odp,
+            telepon: cust.telepon,
+            alamat: cust.alamat,
+            dropcoreDistance: cust.dropcoreDistance,
+            keterangan: `Pelanggan Terhubung ke ${cust.odp} (Tarikan Dropcore: ${cust.dropcoreDistance}m)`,
+            parentOdp: cust.parentOdp,
+          });
+        });
+
+        customersLayerRef.current.addLayer(custMarker);
+      });
+    }
+
+    // 3. Gambar Marker Titik Jaringan Asli (Headend, ODC, ODP)
     filteredPoints.forEach((point) => {
       const coord = [point.lat, point.lng];
       let html = "";
@@ -387,7 +498,7 @@ export default function OdpGoogleEarthMap({
         html = `
           <div class="relative group cursor-pointer transition-transform hover:scale-130">
             <div class="w-6 h-6 rounded-xl ${pinBg} text-white flex items-center justify-center shadow-lg border-2 border-white">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.393 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
               </svg>
             </div>
@@ -413,6 +524,9 @@ export default function OdpGoogleEarthMap({
 
       const marker = L.marker(coord, { icon: markerIcon });
       marker.on("click", () => {
+        const trace = traceNetworkPath(point, kmlData, customerPoints);
+        setActiveTrace(trace);
+
         setSelectedNode({
           ...point,
           status: matchedOdp?.status || "Aman",
@@ -428,7 +542,77 @@ export default function OdpGoogleEarthMap({
 
       markersLayerRef.current.addLayer(marker);
     });
-  }, [kmlData, odpList, showFiberLines, filterType, searchQuery]);
+  }, [kmlData, odpList, showFiberLines, filterType, searchQuery, showCustomers, showSignalFlow, customerPoints]);
+
+  // Efek Sorot Alur Jaringan FTTH Aktif (Active Trace Highlighting Layer)
+  useEffect(() => {
+    if (!traceLayerRef.current) return;
+    traceLayerRef.current.clearLayers();
+    if (!activeTrace) return;
+
+    // 1. Sorot Kabel Feeder (Trunk OLT ➔ ODC)
+    if (activeTrace.feederCoords && activeTrace.feederCoords.length > 0) {
+      const feederPoly = L.polyline(activeTrace.feederCoords, {
+        color: "#F59E0B",
+        weight: 6,
+        opacity: 0.95,
+        className: "optical-trace-active",
+        lineCap: "round",
+        lineJoin: "round",
+      });
+      feederPoly.bindTooltip(
+        `<b>Jalur Feeder: HQ ➔ ${activeTrace.odc?.name || "ODC"}</b><br/><span style="color:#F59E0B">Panjang: ${activeTrace.feederDistance} meter</span>`,
+        { sticky: true, className: "fiber-tooltip" }
+      );
+      traceLayerRef.current.addLayer(feederPoly);
+    }
+
+    // 2. Sorot Kabel Distribusi (ODC ➔ ODP)
+    if (activeTrace.distCoords && activeTrace.distCoords.length > 0) {
+      const distPoly = L.polyline(activeTrace.distCoords, {
+        color: "#10B981",
+        weight: 5,
+        opacity: 0.95,
+        className: "optical-trace-active",
+        lineCap: "round",
+        lineJoin: "round",
+      });
+      distPoly.bindTooltip(
+        `<b>Jalur Distribusi: ${activeTrace.odc?.name || "ODC"} ➔ ${activeTrace.odp?.name || "ODP"}</b><br/><span style="color:#10B981">Panjang: ${activeTrace.distDistance} meter</span>`,
+        { sticky: true, className: "fiber-tooltip" }
+      );
+      traceLayerRef.current.addLayer(distPoly);
+    }
+
+    // 3. Sorot Kabel Dropcore (ODP ➔ Pelanggan)
+    if (activeTrace.dropCoords) {
+      const dropPoly = L.polyline(activeTrace.dropCoords, {
+        color: "#C084FC",
+        weight: 4,
+        opacity: 1,
+        className: "optical-trace-active",
+        lineCap: "round",
+      });
+      dropPoly.bindTooltip(
+        `<b>Jalur Dropcore: ${activeTrace.odp?.name || "ODP"} ➔ ${activeTrace.customer?.nama || "Pelanggan"}</b><br/><span style="color:#C084FC">Panjang: ${activeTrace.dropDistance} meter</span>`,
+        { sticky: true, className: "fiber-tooltip" }
+      );
+      traceLayerRef.current.addLayer(dropPoly);
+    } else if (activeTrace.relatedCustomers && activeTrace.relatedCustomers.length > 0) {
+      activeTrace.relatedCustomers.forEach((rc) => {
+        if (rc.dropcorePolyline) {
+          const rp = L.polyline(rc.dropcorePolyline, {
+            color: "#C084FC",
+            weight: 3.5,
+            opacity: 0.9,
+            className: "optical-trace-active",
+            lineCap: "round",
+          });
+          traceLayerRef.current.addLayer(rp);
+        }
+      });
+    }
+  }, [activeTrace]);
 
   // Efek untuk fokus ke node dari tabel (flyTo)
   useEffect(() => {
@@ -1017,6 +1201,48 @@ export default function OdpGoogleEarthMap({
             <span className="hidden md:inline">195 Jalur Fiber</span>
           </button>
 
+          {/* Animasi Alur Sinyal FTTH */}
+          <button
+            onClick={() => setShowSignalFlow((prev) => !prev)}
+            className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              showSignalFlow
+                ? "bg-amber-500/25 text-amber-300 border border-amber-500/50 shadow-sm shadow-amber-500/20"
+                : "text-gray-400 hover:text-gray-200"
+            }`}
+            title="Animasi Aliran Pulsa Laser Sinyal Optik FTTH (Pusat ➔ ODC ➔ ODP ➔ Pelanggan)"
+          >
+            <Activity className={`w-3.5 h-3.5 ${showSignalFlow ? "text-amber-400 animate-pulse" : ""}`} />
+            <span className="hidden sm:inline">{showSignalFlow ? "Alur ON" : "Alur Sinyal"}</span>
+          </button>
+
+          {/* Toggle Titik Pelanggan & Dropcore */}
+          <button
+            onClick={() => setShowCustomers((prev) => !prev)}
+            className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              showCustomers
+                ? "bg-purple-600/30 text-purple-300 border border-purple-500/50 shadow-sm shadow-purple-500/20"
+                : "text-gray-400 hover:text-gray-200"
+            }`}
+            title="Tampilkan / Sembunyikan Rumah Pelanggan & Kabel Dropcore"
+          >
+            <Home className="w-3.5 h-3.5 text-purple-400" />
+            <span className="hidden sm:inline">Pelanggan ({customerPoints.length})</span>
+          </button>
+
+          {/* Toggle Legenda Topologi */}
+          <button
+            onClick={() => setShowTopologyLegend((prev) => !prev)}
+            className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              showTopologyLegend
+                ? "bg-blue-600/30 text-blue-300 border border-blue-500/50"
+                : "text-gray-400 hover:text-gray-200"
+            }`}
+            title="Tampilkan / Sembunyikan Legenda Hierarki Topologi"
+          >
+            <Info className="w-3.5 h-3.5" />
+            <span className="hidden lg:inline">Legenda</span>
+          </button>
+
           {/* Ruler Distance Tool */}
           <button
             onClick={() => {
@@ -1601,6 +1827,19 @@ export default function OdpGoogleEarthMap({
             </div>
           </div>
 
+          {/* Tombol Sorot Alur Sinyal FTTH End-to-End */}
+          <button
+            type="button"
+            onClick={() => {
+              const trace = traceNetworkPath(selectedNode, kmlData, customerPoints);
+              setActiveTrace(trace);
+            }}
+            className="w-full py-2.5 px-3 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 active:scale-95 text-slate-950 flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer mb-2"
+          >
+            <Activity className="w-4 h-4 text-slate-950 animate-pulse" />
+            <span>⚡ Sorot Alur Sinyal FTTH (End-to-End)</span>
+          </button>
+
           {/* Quick Action Buttons: Google Earth 3D & Navigation */}
           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-800">
             {/* Buka di Google Earth 3D Web */}
@@ -1764,6 +2003,241 @@ export default function OdpGoogleEarthMap({
           <Layers className="w-4 h-4 text-emerald-400" />
           <span>Buka Daftar Titik ({kmlData?.totalPoints || 0})</span>
         </button>
+      )}
+
+      {/* ======================================================== */}
+      {/* CARD MODAL 1: DIAGRAM ALIR SINYAL FTTH END-TO-END        */}
+      {/* ======================================================== */}
+      {activeTrace && (
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-25 w-[96%] max-w-4xl bg-slate-950/95 backdrop-blur-2xl border border-amber-500/50 rounded-3xl p-4 sm:p-5 shadow-2xl text-white animate-in fade-in slide-in-from-bottom-5 duration-200">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-md">
+                <Activity className="w-4 h-4 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    Alur Distribusi Sinyal FTTH
+                  </span>
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${activeTrace.optical.bg}`}>
+                    {activeTrace.optical.statusText}
+                  </span>
+                </div>
+                <h4 className="text-xs sm:text-sm font-extrabold text-white mt-0.5">
+                  Silsilah: {activeTrace.hq?.name || "HQ Pusat"} ➔ {activeTrace.odc?.name || "ODC"} ➔ {activeTrace.odp?.name || "ODP"} {activeTrace.customer ? `➔ ${activeTrace.customer.nama}` : ""}
+                </h4>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveTrace(null)}
+              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all cursor-pointer"
+              title="Tutup Sorot Alur"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Diagram Horizontal Aliran Node Jaringan */}
+          <div className="py-3.5 overflow-x-auto custom-scrollbar">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-[620px]">
+              {/* Step 1: HQ Pusat / OLT */}
+              <div className="flex-1 bg-slate-900/90 rounded-2xl p-2.5 sm:p-3 border border-amber-500/40 shadow-inner">
+                <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold mb-1">
+                  <span>🏢 Pusat (OLT NOC)</span>
+                </div>
+                <p className="text-[11px] font-extrabold text-white truncate">{activeTrace.hq?.name || "Kantor Pusat"}</p>
+                <p className="text-[10px] text-slate-400 font-mono mt-0.5">Laser Tx: +4.0 dBm</p>
+              </div>
+
+              {/* Panah Feeder */}
+              <div className="text-center shrink-0">
+                <div className="text-[9px] font-mono text-amber-300 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-500/30">
+                  {activeTrace.feederDistance}m
+                </div>
+                <span className="text-[10px] text-amber-400">➔</span>
+                <p className="text-[8px] text-slate-400">Trunk Feeder</p>
+              </div>
+
+              {/* Step 2: ODC FDT */}
+              <div className="flex-1 bg-slate-900/90 rounded-2xl p-2.5 sm:p-3 border border-blue-500/40 shadow-inner">
+                <div className="flex items-center gap-1.5 text-blue-400 text-xs font-bold mb-1">
+                  <span>🔵 ODC (FDT Induk)</span>
+                </div>
+                <p className="text-[11px] font-extrabold text-white truncate">{activeTrace.odc?.name || "ODC Utama"}</p>
+                <p className="text-[10px] text-slate-400 font-mono mt-0.5">Splitter 1:4 (-7.2 dB)</p>
+              </div>
+
+              {/* Panah Distribusi */}
+              <div className="text-center shrink-0">
+                <div className="text-[9px] font-mono text-emerald-300 font-bold bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                  {activeTrace.distDistance}m
+                </div>
+                <span className="text-[10px] text-emerald-400">➔</span>
+                <p className="text-[8px] text-slate-400">Distribusi</p>
+              </div>
+
+              {/* Step 3: ODP FAT */}
+              <div className="flex-1 bg-slate-900/90 rounded-2xl p-2.5 sm:p-3 border border-emerald-500/40 shadow-inner">
+                <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold mb-1">
+                  <span>🟢 ODP (FAT Tiang)</span>
+                </div>
+                <p className="text-[11px] font-extrabold text-white truncate">{activeTrace.odp?.name || "ODP Lapangan"}</p>
+                <p className="text-[10px] text-slate-400 font-mono mt-0.5">Splitter 1:8 (-10.5 dB)</p>
+              </div>
+
+              {/* Panah Dropcore */}
+              <div className="text-center shrink-0">
+                <div className="text-[9px] font-mono text-purple-300 font-bold bg-purple-950/80 px-1.5 py-0.5 rounded border border-purple-500/30">
+                  {activeTrace.dropDistance}m
+                </div>
+                <span className="text-[10px] text-purple-400">➔</span>
+                <p className="text-[8px] text-slate-400">Dropcore</p>
+              </div>
+
+              {/* Step 4: Pelanggan CPE ONT */}
+              <div className="flex-1 bg-slate-900/90 rounded-2xl p-2.5 sm:p-3 border border-purple-500/40 shadow-inner">
+                <div className="flex items-center gap-1.5 text-purple-400 text-xs font-bold mb-1">
+                  <span>🏠 Pelanggan (CPE ONT)</span>
+                </div>
+                <p className="text-[11px] font-extrabold text-white truncate">
+                  {activeTrace.customer ? activeTrace.customer.nama : `${activeTrace.relatedCustomers.length} Pelanggan Aktif`}
+                </p>
+                <p className="text-[10px] text-purple-300 font-mono mt-0.5">
+                  Rx Est: <b>{activeTrace.optical.rxPower} dBm</b>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Metrics Footer */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-800 text-xs">
+            <div className="flex items-center gap-4 text-slate-300 flex-wrap">
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">Total Bentang Kabel</span>
+                <span className="font-mono font-bold text-amber-300">
+                  {activeTrace.feederDistance + activeTrace.distDistance + activeTrace.dropDistance} Meter
+                </span>
+              </div>
+              <div className="w-px h-6 bg-slate-800" />
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">Total Redaman Loss</span>
+                <span className="font-mono font-bold text-rose-300">{activeTrace.optical.totalLoss} dB</span>
+              </div>
+              <div className="w-px h-6 bg-slate-800" />
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">Kualitas Daya Optik</span>
+                <span className={`font-mono font-bold ${activeTrace.optical.color}`}>
+                  {activeTrace.optical.rxPower} dBm ({activeTrace.optical.status})
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (activeTrace.odp) {
+                    mapInstanceRef.current?.flyTo([activeTrace.odp.lat, activeTrace.odp.lng], 19, { duration: 1 });
+                  }
+                }}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Fokus Tiang ODP
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTrace(null)}
+                className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition-all shadow cursor-pointer"
+              >
+                Selesai
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* CARD MODAL 2: LEGENDA HIERARKI TOPOLOGI FTTH             */}
+      {/* ======================================================== */}
+      {showTopologyLegend && !activeTrace && (
+        <div className="absolute bottom-5 left-4 z-15 w-64 bg-slate-950/90 backdrop-blur-xl border border-slate-700/80 rounded-2xl p-3 shadow-2xl text-white text-xs animate-in fade-in hidden sm:block">
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+            <div className="flex items-center gap-1.5">
+              <Network className="w-3.5 h-3.5 text-amber-400" />
+              <span className="font-extrabold text-[11px] text-white">Legenda Topologi FTTH</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowTopologyLegend(false)}
+              className="text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
+              title="Tutup Legenda"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+
+          <div className="space-y-1.5 text-[11px]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-amber-400 ring-2 ring-amber-400/40" />
+                <span className="text-slate-200 font-bold">Pusat (OLT NOC)</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono">Tx Laser</span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-1 rounded bg-[#F59E0B]" />
+                <span className="text-slate-300">Kabel Feeder</span>
+              </div>
+              <span className="text-[10px] text-amber-400/80 font-mono">Trunk</span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-md bg-blue-600 ring-2 ring-blue-400/40" />
+                <span className="text-slate-200 font-bold">ODC (FDT Induk)</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono">Split 1:4</span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-1 rounded bg-[#10B981]" />
+                <span className="text-slate-300">Kabel Distribusi</span>
+              </div>
+              <span className="text-[10px] text-emerald-400/80 font-mono">Tiang</span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-emerald-400/40" />
+                <span className="text-slate-200 font-bold">ODP (FAT Tiang)</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono">Split 1:8</span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-1 rounded bg-purple-500" />
+                <span className="text-slate-300">Kabel Dropcore</span>
+              </div>
+              <span className="text-[10px] text-purple-400/80 font-mono">1 Core</span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-md bg-purple-600 ring-2 ring-purple-400/40" />
+                <span className="text-slate-200 font-bold">Pelanggan</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono">CPE ONT</span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
