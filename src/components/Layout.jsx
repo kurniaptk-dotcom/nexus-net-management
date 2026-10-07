@@ -24,7 +24,7 @@ import {
   UserCheck,
   Plus,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import NotificationPanel from "./NotificationPanel";
 import ConfirmModal from "./ConfirmModal";
