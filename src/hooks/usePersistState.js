@@ -245,6 +245,124 @@ export function safeSetLocalStorage(key, value) {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Shared data layer: dedup fetch (TTL cache) + 1 realtime channel/table */
+/* ------------------------------------------------------------------ */
+
+const FETCH_TTL_MS = 30000;
+const CHANNEL_TEARDOWN_GRACE_MS = 5000;
+
+// table -> { promise, at }
+const fetchCache = new Map();
+
+/**
+ * Fetch semua baris tabel, tapi di-share antar komponen:
+ * - Request yang sedang berjalan dipakai bersama (in-flight dedup)
+ * - Hasil di-cache selama FETCH_TTL_MS
+ */
+function fetchTableShared(table) {
+  const cached = fetchCache.get(table);
+  if (cached && Date.now() - cached.at < FETCH_TTL_MS) return cached.promise;
+  const promise = db.fetchAll(table).catch((err) => {
+    fetchCache.delete(table);
+    throw err;
+  });
+  fetchCache.set(table, { promise, at: Date.now() });
+  return promise;
+}
+
+export function invalidateTableCache(table) {
+  if (table) fetchCache.delete(table);
+  else fetchCache.clear();
+}
+
+// Terapkan event realtime ke cache agar komponen yang mount belakangan tidak dapat data basi
+function patchFetchCache(table, payload) {
+  const cached = fetchCache.get(table);
+  if (!cached) return;
+  const promise = cached.promise.then((rows) => {
+    const list = Array.isArray(rows) ? rows : [];
+    if (payload.eventType === "INSERT" && payload.new) {
+      return list.some((r) => r.id === payload.new.id) ? list : [payload.new, ...list];
+    }
+    if (payload.eventType === "UPDATE" && payload.new) {
+      return list.map((r) => (r.id === payload.new.id ? { ...r, ...payload.new } : r));
+    }
+    if (payload.eventType === "DELETE" && payload.old?.id) {
+      return list.filter((r) => r.id !== payload.old.id);
+    }
+    return list;
+  });
+  promise.catch(() => {});
+  fetchCache.set(table, { promise, at: cached.at });
+}
+
+// table -> { channel, listeners:Set, teardownTimer }
+const realtimeRegistry = new Map();
+const realtimeStatus = new Map(); // table -> status string
+
+export function getRealtimeStatus() {
+  return Object.fromEntries(realtimeStatus);
+}
+
+/**
+ * Satu channel Supabase per tabel, dipakai bersama oleh semua hook (ref-counted).
+ * Channel ditutup setelah grace period saat tidak ada listener, agar pindah halaman
+ * tidak memicu unsubscribe/subscribe berulang.
+ */
+function subscribeTable(table, listener) {
+  let entry = realtimeRegistry.get(table);
+  if (!entry) {
+    entry = { channel: null, listeners: new Set(), teardownTimer: null };
+    realtimeRegistry.set(table, entry);
+    const current = entry;
+    try {
+      // Suffix unik: hindari mengambil channel lama yang masih proses ditutup
+      const channelId = `rt_shared_${table}_${Math.random().toString(36).substring(2, 9)}`;
+      current.channel = supabase
+        .channel(channelId)
+        .on("postgres_changes", { event: "*", schema: "public", table }, (payload) => {
+          patchFetchCache(table, payload);
+          current.listeners.forEach((fn) => {
+            try {
+              fn(payload);
+            } catch (e) {
+              console.warn(`[REALTIME] listener ${table}:`, e);
+            }
+          });
+        })
+        .subscribe((status) => {
+          realtimeStatus.set(table, status);
+        });
+    } catch (err) {
+      console.warn(`[REALTIME] subscribe ${table}:`, err);
+    }
+  }
+
+  if (entry.teardownTimer) {
+    clearTimeout(entry.teardownTimer);
+    entry.teardownTimer = null;
+  }
+  entry.listeners.add(listener);
+
+  return () => {
+    entry.listeners.delete(listener);
+    if (entry.listeners.size > 0) return;
+    entry.teardownTimer = setTimeout(() => {
+      if (entry.listeners.size > 0) return;
+      if (realtimeRegistry.get(table) === entry) realtimeRegistry.delete(table);
+      realtimeStatus.delete(table);
+      if (entry.channel) {
+        try {
+          supabase.removeChannel(entry.channel);
+        } catch {
+          // ignore
+        }
+      }
+    }, CHANNEL_TEARDOWN_GRACE_MS);
+  };
+}
+
 export function usePersistState(key, initialValue) {
   const table = TABLE_MAP[key];
 
@@ -281,13 +399,13 @@ export function usePersistState(key, initialValue) {
     };
   }, [key]);
 
-  // On mount: fetch from Supabase and merge
+  // On mount: fetch from Supabase (shared + cached) and merge
   useEffect(() => {
     if (!table) return;
     let cancelled = false;
     (async () => {
       try {
-        const rows = await db.fetchAll(table);
+        const rows = await fetchTableShared(table);
         if (cancelled || !rows) return;
         const camelRows = rows.map(toCamel);
         
@@ -303,8 +421,9 @@ export function usePersistState(key, initialValue) {
           });
 
           const merged = [...mergedRemote, ...localOnly];
-          localStorage.setItem(key, JSON.stringify(merged));
-          window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: merged } }));
+          // Tidak broadcast: setiap instance hook dengan key sama melakukan merge sendiri
+          // dari hasil fetch yang di-share, sehingga tidak terjadi badai event.
+          safeSetLocalStorage(key, merged);
           return merged;
         });
       } catch (err) {
@@ -314,67 +433,38 @@ export function usePersistState(key, initialValue) {
     return () => { cancelled = true; };
   }, [table, key]);
 
-  // Real-time subscription to Supabase postgres_changes
+  // Real-time: daftar ke channel bersama per tabel (bukan 1 channel per komponen)
   useEffect(() => {
     if (!table) return;
-    let channel = null;
 
-    try {
-      // Use unique channel identifier to prevent subscription collisions across concurrent components
-      const channelId = `rt_${table}_${key}_${Math.random().toString(36).substring(2, 9)}`;
-      channel = supabase
-        .channel(channelId)
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: table },
-          (payload) => {
-            if (payload.eventType === "INSERT") {
-              const newItem = toCamel(payload.new);
-              setState((prev) => {
-                const list = Array.isArray(prev) ? prev : [];
-                if (list.some((r) => r.id === newItem.id)) return prev;
-                const next = [newItem, ...list];
-                safeSetLocalStorage(key, next);
-                window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
-                return next;
-              });
-            } else if (payload.eventType === "UPDATE") {
-              const updatedItem = toCamel(payload.new);
-              setState((prev) => {
-                const list = Array.isArray(prev) ? prev : [];
-                const next = list.map((r) => (r.id === updatedItem.id ? { ...r, ...updatedItem } : r));
-                safeSetLocalStorage(key, next);
-                window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
-                return next;
-              });
-            } else if (payload.eventType === "DELETE") {
-              const deletedId = payload.old?.id;
-              if (deletedId) {
-                setState((prev) => {
-                  const list = Array.isArray(prev) ? prev : [];
-                  const next = list.filter((r) => r.id !== deletedId);
-                  safeSetLocalStorage(key, next);
-                  window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
-                  return next;
-                });
-              }
-            }
-          }
-        )
-        .subscribe();
-    } catch (err) {
-      console.warn(`usePersistState realtime subscribe ${key}:`, err);
-    }
-
-    return () => {
-      if (channel) {
-        try {
-          supabase.removeChannel(channel);
-        } catch (e) {
-          // ignore
+    // Setiap instance menerima payload langsung dari channel bersama,
+    // jadi tidak perlu broadcast ulang via xnet_storage_update.
+    const listener = (payload) => {
+      if (payload.eventType === "INSERT") {
+        const newItem = toCamel(payload.new);
+        setState((prev) => {
+          const list = Array.isArray(prev) ? prev : [];
+          if (list.some((r) => r.id === newItem.id)) return prev;
+          return [newItem, ...list];
+        });
+      } else if (payload.eventType === "UPDATE") {
+        const updatedItem = toCamel(payload.new);
+        setState((prev) => {
+          const list = Array.isArray(prev) ? prev : [];
+          return list.map((r) => (r.id === updatedItem.id ? { ...r, ...updatedItem } : r));
+        });
+      } else if (payload.eventType === "DELETE") {
+        const deletedId = payload.old?.id;
+        if (deletedId) {
+          setState((prev) => {
+            const list = Array.isArray(prev) ? prev : [];
+            return list.filter((r) => r.id !== deletedId);
+          });
         }
       }
     };
+
+    return subscribeTable(table, listener);
   }, [table, key]);
 
   // Persist to localStorage on change safely
@@ -471,6 +561,9 @@ export function usePersistState(key, initialValue) {
         }
       } catch (err) {
         console.warn(`usePersistState sync ${key}:`, err);
+      } finally {
+        // Data server berubah karena tulisan lokal -> fetch berikutnya harus segar
+        invalidateTableCache(table);
       }
     }, 400);
   }, [table, key]);
