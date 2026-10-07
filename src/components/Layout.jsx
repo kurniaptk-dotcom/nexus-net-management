@@ -48,6 +48,7 @@ export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const [omniSearchOpen, setOmniSearchOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmClearCacheOpen, setConfirmClearCacheOpen] = useState(false);
   const { profile, signOut } = useAuth();
