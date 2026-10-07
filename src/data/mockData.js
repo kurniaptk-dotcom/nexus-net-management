@@ -47,10 +47,12 @@ export const gangguanData = {
 export const pekerjaanList = [];
 
 export const leadsList = [];
+export const initialLeads = leadsList;
 
 export const gangguanList = [];
 
 export const daftarGangguanList = [];
+export const initialGangguanList = daftarGangguanList;
 
 export const fuPelangganList = [];
 

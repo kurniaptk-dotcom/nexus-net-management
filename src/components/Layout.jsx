@@ -27,6 +27,8 @@ import {
 import { useState, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import NotificationPanel from "./NotificationPanel";
+import ConfirmModal from "./ConfirmModal";
+import GlobalOmniSearch from "./GlobalOmniSearch";
 import { getUserAllowedMenus, getRoleInfo } from "../lib/permissions";
 
 function Logo({ collapsed }) {
@@ -45,42 +47,52 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [omniSearchOpen, setOmniSearchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [confirmClearCacheOpen, setConfirmClearCacheOpen] = useState(false);
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Keyboard Shortcut: Ctrl + K atau Cmd + K untuk Omni-Search
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setOmniSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const handleSearchKeyDown = (e) => {
     if (e.key === "Enter" && globalSearch.trim()) {
       navigate(`/pekerjaan?search=${encodeURIComponent(globalSearch.trim())}`);
-      setMobileSearchOpen(false);
     }
   };
 
-  const handleClearCache = () => {
-    if (confirm("Apakah Anda yakin ingin mereset cache lokal aplikasi? Seluruh data offline di browser akan dikembalikan ke state awal.")) {
-      const keys = [
-        "xnet_pekerjaan",
-        "xnet_leads",
-        "xnet_gangguan",
-        "xnet_daftar_gangguan_v2",
-        "xnet_tim",
-        "xnet_odpodc",
-        "xnet_odc_list",
-        "xnet_pelanggan_radius",
-        "xnet_master_komisi",
-        "xnet_pengajuan_pemutusan",
-        "xnet_custom_roles",
-        "xnet_radius_api_config",
-        "xnet_incentive_config",
-        "xnet_notifications",
-        "xnet_active_tech_team",
-        "xnet_tech_duty_status",
-      ];
-      keys.forEach((k) => localStorage.removeItem(k));
-      window.location.reload();
-    }
+  const executeClearCache = () => {
+    const keys = [
+      "xnet_pekerjaan",
+      "xnet_leads",
+      "xnet_gangguan",
+      "xnet_daftar_gangguan_v2",
+      "xnet_tim",
+      "xnet_odpodc",
+      "xnet_odc_list",
+      "xnet_pelanggan_radius",
+      "xnet_master_komisi",
+      "xnet_pengajuan_pemutusan",
+      "xnet_custom_roles",
+      "xnet_radius_api_config",
+      "xnet_incentive_config",
+      "xnet_notifications",
+      "xnet_active_tech_team",
+      "xnet_tech_duty_status",
+    ];
+    keys.forEach((k) => localStorage.removeItem(k));
+    window.location.reload();
   };
 
   const roleInfo = useMemo(() => getRoleInfo(profile?.role), [profile?.role]);
@@ -261,23 +273,24 @@ export default function Layout() {
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Desktop Search */}
-            <div className="hidden md:flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-1.5 border border-gray-200/60 focus-within:border-[#0D1B4A] focus-within:bg-white transition-all">
-              <Search className="w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cari pekerjaan, pelanggan, atau alamat..."
-                value={globalSearch}
-                onChange={(e) => setGlobalSearch(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                className="bg-transparent text-xs sm:text-sm outline-none w-56 lg:w-64 placeholder:text-gray-400"
-              />
+            <div
+              onClick={() => setOmniSearchOpen(true)}
+              className="hidden md:flex items-center gap-2 bg-gray-100 hover:bg-gray-200/70 rounded-xl px-3 py-1.5 border border-gray-200/60 transition-all cursor-pointer group"
+            >
+              <Search className="w-4 h-4 text-gray-400 group-hover:text-[#0D1B4A]" />
+              <span className="text-xs text-gray-400 group-hover:text-gray-600 w-52 lg:w-60 truncate">
+                {globalSearch ? globalSearch : "Cari pekerjaan, pelanggan, ODP..."}
+              </span>
+              <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold text-gray-400 bg-white border border-gray-200 rounded-md shadow-2xs">
+                Ctrl K
+              </kbd>
             </div>
 
             {/* Mobile Search Button */}
             <button
-              onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+              onClick={() => setOmniSearchOpen(true)}
               className="md:hidden p-2 rounded-xl hover:bg-gray-100 text-gray-600 active:scale-95 transition-colors cursor-pointer"
-              title="Cari"
+              title="Cari Cepat"
             >
               <Search className="w-4.5 h-4.5" />
             </button>
@@ -513,8 +526,8 @@ export default function Layout() {
                     <p className="text-[11px] text-gray-400">Bersihkan data offline di browser</p>
                   </div>
                   <button
-                    onClick={handleClearCache}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:text-red-600 hover:border-red-200 rounded-lg text-xs font-semibold transition-all shadow-sm"
+                    onClick={() => setConfirmClearCacheOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:text-red-600 hover:border-red-200 rounded-lg text-xs font-semibold transition-all shadow-sm cursor-pointer"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>Reset</span>
@@ -531,6 +544,24 @@ export default function Layout() {
           </div>
         </div>
       )}
+
+      {/* Global Omni-Search Modal Popover */}
+      <GlobalOmniSearch
+        isOpen={omniSearchOpen}
+        onClose={() => setOmniSearchOpen(false)}
+      />
+
+      {/* Modern Confirm Modal for Reset Cache */}
+      <ConfirmModal
+        isOpen={confirmClearCacheOpen}
+        onClose={() => setConfirmClearCacheOpen(false)}
+        onConfirm={executeClearCache}
+        title="Reset Cache Lokal Aplikasi?"
+        message="Seluruh data offline yang tersimpan di memori browser ini akan dikembalikan ke state awal. Halaman akan dimuat ulang secara otomatis."
+        confirmText="Reset Cache Sekarang"
+        cancelText="Batal"
+        variant="warning"
+      />
     </div>
   );
 }

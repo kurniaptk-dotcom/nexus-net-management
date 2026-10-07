@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
+import ConfirmModal from "../components/ConfirmModal";
 import {
   Users,
   Plus,
@@ -112,6 +113,7 @@ export default function ManajemenUser() {
   // Delete Confirmation Modal State
   const [deletingUser, setDeletingUser] = useState(null);
   const [deletingLoading, setDeletingLoading] = useState(false);
+  const [deletingRoleId, setDeletingRoleId] = useState(null);
 
   // SQL Script Modal State
   const [showSqlModal, setShowSqlModal] = useState(false);
@@ -442,12 +444,16 @@ export default function ManajemenUser() {
 
   // Handle Delete Custom Role
   function handleDeleteRole(roleId) {
-    if (confirm(`Hapus role ini? Pengguna dengan role ini akan tetap ada.`)) {
-      const updated = rolesList.filter((r) => r.id !== roleId);
-      setRolesList(updated);
-      saveCustomRoles(updated.filter((r) => !r.isSystem));
-      triggerToast("Role kustom berhasil dihapus.", "info");
-    }
+    setDeletingRoleId(roleId);
+  }
+
+  function confirmDeleteRole() {
+    if (!deletingRoleId) return;
+    const updated = rolesList.filter((r) => r.id !== deletingRoleId);
+    setRolesList(updated);
+    saveCustomRoles(updated.filter((r) => !r.isSystem));
+    triggerToast("Role kustom berhasil dihapus.", "info");
+    setDeletingRoleId(null);
   }
 
   // Toggle Menu inside Create Role Modal
@@ -1672,6 +1678,17 @@ WHERE role = 'teknisi';`;
           </div>
         </div>
       )}
+
+      {/* MODAL 6: KONFIRMASI HAPUS ROLE KUSTOM */}
+      <ConfirmModal
+        isOpen={!!deletingRoleId}
+        onClose={() => setDeletingRoleId(null)}
+        onConfirm={confirmDeleteRole}
+        title="Hapus Role Kustom?"
+        message="Apakah Anda yakin ingin menghapus role ini? Pengguna dengan role ini akan tetap ada namun mungkin kehilangan izin khusus."
+        confirmText="Hapus Role"
+        variant="danger"
+      />
     </div>
   );
 }

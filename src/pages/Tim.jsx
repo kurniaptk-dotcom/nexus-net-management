@@ -4,6 +4,7 @@ import { initialTimData, pekerjaanList } from "../data/mockData";
 import { usePersistState } from "../hooks/usePersistState";
 import { calculateTaskIncentive, formatRupiah, MASTER_KOMISI_ITEMS } from "../lib/incentives";
 import Toast from "../components/Toast";
+import ConfirmModal from "../components/ConfirmModal";
 
 function TeamCard({ tim, pekerjaanData, masterKomisi, onEdit, onDelete }) {
   const timPekerjaan = pekerjaanData.filter((p) => p.tim === tim.nama);
@@ -124,6 +125,7 @@ export default function Tim() {
   const [editingTim, setEditingTim] = useState(null);
   const [formData, setFormData] = useState({ nama: "" });
   const [toast, setToast] = useState(null);
+  const [deleteTargetTim, setDeleteTargetTim] = useState(null);
 
   const totalKomisiSemua = pekerjaanData
     .filter((p) => p.status === "SELESAI")
@@ -145,10 +147,16 @@ export default function Tim() {
 
   const handleDelete = (id) => {
     const target = timData.find((t) => t.id === id);
-    if (confirm(`Hapus tim "${target?.nama || id}"?`)) {
-      setTimData(timData.filter((t) => t.id !== id));
-      setToast({ type: "success", message: `Tim ${target?.nama || ""} berhasil dihapus.` });
+    if (target) {
+      setDeleteTargetTim(target);
     }
+  };
+
+  const confirmDeleteTim = () => {
+    if (!deleteTargetTim) return;
+    setTimData(timData.filter((t) => t.id !== deleteTargetTim.id));
+    setToast({ type: "success", message: `Tim ${deleteTargetTim.nama || ""} berhasil dihapus.` });
+    setDeleteTargetTim(null);
   };
 
   const handleSubmit = (e) => {
@@ -247,6 +255,7 @@ export default function Tim() {
       </div>
 
       {/* Modal */}
+      {/* Modal Tambah/Edit Tim */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
@@ -270,13 +279,13 @@ export default function Tim() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                  className="px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 text-sm font-semibold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl hover:shadow-md transition-all"
+                  className="px-4 py-2.5 text-sm font-semibold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl hover:shadow-md transition-all cursor-pointer"
                 >
                   Simpan
                 </button>
@@ -285,6 +294,17 @@ export default function Tim() {
           </div>
         </div>
       )}
+
+      {/* Modal Konfirmasi Hapus Tim */}
+      <ConfirmModal
+        isOpen={!!deleteTargetTim}
+        onClose={() => setDeleteTargetTim(null)}
+        onConfirm={confirmDeleteTim}
+        title="Hapus Tim Teknisi?"
+        message={`Apakah Anda yakin ingin menghapus tim "${deleteTargetTim?.nama}"? Riwayat penugasan tim ini akan tetap tersimpan.`}
+        confirmText="Hapus Tim"
+        variant="danger"
+      />
     </div>
   );
 }

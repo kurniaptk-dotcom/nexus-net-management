@@ -79,6 +79,7 @@ import { enrichOdpWithPortUtilization } from "../lib/odpUtilization";
 import { uploadTaskEvidenceBundle } from "../lib/storageUpload";
 import { syncCustomerOnTaskCompletion } from "../lib/customerPortLifecycle";
 import Toast from "../components/Toast";
+import ConfirmModal from "../components/ConfirmModal";
 import { formatPhoneWa as formatPhoneForWa } from "../lib/spkGenerator";
 
 function parseRecordDate(dStr) {
@@ -341,6 +342,7 @@ export default function TeknisiDashboard() {
     };
   }, [rawIncentiveConfig, masterKomisi]);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showResetConfigConfirm, setShowResetConfigConfirm] = useState(false);
   const [showSlipModal, setShowSlipModal] = useState(false);
   const [configForm, setConfigForm] = useState(incentiveConfig);
 
@@ -671,13 +673,16 @@ export default function TeknisiDashboard() {
 
   // Handle Reset Konfigurasi Tarif
   const handleResetConfig = () => {
-    if (window.confirm("Kembalikan konfigurasi tarif ke pengaturan standar?")) {
-      setConfigForm(DEFAULT_INCENTIVE_CONFIG);
-      setIncentiveConfig(DEFAULT_INCENTIVE_CONFIG);
-      setMasterKomisi(KOMISI_PEKERJAAN_MASTER);
-      setShowConfigModal(false);
-      triggerToast("Tarif insentif dikembalikan ke standar awal.", "info");
-    }
+    setShowResetConfigConfirm(true);
+  };
+
+  const confirmResetConfig = () => {
+    setConfigForm(DEFAULT_INCENTIVE_CONFIG);
+    setIncentiveConfig(DEFAULT_INCENTIVE_CONFIG);
+    setMasterKomisi(KOMISI_PEKERJAAN_MASTER);
+    setShowConfigModal(false);
+    setShowResetConfigConfirm(false);
+    triggerToast("Tarif insentif dikembalikan ke standar awal.", "info");
   };
 
   // Render Kanban / List Card yang Informatif & Lengkap untuk Teknisi
@@ -3674,6 +3679,17 @@ export default function TeknisiDashboard() {
           onClose={() => setViewEvidenceTask(null)}
         />
       )}
+
+      {/* Modal Konfirmasi Reset Tarif */}
+      <ConfirmModal
+        isOpen={showResetConfigConfirm}
+        onClose={() => setShowResetConfigConfirm(false)}
+        onConfirm={confirmResetConfig}
+        title="Reset Tarif Insentif?"
+        message="Apakah Anda yakin ingin mengembalikan seluruh skema tarif insentif teknisi ke pengaturan standar bawaan?"
+        confirmText="Reset ke Standar"
+        variant="warning"
+      />
     </div>
   );
 }

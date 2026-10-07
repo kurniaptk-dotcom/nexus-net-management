@@ -6,6 +6,7 @@ import { generateLeadsNotification } from "../store/notificationStore";
 import { usePersistState } from "../hooks/usePersistState";
 import { parseShareLocation, findNearestOdpFromList, generateSurveyWhatsAppMessage } from "../lib/surveySimulation";
 import DispatchTaskModal from "../components/DispatchTaskModal";
+import ConfirmModal from "../components/ConfirmModal";
 import { formatPhoneWa } from "../lib/spkGenerator";
 
 function notify(notif) {
@@ -54,6 +55,7 @@ export default function Leads() {
   const [filterSumber, setFilterSumber] = useState("ALL");
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [deleteTargetLead, setDeleteTargetLead] = useState(null);
   const [dispatchLead, setDispatchLead] = useState(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [simError, setSimError] = useState("");
@@ -242,12 +244,17 @@ export default function Leads() {
     }
   };
 
-  const handleDelete = (id) => {
-    if (confirm("Hapus lead ini?")) {
-      const item = data.find((d) => d.id === id);
-      setData(data.filter((d) => d.id !== id));
-      if (item) notify(generateLeadsNotification(item, "dihapus"));
-    }
+  const handleDelete = (lead) => {
+    setDeleteTargetLead(lead);
+  };
+
+  const executeDeleteLead = () => {
+    if (!deleteTargetLead) return;
+    const id = deleteTargetLead.id;
+    const item = data.find((d) => d.id === id);
+    setData((prev) => prev.filter((d) => d.id !== id));
+    if (item) notify(generateLeadsNotification(item, "dihapus"));
+    setDeleteTargetLead(null);
   };
 
   const handleSubmit = (e) => {
@@ -346,7 +353,7 @@ export default function Leads() {
                   <button onClick={() => handleEdit(item)} className="p-1.5 rounded-xl hover:bg-blue-50 text-gray-400 hover:text-blue-600 bg-gray-50 sm:bg-transparent" title="Edit Lead">
                     <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
-                  <button onClick={() => handleDelete(item.id)} className="p-1.5 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 bg-gray-50 sm:bg-transparent" title="Hapus Lead">
+                  <button onClick={() => handleDelete(item)} className="p-1.5 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 bg-gray-50 sm:bg-transparent cursor-pointer" title="Hapus Lead">
                     <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                 </div>
@@ -639,6 +646,18 @@ export default function Leads() {
         pelangganList={pelangganList}
         timList={timList}
         taskList={pekerjaan}
+      />
+
+      {/* Modern Confirm Modal untuk Hapus Lead */}
+      <ConfirmModal
+        isOpen={Boolean(deleteTargetLead)}
+        onClose={() => setDeleteTargetLead(null)}
+        onConfirm={executeDeleteLead}
+        title="Hapus Data Calon Pelanggan?"
+        message={`Apakah Anda yakin ingin menghapus lead "${deleteTargetLead?.nama || ""}"? Data yang dihapus tidak dapat dipulihkan.`}
+        confirmText="Hapus Lead"
+        cancelText="Batal"
+        variant="danger"
       />
     </div>
   );

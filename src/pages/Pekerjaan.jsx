@@ -44,6 +44,7 @@ import BuktiLapanganModal from "../components/BuktiLapanganModal";
 import DispatchTaskModal from "../components/DispatchTaskModal";
 import MasterKomisiTab from "../components/MasterKomisiTab";
 import WorkItemsChecklist from "../components/WorkItemsChecklist";
+import ConfirmModal from "../components/ConfirmModal";
 import {
   KOMISI_PEKERJAAN_MASTER,
   getDefaultWorkItemsForTask,
@@ -277,6 +278,8 @@ export default function Pekerjaan() {
   });
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [deleteTargetTask, setDeleteTargetTask] = useState(null);
+  const [deleteTargetPemutusan, setDeleteTargetPemutusan] = useState(null);
   const [, setDraggedId] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
   const [formData, setFormData] = useState({
@@ -417,12 +420,17 @@ export default function Pekerjaan() {
     setShowModal(true);
   };
 
-  const handleDelete = (id) => {
-    if (confirm("Hapus pekerjaan ini?")) {
-      const item = data.find((d) => d.id === id);
-      setData(data.filter((d) => d.id !== id));
-      if (item) notify(generatePekerjaanNotification(item, "dihapus"));
-    }
+  const handleDelete = (taskOrId) => {
+    const item = typeof taskOrId === "object" ? taskOrId : data.find((d) => d.id === taskOrId);
+    if (item) setDeleteTargetTask(item);
+  };
+
+  const executeDeleteTask = () => {
+    if (!deleteTargetTask) return;
+    const id = deleteTargetTask.id;
+    setData((prev) => prev.filter((d) => d.id !== id));
+    notify(generatePekerjaanNotification(deleteTargetTask, "dihapus"));
+    setDeleteTargetTask(null);
   };
 
   const handleSubmit = (e) => {
@@ -511,10 +519,16 @@ export default function Pekerjaan() {
     setDispatchModalOpen(true);
   };
 
-  const handleDeletePemutusan = (id) => {
-    if (confirm("Hapus data pengajuan pemutusan ini?")) {
-      setPengajuanData((prev) => (prev || []).filter((p) => p.id !== id));
-    }
+  const handleDeletePemutusan = (itemOrId) => {
+    const item = typeof itemOrId === "object" ? itemOrId : (pengajuanData || []).find((p) => p.id === itemOrId);
+    if (item) setDeleteTargetPemutusan(item);
+  };
+
+  const executeDeletePemutusan = () => {
+    if (!deleteTargetPemutusan) return;
+    const id = deleteTargetPemutusan.id;
+    setPengajuanData((prev) => (prev || []).filter((p) => p.id !== id));
+    setDeleteTargetPemutusan(null);
   };
 
   const handleSavePemutusan = (e) => {
@@ -1695,6 +1709,30 @@ export default function Pekerjaan() {
         pelangganList={pelangganList}
         timList={timData}
         taskList={data}
+      />
+
+      {/* Modern Confirm Modal untuk Hapus Tugas Pekerjaan */}
+      <ConfirmModal
+        isOpen={Boolean(deleteTargetTask)}
+        onClose={() => setDeleteTargetTask(null)}
+        onConfirm={executeDeleteTask}
+        title="Hapus Data Pekerjaan?"
+        message={`Apakah Anda yakin ingin menghapus pekerjaan "${deleteTargetTask?.pelanggan || ""}" (${deleteTargetTask?.jenis || ""})? Data yang dihapus tidak dapat dipulihkan.`}
+        confirmText="Hapus Pekerjaan"
+        cancelText="Batal"
+        variant="danger"
+      />
+
+      {/* Modern Confirm Modal untuk Hapus Pengajuan Pemutusan */}
+      <ConfirmModal
+        isOpen={Boolean(deleteTargetPemutusan)}
+        onClose={() => setDeleteTargetPemutusan(null)}
+        onConfirm={executeDeletePemutusan}
+        title="Hapus Pengajuan Pemutusan?"
+        message={`Apakah Anda yakin ingin menghapus data pengajuan pemutusan untuk "${deleteTargetPemutusan?.nama || ""}"?`}
+        confirmText="Hapus Data"
+        cancelText="Batal"
+        variant="danger"
       />
     </div>
   );

@@ -28,6 +28,7 @@ import unifiedOdpOdc from "../data/unifiedOdpOdc.json";
 import { usePersistState } from "../hooks/usePersistState";
 import { enrichOdpWithPortUtilization, calculateNetworkPortStats } from "../lib/odpUtilization";
 import Toast from "../components/Toast";
+import ConfirmModal from "../components/ConfirmModal";
 import OdpGoogleEarthMap from "../components/OdpGoogleEarthMap";
 
 export default function ODP() {
@@ -159,6 +160,7 @@ export default function ODP() {
   });
 
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleteTargetOdc, setDeleteTargetOdc] = useState(null);
   const [toast, setToast] = useState(null);
 
   const showToast = (type, message) => {
@@ -345,19 +347,18 @@ export default function ODP() {
   };
 
   const handleDeleteOdc = (odc) => {
-    const childCount = data.filter((d) => d.odc === odc.nama).length;
+    setDeleteTargetOdc(odc);
+  };
+
+  const confirmDeleteOdc = () => {
+    if (!deleteTargetOdc) return;
+    const childCount = data.filter((d) => d.odc === deleteTargetOdc.nama).length;
     if (childCount > 0) {
-      if (
-        !confirm(
-          `ODC "${odc.nama}" masih memiliki ${childCount} ODP di dalamnya.\n\nApakah Anda yakin ingin menghapus ODC ini beserta seluruh ${childCount} ODP di bawahnya?`
-        )
-      ) {
-        return;
-      }
-      setData((prev) => prev.filter((d) => d.odc !== odc.nama));
+      setData((prev) => prev.filter((d) => d.odc !== deleteTargetOdc.nama));
     }
-    setOdcList((prev) => prev.filter((o) => o.nama !== odc.nama));
-    showToast("success", `ODC "${odc.nama}" berhasil dihapus.`);
+    setOdcList((prev) => prev.filter((o) => o.nama !== deleteTargetOdc.nama));
+    showToast("success", `ODC "${deleteTargetOdc.nama}" berhasil dihapus.`);
+    setDeleteTargetOdc(null);
   };
 
   // ODP CRUD Handlers
@@ -1388,36 +1389,38 @@ export default function ODP() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-gray-100 text-center">
-            <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-3">
-              <AlertCircle className="w-6 h-6" />
-            </div>
-            <h3 className="font-bold text-gray-900 text-base">Hapus ODP Ini?</h3>
-            <p className="text-gray-500 text-xs mt-1">
-              Apakah Anda yakin ingin menghapus{" "}
-              <span className="font-semibold text-gray-800">{deleteConfirm.nama}</span> (
-              {deleteConfirm.odc})?
-            </p>
-            <div className="flex items-center justify-center gap-2 mt-5">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 border border-gray-200 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-50"
-              >
-                Batal
-              </button>
-              <button
-                onClick={() => handleDeleteOdp(deleteConfirm)}
-                className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-semibold hover:bg-red-700 transition-colors"
-              >
-                Hapus ODP
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Konfirmasi Hapus ODP */}
+      <ConfirmModal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => handleDeleteOdp(deleteConfirm)}
+        title="Hapus ODP Ini?"
+        message={
+          deleteConfirm
+            ? `Apakah Anda yakin ingin menghapus ${deleteConfirm.nama} (${deleteConfirm.odc})? Seluruh data riwayat port akan dihapus.`
+            : ""
+        }
+        confirmText="Hapus ODP"
+        variant="danger"
+      />
+
+      {/* Modal Konfirmasi Hapus ODC */}
+      <ConfirmModal
+        isOpen={!!deleteTargetOdc}
+        onClose={() => setDeleteTargetOdc(null)}
+        onConfirm={confirmDeleteOdc}
+        title="Hapus ODC Induk?"
+        message={
+          deleteTargetOdc
+            ? `Apakah Anda yakin ingin menghapus ODC "${deleteTargetOdc.nama}"?` +
+              (data.filter((d) => d.odc === deleteTargetOdc.nama).length > 0
+                ? ` PERINGATAN: ODC ini masih memiliki ${data.filter((d) => d.odc === deleteTargetOdc.nama).length} ODP di dalamnya yang juga akan ikut dihapus!`
+                : "")
+            : ""
+        }
+        confirmText="Hapus ODC"
+        variant="danger"
+      />
 
       {/* Modal Daftar Pelanggan yang Terhubung ke ODP */}
       {selectedOdpCustomers && (
