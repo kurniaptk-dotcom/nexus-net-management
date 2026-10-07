@@ -1,6 +1,25 @@
 import React from "react";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 
+const RECOVERY_KEY = "xnet_error_recovery_at";
+
+// Unregister service workers + clear Cache Storage, then reload from network
+async function hardReload() {
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } catch (e) {
+    console.warn("hardReload cleanup failed:", e);
+  }
+  window.location.reload();
+}
+
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -13,10 +32,21 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo);
+    // Auto-recover once (likely stale cached bundle after a new deploy).
+    // Guarded by a 30s window to avoid reload loops on genuine bugs.
+    try {
+      const last = Number(sessionStorage.getItem(RECOVERY_KEY) || 0);
+      if (Date.now() - last > 30000) {
+        sessionStorage.setItem(RECOVERY_KEY, String(Date.now()));
+        hardReload();
+      }
+    } catch {
+      // ignore
+    }
   }
 
   handleReload = () => {
-    window.location.reload();
+    hardReload();
   };
 
   handleGoHome = () => {
