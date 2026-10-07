@@ -317,49 +317,63 @@ export function usePersistState(key, initialValue) {
   // Real-time subscription to Supabase postgres_changes
   useEffect(() => {
     if (!table) return;
-    const channel = supabase
-      .channel(`realtime_${table}_${key}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: table },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            const newItem = toCamel(payload.new);
-            setState((prev) => {
-              const list = Array.isArray(prev) ? prev : [];
-              if (list.some((r) => r.id === newItem.id)) return prev;
-              const next = [newItem, ...list];
-              safeSetLocalStorage(key, next);
-              window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
-              return next;
-            });
-          } else if (payload.eventType === "UPDATE") {
-            const updatedItem = toCamel(payload.new);
-            setState((prev) => {
-              const list = Array.isArray(prev) ? prev : [];
-              const next = list.map((r) => (r.id === updatedItem.id ? { ...r, ...updatedItem } : r));
-              safeSetLocalStorage(key, next);
-              window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
-              return next;
-            });
-          } else if (payload.eventType === "DELETE") {
-            const deletedId = payload.old?.id;
-            if (deletedId) {
+    let channel = null;
+
+    try {
+      // Use unique channel identifier to prevent subscription collisions across concurrent components
+      const channelId = `rt_${table}_${key}_${Math.random().toString(36).substring(2, 9)}`;
+      channel = supabase
+        .channel(channelId)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: table },
+          (payload) => {
+            if (payload.eventType === "INSERT") {
+              const newItem = toCamel(payload.new);
               setState((prev) => {
                 const list = Array.isArray(prev) ? prev : [];
-                const next = list.filter((r) => r.id !== deletedId);
+                if (list.some((r) => r.id === newItem.id)) return prev;
+                const next = [newItem, ...list];
                 safeSetLocalStorage(key, next);
                 window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
                 return next;
               });
+            } else if (payload.eventType === "UPDATE") {
+              const updatedItem = toCamel(payload.new);
+              setState((prev) => {
+                const list = Array.isArray(prev) ? prev : [];
+                const next = list.map((r) => (r.id === updatedItem.id ? { ...r, ...updatedItem } : r));
+                safeSetLocalStorage(key, next);
+                window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
+                return next;
+              });
+            } else if (payload.eventType === "DELETE") {
+              const deletedId = payload.old?.id;
+              if (deletedId) {
+                setState((prev) => {
+                  const list = Array.isArray(prev) ? prev : [];
+                  const next = list.filter((r) => r.id !== deletedId);
+                  safeSetLocalStorage(key, next);
+                  window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
+                  return next;
+                });
+              }
             }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn(`usePersistState realtime subscribe ${key}:`, err);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch (e) {
+          // ignore
+        }
+      }
     };
   }, [table, key]);
 

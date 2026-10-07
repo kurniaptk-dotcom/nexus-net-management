@@ -11,7 +11,6 @@ import {
   X,
   Command,
 } from "lucide-react";
-import { usePersistState } from "../hooks/usePersistState";
 import {
   pekerjaanList,
   initialPelangganRadius,
@@ -20,6 +19,23 @@ import {
   odpOdcList,
 } from "../data/mockData";
 
+function readLocal(keys, fallback) {
+  const keyList = Array.isArray(keys) ? keys : [keys];
+  for (const k of keyList) {
+    try {
+      const raw = localStorage.getItem(k);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (parsed && !Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return fallback;
+}
+
 export default function GlobalOmniSearch({
   isOpen,
   onClose,
@@ -27,11 +43,27 @@ export default function GlobalOmniSearch({
   standalone = false,
 }) {
   const [query, setQuery] = useState(initialQuery);
-  const [pekerjaan] = usePersistState("xnet_pekerjaan", pekerjaanList);
-  const [pelanggan] = usePersistState("xnet_pelanggan_radius", initialPelangganRadius);
-  const [leads] = usePersistState("xnet_leads", leadsList);
-  const [gangguan] = usePersistState("xnet_gangguan", daftarGangguanList);
-  const [odpList] = usePersistState("xnet_odpodc", odpOdcList);
+  const [data, setData] = useState(() => ({
+    pekerjaan: readLocal("xnet_pekerjaan", pekerjaanList),
+    pelanggan: readLocal("xnet_pelanggan_radius", initialPelangganRadius),
+    leads: readLocal("xnet_leads", leadsList),
+    gangguan: readLocal(["xnet_daftar_gangguan_v2", "xnet_gangguan"], daftarGangguanList),
+    odpList: readLocal("xnet_odpodc", odpOdcList),
+  }));
+
+  useEffect(() => {
+    if (isOpen || standalone) {
+      setData({
+        pekerjaan: readLocal("xnet_pekerjaan", pekerjaanList),
+        pelanggan: readLocal("xnet_pelanggan_radius", initialPelangganRadius),
+        leads: readLocal("xnet_leads", leadsList),
+        gangguan: readLocal(["xnet_daftar_gangguan_v2", "xnet_gangguan"], daftarGangguanList),
+        odpList: readLocal("xnet_odpodc", odpOdcList),
+      });
+    }
+  }, [isOpen, standalone]);
+
+  const { pekerjaan, pelanggan, leads, gangguan, odpList } = data;
 
   const navigate = useNavigate();
   const inputRef = useRef(null);
