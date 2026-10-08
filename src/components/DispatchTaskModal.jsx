@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { showToast } from "../lib/toast";
 import {
   X,
   HardHat,
@@ -139,6 +140,16 @@ export default function DispatchTaskModal({
     }
   }, [isOpen, initialData, availableTeams, enrichedOdps, masterKomisi]);
 
+  // Tutup modal dengan tombol Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Cek detail ODP yang sedang dipilih
   const selectedOdpInfo = useMemo(() => {
     if (!form.odp) return null;
@@ -175,7 +186,7 @@ export default function DispatchTaskModal({
   const handleSubmit = (sendWaDirectly = false) => {
     const trimmedPelanggan = (form.pelanggan || "").trim();
     if (!trimmedPelanggan) {
-      alert("Silakan masukkan nama pelanggan / tujuan pekerjaan.");
+      showToast("Silakan masukkan nama pelanggan / tujuan pekerjaan.", "warning");
       return;
     }
 
@@ -209,8 +220,14 @@ export default function DispatchTaskModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center sm:justify-center p-0 sm:p-4 animate-in fade-in overflow-hidden">
-      <div className="bg-white w-full max-w-3xl rounded-t-3xl sm:rounded-3xl shadow-2xl border-t sm:border border-slate-100 mt-auto sm:my-auto overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh]">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center sm:justify-center p-0 sm:p-4 animate-in fade-in overflow-hidden"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white w-full max-w-3xl rounded-t-3xl sm:rounded-3xl shadow-2xl border-t sm:border border-slate-100 mt-auto sm:my-auto overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh]"
+      >
         {/* Mobile Swipe Bar Indicator */}
         <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-gradient-to-r from-slate-900 via-[#0D1B4A] to-slate-900">
           <div className="w-12 h-1 bg-white/30 rounded-full" />

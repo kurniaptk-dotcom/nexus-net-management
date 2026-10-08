@@ -8,6 +8,8 @@ import { parseShareLocation, findNearestOdpFromList, generateSurveyWhatsAppMessa
 import DispatchTaskModal from "../components/DispatchTaskModal";
 import ConfirmModal from "../components/ConfirmModal";
 import { formatPhoneWa } from "../lib/spkGenerator";
+import { showToast } from "../lib/toast";
+import { createWhatsAppUrl, getLeadSurveyWaTemplate } from "../lib/whatsapp";
 
 function notify(notif) {
   if (window.__addNotification) window.__addNotification(notif);
@@ -261,7 +263,7 @@ export default function Leads() {
     e.preventDefault();
     const cleanNama = (formData.nama || "").trim();
     if (!cleanNama) {
-      alert("Nama lead wajib diisi!");
+      showToast("Nama lead wajib diisi!", "warning");
       return;
     }
     const cleanTelepon = formatPhoneWa(formData.telepon || "");
@@ -429,12 +431,8 @@ export default function Leads() {
                 <button
                   type="button"
                   onClick={() => {
-                    const cleanPhone = String(item.telepon).replace(/\D/g, "");
-                    const intlPhone = cleanPhone.startsWith("0") ? "62" + cleanPhone.slice(1) : cleanPhone;
-                    const surveyText = item.odp_terdekat
-                      ? `Halo Kak *${item.nama}*, terima kasih telah menghubungi Nexus Net!\n\nKami telah melakukan simulasi survey lokasi via Google Earth GIS:\n📍 *Alamat:* ${item.alamat || "-"}\n📡 *ODP Terdekat:* ${item.odp_terdekat}\n📏 *Est. Tarikan Dropcore:* ~${item.jarak_odp || 0} meter\n📶 *Status Jaringan:* Siap Pasang Langsung ✅\n\nKapan waktu luang yang tepat untuk tim teknisi kami melakukan instalasi modem ke rumah Anda?`
-                      : `Halo Kak *${item.nama}*, terima kasih telah menghubungi Nexus Net!\n\nApakah kami boleh meminta sharelokasi WhatsApp rumah Anda untuk simulasi survey ODP terdekat? Terima kasih.`;
-                    window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(surveyText)}`, "_blank");
+                    const url = createWhatsAppUrl(item.telepon, getLeadSurveyWaTemplate(item));
+                    if (url) window.open(url, "_blank");
                   }}
                   className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
                   title="Kirim Pesan Survey WhatsApp"

@@ -29,6 +29,7 @@ import { usePersistState } from "../hooks/usePersistState";
 import Toast from "../components/Toast";
 import DispatchTaskModal from "../components/DispatchTaskModal";
 import { formatPhoneWa as formatPhoneForWa } from "../lib/spkGenerator";
+import { createWhatsAppUrl, getCustomerWaTemplate } from "../lib/whatsapp";
 
 export default function PelangganRadius() {
   const navigate = useNavigate();
@@ -457,11 +458,11 @@ export default function PelangganRadius() {
                             <span className="font-semibold text-slate-700">{cust.telepon || "-"}</span>
                             {cust.telepon && (
                               <a
-                                href={`https://wa.me/${cleanPhone}`}
+                                href={createWhatsAppUrl(cust.telepon, getCustomerWaTemplate(cust))}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="w-6 h-6 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center border border-emerald-200 transition-colors"
-                                title="Chat WhatsApp"
+                                title="Chat WhatsApp Pelanggan"
                               >
                                 <MessageCircle className="w-3.5 h-3.5" />
                               </a>
@@ -577,11 +578,11 @@ export default function PelangganRadius() {
                       <div className="flex items-center gap-1.5">
                         {cust.telepon && (
                           <a
-                            href={`https://wa.me/${cleanPhone}`}
+                            href={createWhatsAppUrl(cust.telepon, getCustomerWaTemplate(cust))}
                             target="_blank"
                             rel="noreferrer"
                             className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
-                            title="WhatsApp"
+                            title="Chat WhatsApp Pelanggan"
                           >
                             <MessageCircle className="w-4 h-4" />
                           </a>

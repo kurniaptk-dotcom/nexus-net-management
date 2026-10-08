@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { showToast } from "../lib/toast";
 import {
   Plus,
   Search,
@@ -243,6 +244,20 @@ export default function Pekerjaan() {
     }
   }, [searchParams, setSearchParams]);
 
+  // Tutup modal dengan tombol Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setShowModal(false);
+        setShowAddPemutusanModal(false);
+      }
+    };
+    if (showModal || showAddPemutusanModal) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [showModal, showAddPemutusanModal]);
+
   // Kirim WhatsApp SPK Langsung ke Tim Teknisi
   const handleSendWaSpk = (task) => {
     const targetTeam = timData.find((t) => t.nama === task.tim) || null;
@@ -445,7 +460,7 @@ export default function Pekerjaan() {
 
     if (formData.jenis === "PERBAIKAN KHUSUS (ODP/ODC)") {
       if (!formData.odc) {
-        alert("Silakan pilih ODC terlebih dahulu!");
+        showToast("Silakan pilih ODC terlebih dahulu!", "warning");
         return;
       }
       const odpLabel = formData.odp ? `${formData.odc} - ${formData.odp}` : formData.odc;
@@ -534,7 +549,7 @@ export default function Pekerjaan() {
   const handleSavePemutusan = (e) => {
     e.preventDefault();
     if (!pemutusanForm.nama.trim()) {
-      alert("Nama pelanggan / ODP wajib diisi!");
+      showToast("Nama pelanggan / ODP wajib diisi!", "warning");
       return;
     }
     const newItem = {
@@ -1226,8 +1241,14 @@ export default function Pekerjaan() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+        <div
+          onClick={() => setShowModal(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto"
+          >
             <div className="px-6 py-4 border-b border-gray-100">
               <h3 className="text-lg font-bold text-gray-900">
                 {editingItem ? "Edit Pekerjaan" : "Tambah Pekerjaan Baru"}
@@ -1604,8 +1625,14 @@ export default function Pekerjaan() {
 
       {/* Modal Tambah Pengajuan Pemutusan */}
       {showAddPemutusanModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div
+          onClick={() => setShowAddPemutusanModal(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
+          >
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <UserMinus className="w-5 h-5 text-red-500" />

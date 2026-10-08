@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { showToast } from "../lib/toast";
 import { Download, X, Smartphone, WifiOff } from "lucide-react";
 
 export default function InstallPWA() {
@@ -50,11 +51,10 @@ export default function InstallPWA() {
 
   const handleInstall = async () => {
     if (!deferredPrompt) {
-      alert(
-        "Panduan Memasang Aplikasi:\n\n" +
-        "• Android / Chrome: Klik menu titik tiga (⋮) di browser -> pilih 'Pasang aplikasi' atau 'Tambahkan ke Layar Utama'.\n" +
-        "• iPhone / Safari: Ketuk tombol 'Share' (ikon kotak panah ke atas) -> pilih 'Add to Home Screen' (Tambahkan ke Layar Utama).\n" +
-        "• Komputer / Laptop: Klik tombol 'Install' di address bar kanan atas browser."
+      showToast(
+        "Buka menu browser (⋮ atau Share) lalu pilih 'Tambahkan ke Layar Utama' / 'Install App'",
+        "info",
+        6000
       );
       return;
     }

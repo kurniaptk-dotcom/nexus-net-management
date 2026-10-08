@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { showToast } from "../lib/toast";
 import {
   Coins,
   Plus,
@@ -27,6 +28,21 @@ export default function MasterKomisiTab({ masterList = [], setMasterList }) {
   const [editingItem, setEditingItem] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // Tutup modal dengan Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setShowAddModal(false);
+        setItemToDelete(null);
+        setShowResetConfirm(false);
+      }
+    };
+    if (showAddModal || itemToDelete || showResetConfirm) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [showAddModal, itemToDelete, showResetConfirm]);
 
   // Form State untuk Tambah / Edit
   const [form, setForm] = useState({
@@ -105,7 +121,7 @@ export default function MasterKomisiTab({ masterList = [], setMasterList }) {
   const handleSave = (e) => {
     e.preventDefault();
     if (!form.nama.trim()) {
-      alert("Nama pekerjaan wajib diisi!");
+      showToast("Nama pekerjaan wajib diisi!", "warning");
       return;
     }
 
@@ -406,8 +422,14 @@ export default function MasterKomisiTab({ masterList = [], setMasterList }) {
 
       {/* Modal Tambah / Edit Item */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
+        <div
+          onClick={() => setShowAddModal(false)}
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150"
+          >
             <div className="px-6 py-4 bg-gradient-to-r from-slate-900 to-[#0D1B4A] text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold">

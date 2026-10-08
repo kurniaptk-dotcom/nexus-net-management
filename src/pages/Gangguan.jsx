@@ -24,6 +24,7 @@ import { usePersistState } from "../hooks/usePersistState";
 import Toast from "../components/Toast";
 import DispatchTaskModal from "../components/DispatchTaskModal";
 import { formatPhoneWa } from "../lib/spkGenerator";
+import { createWhatsAppUrl, getTroubleWaTemplate } from "../lib/whatsapp";
 
 function getStatusBadge(hasil) {
   const norm = (hasil || "").trim().toLowerCase();
@@ -59,16 +60,10 @@ function getStatusBadge(hasil) {
   };
 }
 
-// Clean phone number for wa.me link
+// Clean phone number for wa.me link with standardized customer trouble template
 function formatWaLink(kontak, nama, keterangan) {
   if (!kontak) return null;
-  const phone = formatPhoneWa(kontak);
-  if (!phone || phone.length < 8) return null;
-
-  const text = encodeURIComponent(
-    `Halo Kak ${nama || "Pelanggan"}, kami dari Support Nexus Net ingin menindaklanjuti kendala WiFi (${keterangan || "layanan"}). Apakah koneksi saat ini sudah berjalan aman dan normal? Terima kasih 🙏`
-  );
-  return `https://wa.me/${phone}?text=${text}`;
+  return createWhatsAppUrl(kontak, getTroubleWaTemplate({ pelanggan: nama, keterangan }));
 }
 
 const KENDALA_PRESETS = [

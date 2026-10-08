@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { showToast } from "../lib/toast";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -153,21 +154,17 @@ export default function OdpGoogleEarthMap({
         const timeStr = new Date().toLocaleTimeString();
         setLastSyncTime(timeStr);
         if (!silent) {
-          alert(`✅ Sinkronisasi Google Earth Berhasil!\n\nData terbaru berhasil ditarik langsung dari Cloud:\n• ${json.totalPoints} Titik Jaringan\n• ${json.totalLines} Rute Kabel Fiber Optik\nWaktu: ${timeStr}`);
+          showToast(`✅ Sinkronisasi Google Earth Berhasil! (${json.totalPoints} Titik, ${json.totalLines} Jalur)`, "success");
         }
       } else if (json.isRestricted) {
         if (!silent) {
-          alert(
-            "🔒 Akses Google Earth Masih 'Restricted' (Pribadi):\n\n" +
-            json.error +
-            "\n\nLangkah singkat:\n1. Buka link Google Earth Anda\n2. Klik ikon 'Bagikan / Share Proyek'\n3. Ubah Akses Umum menjadi 'Siapa saja yang memiliki link (Viewer)'\n4. Klik Selesai, lalu coba tekan sinkronkan kembali."
-          );
+          showToast("Akses Google Earth masih restricted. Mohon ubah sharing ke 'Siapa saja memiliki link'", "warning", 6000);
         }
       } else if (!silent) {
-        alert("Gagal sinkronisasi: " + (json.error || "Terjadi kendala koneksi"));
+        showToast("Gagal sinkronisasi: " + (json.error || "Terjadi kendala koneksi"), "error");
       }
     } catch (err) {
-      if (!silent) alert("Kendala koneksi ke server: " + err.message);
+      if (!silent) showToast("Kendala koneksi ke server: " + err.message, "error");
     } finally {
       setIsSyncing(false);
     }
@@ -895,10 +892,10 @@ export default function OdpGoogleEarthMap({
         const lng = parseFloat(data[0].lon);
         handleCheckCoverageAt(lat, lng, data[0].display_name);
       } else {
-        alert("Lokasi/alamat tidak ditemukan. Coba ketik koordinat GPS langsung atau klik lokasi rumah di peta satelit.");
+        showToast("Lokasi tidak ditemukan. Coba ketik koordinat GPS atau klik lokasi di peta satelit.", "warning");
       }
     } catch (err) {
-      alert("Gagal mencari alamat: " + err.message);
+      showToast("Gagal mencari alamat: " + err.message, "error");
     } finally {
       setIsSearchingCoord(false);
     }
@@ -907,7 +904,7 @@ export default function OdpGoogleEarthMap({
   // Handler Pakai GPS Perangkat untuk Coverage
   const handleLocateForCoverage = () => {
     if (!navigator.geolocation) {
-      alert("Browser tidak mendukung geolokasi GPS.");
+      showToast("Browser tidak mendukung geolokasi GPS.", "error");
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -917,7 +914,7 @@ export default function OdpGoogleEarthMap({
         handleCheckCoverageAt(lat, lng, "📍 Posisi GPS Saya Saat Ini");
       },
       (err) => {
-        alert("Gagal membaca GPS: " + err.message);
+        showToast("Gagal membaca GPS: " + err.message, "error");
       },
       { enableHighAccuracy: true }
     );
@@ -990,7 +987,7 @@ export default function OdpGoogleEarthMap({
   // Ambil lokasi GPS perangkat saat ini
   const handleLocateMe = () => {
     if (!navigator.geolocation) {
-      alert("Browser tidak mendukung geolokasi GPS.");
+      showToast("Browser tidak mendukung geolokasi GPS.", "error");
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -1011,7 +1008,7 @@ export default function OdpGoogleEarthMap({
         }
       },
       (err) => {
-        alert("Gagal membaca GPS: " + err.message);
+        showToast("Gagal membaca GPS: " + err.message, "error");
       },
       { enableHighAccuracy: true }
     );
@@ -1090,15 +1087,15 @@ export default function OdpGoogleEarthMap({
             lines,
           };
           setKmlData(parsed);
-          alert(`Sukses memuat KML: ${points.length} Titik dan ${lines.length} Jalur Kabel!`);
+          showToast(`Sukses memuat KML: ${points.length} Titik dan ${lines.length} Jalur Kabel!`, "success");
           if (points[0] && mapInstanceRef.current) {
             mapInstanceRef.current.flyTo([points[0].lat, points[0].lng], 16);
           }
         } else {
-          alert("File KML tidak berisi titik koordinat yang valid.");
+          showToast("File KML tidak berisi titik koordinat yang valid.", "warning");
         }
       } catch (err) {
-        alert("Gagal membaca file KML: " + err.message);
+        showToast("Gagal membaca file KML: " + err.message, "error");
       }
     };
     reader.readAsText(file);

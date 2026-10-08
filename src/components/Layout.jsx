@@ -31,6 +31,7 @@ import ConfirmModal from "./ConfirmModal";
 import GlobalOmniSearch from "./GlobalOmniSearch";
 import RealtimeStatusBadge from "./RealtimeStatusBadge";
 import PwaUpdateToast from "./PwaUpdateToast";
+import { GlobalToastContainer } from "./Toast";
 import { getUserAllowedMenus, getRoleInfo } from "../lib/permissions";
 
 function Logo({ collapsed }) {
@@ -63,11 +64,15 @@ export default function Layout() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setOmniSearchOpen((prev) => !prev);
+      } else if (e.key === "Escape") {
+        if (settingsOpen) setSettingsOpen(false);
+        if (sidebarOpen) setSidebarOpen(false);
+        if (mobileSearchOpen) setMobileSearchOpen(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [settingsOpen, sidebarOpen, mobileSearchOpen]);
 
   const handleSearchKeyDown = (e) => {
     if (e.key === "Enter" && globalSearch.trim()) {
@@ -341,7 +346,7 @@ export default function Layout() {
         </main>
 
         {/* Mobile Bottom Navigation Bar (Glassmorphic Super-App Shell) */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/92 backdrop-blur-xl border-t border-slate-200/80 px-2 py-1.5 shadow-[0_-8px_30px_rgba(13,27,74,0.08)] flex items-center justify-around pb-[calc(0.4rem+env(safe-area-inset-bottom))]">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/80 px-2 py-1.5 shadow-[0_-8px_30px_rgba(13,27,74,0.08)] flex items-center justify-around select-none pb-[calc(0.45rem+env(safe-area-inset-bottom,0px))]">
           {bottomNavItems.slice(0, 2).map((item) => (
             <NavLink
               key={item.to}
@@ -452,8 +457,14 @@ export default function Layout() {
 
       {/* Settings Modal */}
       {settingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+          onClick={() => setSettingsOpen(false)}
+        >
+          <div
+            className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="px-6 py-4 bg-[#0D1B4A] text-white flex items-center justify-between">
               <h3 className="font-bold text-base flex items-center gap-2">
                 <Settings className="w-4 h-4 text-amber-400" />
@@ -571,6 +582,9 @@ export default function Layout() {
 
       {/* Toast Notifikasi Pembaruan PWA jika versi baru dideploy */}
       <PwaUpdateToast />
+
+      {/* Global Toast Notifikasi Sistem */}
+      <GlobalToastContainer />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   X,
   Gauge,
@@ -78,6 +78,19 @@ export default function BuktiLapanganModal({ task, onClose, masterKomisi }) {
     return KOMISI_PEKERJAAN_MASTER;
   }, [masterKomisi]);
 
+  // Tutup modal dengan tombol Escape
+  useEffect(() => {
+    if (!task) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        if (activePhoto) setActivePhoto(null);
+        else onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [task, activePhoto, onClose]);
+
   if (!task) return null;
 
   // Ekstrak foto dari task (mendukung format evidence object atau field langsung)
@@ -94,8 +107,14 @@ export default function BuktiLapanganModal({ task, onClose, masterKomisi }) {
   const taskIncentive = task.status === "SELESAI" ? calculateTaskIncentive(task, undefined, activeMasterKomisi) : null;
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center sm:justify-center p-0 sm:p-5 animate-in fade-in overflow-hidden">
-      <div className="bg-white w-full max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl border-t sm:border border-slate-100 mt-auto sm:my-auto max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center sm:justify-center p-0 sm:p-5 animate-in fade-in overflow-hidden"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white w-full max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl border-t sm:border border-slate-100 mt-auto sm:my-auto max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden"
+      >
         {/* Mobile Swipe Bar Indicator */}
         <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-slate-50/70">
           <div className="w-12 h-1 bg-slate-300 rounded-full" />
