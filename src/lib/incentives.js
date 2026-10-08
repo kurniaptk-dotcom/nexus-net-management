@@ -299,13 +299,18 @@ export function calculateTaskIncentive(task, config = DEFAULT_INCENTIVE_CONFIG, 
     return acc;
   }, {});
 
+  const masterRates = activeMaster.reduce((acc, it) => {
+    if (it.tarif !== undefined && it.tarif !== null) {
+      acc[it.id] = Number(it.tarif);
+    }
+    return acc;
+  }, {});
+
+  // Master Komisi adalah Single Source of Truth
   const activeRates = {
     ...DEFAULT_INCENTIVE_CONFIG.itemRates,
-    ...activeMaster.reduce((acc, it) => {
-      acc[it.id] = it.tarif;
-      return acc;
-    }, {}),
     ...(config?.itemRates || {}),
+    ...masterRates,
   };
 
   let totalItemFee = 0;
@@ -412,9 +417,13 @@ export function calculateTeamIncentives(tasks = [], teamName = "ALL", config = D
   const activeMaster = Array.isArray(masterList) && masterList.length > 0 ? masterList : KOMISI_PEKERJAAN_MASTER;
   const itemsAggregated = {};
   activeMaster.forEach((m) => {
+    const effectiveTarif = (m.tarif !== undefined && m.tarif !== null)
+      ? Number(m.tarif)
+      : (config?.itemRates?.[m.id] !== undefined ? Number(config.itemRates[m.id]) : 0);
+
     itemsAggregated[m.id] = {
       ...m,
-      tarif: (config?.itemRates?.[m.id] !== undefined ? config.itemRates[m.id] : m.tarif),
+      tarif: effectiveTarif,
       totalQty: 0,
       totalAmount: 0,
       taskCount: 0,

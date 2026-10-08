@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   X,
   Gauge,
@@ -14,7 +14,7 @@ import {
   ZoomIn,
   Coins,
 } from "lucide-react";
-import { getDbmQuality, calculateTaskIncentive, formatRupiah } from "../lib/incentives";
+import { getDbmQuality, calculateTaskIncentive, formatRupiah, KOMISI_PEKERJAAN_MASTER } from "../lib/incentives";
 
 function PhotoItem({ photo, title, emptyLabel, icon: Icon, onZoom }) {
   const isPruned = typeof photo === "string" && (photo.includes("[Tersimpan") || photo.includes("[Cloud Backup]") || photo.includes("[Arsip"));
@@ -63,8 +63,20 @@ function PhotoItem({ photo, title, emptyLabel, icon: Icon, onZoom }) {
   );
 }
 
-export default function BuktiLapanganModal({ task, onClose }) {
+export default function BuktiLapanganModal({ task, onClose, masterKomisi }) {
   const [activePhoto, setActivePhoto] = useState(null);
+
+  const activeMasterKomisi = useMemo(() => {
+    if (Array.isArray(masterKomisi) && masterKomisi.length > 0) return masterKomisi;
+    try {
+      const raw = localStorage.getItem("xnet_master_komisi");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return KOMISI_PEKERJAAN_MASTER;
+  }, [masterKomisi]);
 
   if (!task) return null;
 
@@ -79,7 +91,7 @@ export default function BuktiLapanganModal({ task, onClose }) {
 
   const dbmQuality = redaman ? getDbmQuality(redaman) : null;
   const totalPhotos = [fotoOpm, fotoDropcore, fotoModem].filter(Boolean).length;
-  const taskIncentive = task.status === "SELESAI" ? calculateTaskIncentive(task) : null;
+  const taskIncentive = task.status === "SELESAI" ? calculateTaskIncentive(task, undefined, activeMasterKomisi) : null;
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center sm:justify-center p-0 sm:p-5 animate-in fade-in overflow-hidden">

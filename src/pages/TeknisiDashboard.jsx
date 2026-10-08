@@ -330,8 +330,8 @@ export default function TeknisiDashboard() {
       ...(rawIncentiveConfig || {}),
       itemRates: {
         ...DEFAULT_INCENTIVE_CONFIG.itemRates,
-        ...masterRates,
         ...(rawIncentiveConfig?.itemRates || {}),
+        ...masterRates,
       },
       qualityBonus: {
         ...DEFAULT_INCENTIVE_CONFIG.qualityBonus,
@@ -1164,14 +1164,14 @@ export default function TeknisiDashboard() {
                     Total Komisi & Insentif Teknisi
                   </h3>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    Periode September 2026
+                    Periode {new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
                   </p>
                 </div>
               </div>
 
               <div className="mt-4 flex items-baseline justify-between">
                 <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                  Rp 1.065.000
+                  {formatRupiah(teamIncentives.grandTotal)}
                 </span>
                 <button
                   type="button"
@@ -1195,14 +1195,14 @@ export default function TeknisiDashboard() {
                     Fee Pokok
                   </h3>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    Dari 22 tugas selesai
+                    Dari {teamIncentives.totalCompleted} tugas selesai
                   </p>
                 </div>
               </div>
 
               <div className="mt-4 flex items-baseline justify-between">
                 <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                  Rp 1.065.000
+                  {formatRupiah(teamIncentives.totalBaseFee)}
                 </span>
               </div>
             </div>
@@ -1218,14 +1218,14 @@ export default function TeknisiDashboard() {
                     Bonus Redaman (QC)
                   </h3>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    0 titik prima
+                    {teamIncentives.primaCount || 0} titik prima
                   </p>
                 </div>
               </div>
 
               <div className="mt-4 flex items-baseline justify-between">
                 <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                  Rp 0
+                  {formatRupiah(teamIncentives.totalQualityBonus || 0)}
                 </span>
               </div>
             </div>
@@ -1240,8 +1240,10 @@ export default function TeknisiDashboard() {
                   <h3 className="text-xs font-bold text-slate-800 leading-snug">
                     Target Bulanan
                   </h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    Target Silver (25 Tugas)
+                  <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[150px]">
+                    {teamIncentives.nextTier
+                      ? `Target ${teamIncentives.nextTier.label} (${teamIncentives.nextTier.targetCount} Tugas)`
+                      : teamIncentives.achievedTierLabel || "Target Tercapai"}
                   </p>
                 </div>
               </div>
@@ -1249,13 +1251,18 @@ export default function TeknisiDashboard() {
               <div className="mt-4 space-y-1.5">
                 <div className="flex items-baseline justify-between">
                   <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                    88%
+                    {teamIncentives.nextTier ? `${teamIncentives.nextTier.progressPercent}%` : "100%"}
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    {teamIncentives.totalCompleted} / {teamIncentives.nextTier?.targetCount || teamIncentives.totalCompleted}
                   </span>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                    style={{ width: "88%" }}
+                    style={{
+                      width: `${Math.min(100, teamIncentives.nextTier ? teamIncentives.nextTier.progressPercent : 100)}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -3676,6 +3683,7 @@ export default function TeknisiDashboard() {
       {viewEvidenceTask && (
         <BuktiLapanganModal
           task={viewEvidenceTask}
+          masterKomisi={masterKomisi}
           onClose={() => setViewEvidenceTask(null)}
         />
       )}

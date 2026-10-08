@@ -1695,6 +1695,7 @@ export default function Pekerjaan() {
       {viewEvidenceTask && (
         <BuktiLapanganModal
           task={viewEvidenceTask}
+          masterKomisi={masterKomisi}
           onClose={() => setViewEvidenceTask(null)}
         />
       )}
