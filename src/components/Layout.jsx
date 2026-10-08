@@ -29,6 +29,8 @@ import { useAuth } from "../contexts/AuthContext";
 import NotificationPanel from "./NotificationPanel";
 import ConfirmModal from "./ConfirmModal";
 import GlobalOmniSearch from "./GlobalOmniSearch";
+import RealtimeStatusBadge from "./RealtimeStatusBadge";
+import PwaUpdateToast from "./PwaUpdateToast";
 import { getUserAllowedMenus, getRoleInfo } from "../lib/permissions";
 
 function Logo({ collapsed }) {
@@ -295,6 +297,9 @@ export default function Layout() {
             >
               <Search className="w-4.5 h-4.5" />
             </button>
+
+            {/* Indikator Status Koneksi Realtime & Offline/Online */}
+            <RealtimeStatusBadge />
 
             <NotificationPanel />
 
@@ -563,6 +568,9 @@ export default function Layout() {
         cancelText="Batal"
         variant="warning"
       />
+
+      {/* Toast Notifikasi Pembaruan PWA jika versi baru dideploy */}
+      <PwaUpdateToast />
     </div>
   );
 }

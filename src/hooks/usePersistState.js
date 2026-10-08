@@ -333,6 +333,13 @@ function subscribeTable(table, listener) {
         })
         .subscribe((status) => {
           realtimeStatus.set(table, status);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("xnet_realtime_status_changed", {
+                detail: { table, status, all: Object.fromEntries(realtimeStatus) },
+              })
+            );
+          }
         });
     } catch (err) {
       console.warn(`[REALTIME] subscribe ${table}:`, err);
@@ -352,6 +359,13 @@ function subscribeTable(table, listener) {
       if (entry.listeners.size > 0) return;
       if (realtimeRegistry.get(table) === entry) realtimeRegistry.delete(table);
       realtimeStatus.delete(table);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("xnet_realtime_status_changed", {
+            detail: { table, status: "CLOSED", all: Object.fromEntries(realtimeStatus) },
+          })
+        );
+      }
       if (entry.channel) {
         try {
           supabase.removeChannel(entry.channel);
@@ -360,6 +374,51 @@ function subscribeTable(table, listener) {
         }
       }
     }, CHANNEL_TEARDOWN_GRACE_MS);
+  };
+}
+
+/**
+ * Hook untuk memantau status koneksi Realtime & Jaringan Browser (Online/Offline)
+ */
+export function useRealtimeStatus() {
+  const [online, setOnline] = useState(() => (typeof navigator !== "undefined" ? navigator.onLine : true));
+  const [statuses, setStatuses] = useState(() => getRealtimeStatus());
+
+  useEffect(() => {
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
+    const handleRealtime = (e) => {
+      setStatuses(e.detail?.all || getRealtimeStatus());
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("xnet_realtime_status_changed", handleRealtime);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("xnet_realtime_status_changed", handleRealtime);
+    };
+  }, []);
+
+  const tables = Object.keys(statuses);
+  const activeCount = tables.filter((t) => statuses[t] === "SUBSCRIBED").length;
+
+  let overall = "STANDBY";
+  if (!online) {
+    overall = "OFFLINE";
+  } else if (activeCount > 0) {
+    overall = "CONNECTED";
+  } else if (tables.length > 0) {
+    overall = "CONNECTING";
+  }
+
+  return {
+    isOnline: online,
+    overallStatus: overall, // "CONNECTED" | "CONNECTING" | "OFFLINE" | "STANDBY"
+    activeChannelsCount: activeCount,
+    tableStatuses: statuses,
   };
 }
 
