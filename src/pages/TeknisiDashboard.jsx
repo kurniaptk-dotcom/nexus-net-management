@@ -81,6 +81,7 @@ import { syncCustomerOnTaskCompletion } from "../lib/customerPortLifecycle";
 import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import { formatPhoneWa as formatPhoneForWa } from "../lib/spkGenerator";
+import { createWhatsAppUrl } from "../lib/whatsapp";
 
 function parseRecordDate(dStr) {
   if (!dStr) return null;
@@ -1061,8 +1062,10 @@ export default function TeknisiDashboard() {
                     Halo, {profile?.full_name || "Demo Admin"}! 👋
                   </h1>
                   <p className="text-xs text-slate-500 mt-1">
-                    {isSupervisor
-                      ? "Anda login sebagai Administrator (Mode Supervisi)."
+                    {profile?.role === "admin"
+                      ? "Anda login sebagai Administrator (Mode Supervisi Global)."
+                      : profile?.role === "user"
+                      ? "Anda login sebagai Operator (Mode Supervisi Operasional)."
                       : `Anda login sebagai Teknisi Lapangan Tim ${activeTeam}.`}
                   </p>
                 </div>
@@ -1513,124 +1516,91 @@ export default function TeknisiDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs">
-                      {/* Row 1: Budi Santoso */}
-                      <tr className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3 px-2 font-mono font-bold text-slate-400">001</td>
-                        <td className="py-3 px-2">
-                          <p className="font-bold text-slate-900 leading-snug">Budi Santoso</p>
-                          <p className="text-[11px] text-slate-400 truncate max-w-[160px] sm:max-w-[200px]">
-                            Jl. Ahmad Yani, Pontianak
-                          </p>
-                        </td>
-                        <td className="py-3 px-2 hidden sm:table-cell">
-                          <span className="font-semibold text-slate-700">Instalasi Baru</span>
-                        </td>
-                        <td className="py-3 px-2">
-                          <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
-                            Menunggu
-                          </span>
-                        </td>
-                        <td className="py-3 px-2 hidden sm:table-cell">
-                          <p className="font-semibold text-slate-700 text-[11px]">30 Sep 2026</p>
-                          <p className="text-[10px] text-slate-400">09:00 - 11:00</p>
-                        </td>
-                        <td className="py-3 px-1 text-center relative">
-                          <button
-                            type="button"
-                            onClick={() => setActiveActionTaskId(activeActionTaskId === 1 ? null : 1)}
-                            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                          {activeActionTaskId === 1 && (
-                            <div className="absolute right-2 top-8 z-30 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 min-w-[150px] text-left text-xs font-semibold animate-in fade-in duration-150">
-                              <button
-                                onClick={() => {
-                                  setActiveActionTaskId(null);
-                                  setViewMode("KANBAN");
-                                }}
-                                className="w-full px-3 py-1.5 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
-                              >
-                                <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Buka di Kanban</span>
-                              </button>
-                              <a
-                                href={`https://wa.me/6281234567890`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="w-full px-3 py-1.5 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
-                              >
-                                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Chat WhatsApp</span>
-                              </a>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
+                      {teamTasks.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-slate-400">
+                            <ClipboardList className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                            <p className="font-semibold text-slate-600">Belum ada tugas lapangan</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">Tidak ada antrean SPK yang ditugaskan untuk tim {activeTeam}</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        teamTasks.slice(0, 5).map((task, idx) => {
+                          const cleanWaPhone = formatPhoneForWa(task.telepon || "");
+                          const waText = `Halo Bpk/Ibu ${task.pelanggan}, kami dari Tim Teknisi Nexus Net (${activeTeam}). Kami akan memproses pekerjaan ${task.jenis} di lokasi Anda: ${task.alamat}.`;
+                          const waUrl = createWhatsAppUrl(cleanWaPhone, waText);
+                          const isDone = task.status === "SELESAI";
+                          const isSched = task.status === "DIJADWALKAN";
 
-                      {/* Row 2: PT. Maju Abadi */}
-                      <tr className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3 px-2 font-mono font-bold text-slate-400">002</td>
-                        <td className="py-3 px-2">
-                          <p className="font-bold text-slate-900 leading-snug">PT. Maju Abadi</p>
-                          <p className="text-[11px] text-slate-400 truncate max-w-[160px] sm:max-w-[200px]">
-                            Jl. Khatulistiwa, Kubu Raya
-                          </p>
-                        </td>
-                        <td className="py-3 px-2 hidden sm:table-cell">
-                          <span className="font-semibold text-slate-700">Perbaikan</span>
-                        </td>
-                        <td className="py-3 px-2">
-                          <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                            Selesai
-                          </span>
-                        </td>
-                        <td className="py-3 px-2 hidden sm:table-cell">
-                          <p className="font-semibold text-slate-700 text-[11px]">30 Sep 2026</p>
-                          <p className="text-[10px] text-slate-400">10:00 - 11:30</p>
-                        </td>
-                        <td className="py-3 px-1 text-center relative">
-                          <button
-                            type="button"
-                            onClick={() => setActiveActionTaskId(activeActionTaskId === 2 ? null : 2)}
-                            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-
-                      {/* Row 3: Siti Rahma */}
-                      <tr className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3 px-2 font-mono font-bold text-slate-400">003</td>
-                        <td className="py-3 px-2">
-                          <p className="font-bold text-slate-900 leading-snug">Siti Rahma</p>
-                          <p className="text-[11px] text-slate-400 truncate max-w-[160px] sm:max-w-[200px]">
-                            Jl. Parit H. Husin II, Pontianak
-                          </p>
-                        </td>
-                        <td className="py-3 px-2 hidden sm:table-cell">
-                          <span className="font-semibold text-slate-700">Migrasi</span>
-                        </td>
-                        <td className="py-3 px-2">
-                          <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                            Selesai
-                          </span>
-                        </td>
-                        <td className="py-3 px-2 hidden sm:table-cell">
-                          <p className="font-semibold text-slate-700 text-[11px]">30 Sep 2026</p>
-                          <p className="text-[10px] text-slate-400">13:00 - 14:00</p>
-                        </td>
-                        <td className="py-3 px-1 text-center relative">
-                          <button
-                            type="button"
-                            onClick={() => setActiveActionTaskId(activeActionTaskId === 3 ? null : 3)}
-                            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
+                          return (
+                            <tr key={task.id} className="hover:bg-slate-50/60 transition-colors">
+                              <td className="py-3 px-2 font-mono font-bold text-slate-400">
+                                {String(idx + 1).padStart(3, "0")}
+                              </td>
+                              <td className="py-3 px-2">
+                                <p className="font-bold text-slate-900 leading-snug">{task.pelanggan}</p>
+                                <p className="text-[11px] text-slate-400 truncate max-w-[160px] sm:max-w-[200px]" title={task.alamat}>
+                                  {task.alamat || "-"}
+                                </p>
+                              </td>
+                              <td className="py-3 px-2 hidden sm:table-cell">
+                                <span className="font-semibold text-slate-700">{task.jenis}</span>
+                              </td>
+                              <td className="py-3 px-2">
+                                <span
+                                  className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold ${
+                                    isDone
+                                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
+                                      : isSched
+                                      ? "bg-blue-50 text-blue-700 border border-blue-200/80"
+                                      : "bg-amber-50 text-amber-700 border border-amber-200/80"
+                                  }`}
+                                >
+                                  {task.status}
+                                </span>
+                              </td>
+                              <td className="py-3 px-2 hidden sm:table-cell">
+                                <p className="font-semibold text-slate-700 text-[11px]">{task.tanggal || "-"}</p>
+                                <p className="text-[10px] text-slate-400">{task.odp ? `ODP: ${task.odp}` : "-"}</p>
+                              </td>
+                              <td className="py-3 px-1 text-center relative">
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveActionTaskId(activeActionTaskId === task.id ? null : task.id)}
+                                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
+                                {activeActionTaskId === task.id && (
+                                  <div className="absolute right-2 top-8 z-30 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 min-w-[150px] text-left text-xs font-semibold animate-in fade-in duration-150">
+                                    <button
+                                      onClick={() => {
+                                        setActiveActionTaskId(null);
+                                        setViewMode("KANBAN");
+                                      }}
+                                      className="w-full px-3 py-1.5 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                                    >
+                                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span>Buka di Kanban</span>
+                                    </button>
+                                    {cleanWaPhone ? (
+                                      <a
+                                        href={waUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="w-full px-3 py-1.5 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                                      >
+                                        <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                        <span>Chat WhatsApp</span>
+                                      </a>
+                                    ) : null}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>

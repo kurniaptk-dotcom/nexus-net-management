@@ -72,6 +72,13 @@ function MenuGuard({ path, children }) {
   );
 }
 
+function AuthenticatedRedirect() {
+  const { profile } = useAuth();
+  const allowed = getUserAllowedMenus(profile);
+  const target = allowed.includes("/") ? "/" : (allowed[0] || "/");
+  return <Navigate to={target} replace />;
+}
+
 function AppRoutes() {
   const { user, loading } = useAuth();
 
@@ -86,7 +93,7 @@ function AppRoutes() {
   return (
     <Suspense fallback={<PageLoading />}>
       <Routes>
-        <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+        <Route path="/login" element={user ? <AuthenticatedRedirect /> : <Login />} />
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<MenuGuard path="/"><Dashboard /></MenuGuard>} />
           <Route path="teknisi" element={<MenuGuard path="/teknisi"><TeknisiDashboard /></MenuGuard>} />

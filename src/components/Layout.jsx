@@ -138,7 +138,16 @@ export default function Layout() {
       { to: "/laporan", icon: FileText, label: "Laporan" },
     ];
     if (profile?.role === "admin") return defaultPriority.slice(0, 4);
-    const filtered = defaultPriority.filter((item) => allowedPaths.includes(item.to));
+
+    let filtered = defaultPriority.filter((item) => allowedPaths.includes(item.to));
+    // Jika role teknisi dan tombol tengah bertindak sebagai portal tugas,
+    // jangan duplikasi tombol /teknisi jika ada menu lain yang bisa ditampilkan
+    if (profile?.role === "teknisi") {
+      const nonTeknisiMenus = filtered.filter((item) => item.to !== "/teknisi");
+      if (nonTeknisiMenus.length > 0) {
+        filtered = nonTeknisiMenus;
+      }
+    }
     return filtered.slice(0, 4);
   }, [profile, allowedPaths]);
 
@@ -378,7 +387,7 @@ export default function Layout() {
             </NavLink>
           ))}
 
-          {/* Center Quick Action (Adaptif Role: SPK Baru untuk Admin vs Tugas Saya untuk Teknisi) */}
+          {/* Center Quick Action (Adaptif Role: SPK Baru untuk Admin vs Tugas Saya untuk Teknisi vs Akses Cepat Aman) */}
           {profile?.role === "teknisi" ? (
             <button
               type="button"
@@ -391,16 +400,10 @@ export default function Layout() {
               </div>
               <span className="text-[10px] font-black text-emerald-800 mt-0.5 tracking-tight">Tugas Saya</span>
             </button>
-          ) : (
+          ) : allowedPaths.includes("/pekerjaan") || profile?.role === "admin" ? (
             <button
               type="button"
-              onClick={() => {
-                if (allowedPaths.includes("/pekerjaan") || profile?.role === "admin") {
-                  navigate("/pekerjaan?dispatch=1");
-                } else {
-                  navigate("/teknisi");
-                }
-              }}
+              onClick={() => navigate("/pekerjaan?dispatch=1")}
               className="flex flex-col items-center justify-center -mt-6 group cursor-pointer"
               title="Tambah / Terbitkan SPK Baru"
             >
@@ -408,6 +411,23 @@ export default function Layout() {
                 <Plus className="w-6 h-6 stroke-[3]" />
               </div>
               <span className="text-[10px] font-black text-[#0D1B4A] mt-0.5 tracking-tight">SPK Baru</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                const target = allowedPaths.includes("/teknisi")
+                  ? "/teknisi"
+                  : (allowedPaths[0] || "/");
+                navigate(target);
+              }}
+              className="flex flex-col items-center justify-center -mt-6 group cursor-pointer"
+              title="Navigasi Cepat"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#0D1B4A] via-[#1a237e] to-[#0D1B4A] text-amber-400 flex items-center justify-center shadow-lg shadow-[#0D1B4A]/30 ring-4 ring-white group-active:scale-90 transition-all">
+                <LayoutDashboard className="w-6 h-6 stroke-[2.5]" />
+              </div>
+              <span className="text-[10px] font-black text-[#0D1B4A] mt-0.5 tracking-tight">Akses Cepat</span>
             </button>
           )}
 

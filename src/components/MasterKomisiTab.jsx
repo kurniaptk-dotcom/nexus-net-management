@@ -13,7 +13,9 @@ import {
   Info,
   X,
   SlidersHorizontal,
+  Lock,
 } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 import {
   KOMISI_PEKERJAAN_MASTER,
   KATEGORI_KOMISI,
@@ -22,6 +24,8 @@ import {
 } from "../lib/incentives";
 
 export default function MasterKomisiTab({ masterList = [], setMasterList }) {
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === "admin";
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -120,6 +124,10 @@ export default function MasterKomisiTab({ masterList = [], setMasterList }) {
   // Submit Simpan (Create / Update)
   const handleSave = (e) => {
     e.preventDefault();
+    if (!isAdmin) {
+      showToast("Hanya Administrator yang memiliki wewenang mengubah tarif komisi.", "error");
+      return;
+    }
     if (!form.nama.trim()) {
       showToast("Nama pekerjaan wajib diisi!", "warning");
       return;
@@ -151,6 +159,10 @@ export default function MasterKomisiTab({ masterList = [], setMasterList }) {
 
   // Hapus Item
   const handleConfirmDelete = () => {
+    if (!isAdmin) {
+      showToast("Hanya Administrator yang memiliki wewenang menghapus item komisi.", "error");
+      return;
+    }
     if (!itemToDelete) return;
     setMasterList((prev) => prev.filter((it) => it.id !== itemToDelete.id));
     setItemToDelete(null);
@@ -158,6 +170,10 @@ export default function MasterKomisiTab({ masterList = [], setMasterList }) {
 
   // Reset ke Standar Team Nexus
   const handleResetDefault = () => {
+    if (!isAdmin) {
+      showToast("Hanya Administrator yang memiliki wewenang mereset tarif komisi.", "error");
+      return;
+    }
     setMasterList(KOMISI_PEKERJAAN_MASTER);
     setShowResetConfirm(false);
   };
@@ -184,24 +200,31 @@ export default function MasterKomisiTab({ masterList = [], setMasterList }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setShowResetConfirm(true)}
-            className="px-3.5 py-2.5 bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-white/15"
-          >
-            <RotateCcw className="w-4 h-4 text-amber-300" />
-            <span>Reset Standar</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenAdd}
-            className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-amber-400/20 flex items-center gap-2 cursor-pointer"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>Tambah Item Komisi</span>
-          </button>
-        </div>
+        {isAdmin ? (
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setShowResetConfirm(true)}
+              className="px-3.5 py-2.5 bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-white/15"
+            >
+              <RotateCcw className="w-4 h-4 text-amber-300" />
+              <span>Reset Standar</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenAdd}
+              className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-amber-400/20 flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Tambah Item Komisi</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-3.5 py-2.5 bg-white/10 rounded-xl text-xs font-bold text-amber-300 border border-amber-400/25 shrink-0">
+            <Lock className="w-4 h-4 text-amber-300" />
+            <span>Mode Tinjau (Hanya Admin yang dapat mengubah tarif)</span>
+          </div>
+        )}
       </div>
 
       {/* Ringkasan Metrik Kategori */}
@@ -392,24 +415,30 @@ export default function MasterKomisiTab({ masterList = [], setMasterList }) {
                         {item.keterangan || "-"}
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEdit(item)}
-                            title="Edit Item"
-                            className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setItemToDelete(item)}
-                            title="Hapus Item"
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        {isAdmin ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(item)}
+                              title="Edit Item"
+                              className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setItemToDelete(item)}
+                              title="Hapus Item"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center text-slate-400" title="Terkunci (Hanya Administrator)">
+                            <Lock className="w-3.5 h-3.5" />
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
