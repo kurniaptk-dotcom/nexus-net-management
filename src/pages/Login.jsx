@@ -219,6 +219,38 @@ export default function Login() {
                 </>
               )}
             </button>
+
+            {/* Quick Demo Fill Buttons for Presentations */}
+            <div className="pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-semibold text-gray-500">Akses Cepat Demo / Presentasi:</span>
+                <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60">1-Klik Isi</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("admin@nexus.net");
+                    setPassword("password123");
+                  }}
+                  className="px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-blue-400 flex items-center justify-center gap-1.5 text-center active:scale-95"
+                >
+                  <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                  👑 Admin Demo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("ais@nexus.net");
+                    setPassword("gatra123");
+                  }}
+                  className="px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-amber-400 flex items-center justify-center gap-1.5 text-center active:scale-95"
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                  🛠️ Teknisi Demo
+                </button>
+              </div>
+            </div>
           </form>
         </div>
 
