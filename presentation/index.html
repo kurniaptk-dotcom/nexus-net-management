@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus Net &bull; Executive Presentation & Feature Walkthrough Deck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #070E24;
+      --bg-card: rgba(13, 27, 74, 0.7);
+      --border-card: rgba(255, 255, 255, 0.1);
+      --accent-amber: #F59E0B;
+      --accent-amber-glow: rgba(245, 158, 11, 0.25);
+      --accent-blue: #3B82F6;
+      --accent-emerald: #10B981;
+      --accent-cyan: #06B6D4;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --font-main: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-main);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      user-select: none;
+    }
+
+    /* Top Progress Bar */
+    .progress-bar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      z-index: 100;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 8.33%;
+      background: linear-gradient(90deg, #3B82F6, #F59E0B);
+      transition: width 0.35s ease;
+      box-shadow: 0 0 12px var(--accent-amber);
+    }
+
+    /* Fixed Header Controls */
+    header.deck-header {
+      position: fixed;
+      top: 14px;
+      left: 28px;
+      right: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 90;
+      pointer-events: none;
+    }
+    .brand-badge {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(13, 27, 74, 0.85);
+      border: 1px solid var(--border-card);
+      backdrop-filter: blur(12px);
+      padding: 8px 18px;
+      border-radius: 999px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .brand-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent-amber);
+      box-shadow: 0 0 10px var(--accent-amber);
+      animation: pulse 2s infinite;
+    }
+    .brand-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+    .brand-title span { color: var(--accent-amber); }
+
+    .header-actions {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-action {
+      background: rgba(13, 27, 74, 0.85);
+      border: 1px solid var(--border-card);
+      color: #cbd5e1;
+      padding: 7px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s;
+    }
+    .btn-action:hover {
+      background: rgba(30, 58, 138, 0.9);
+      color: #fff;
+      border-color: var(--accent-amber);
+      transform: translateY(-1px);
+    }
+
+    /* Slide Deck Container (16:9 Aspect Ratio) */
+    .slide-deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      padding: 85px 60px 80px 60px;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(0.97) translateY(12px);
+      transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.4s;
+    }
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: scale(1) translateY(0);
+    }
+
+    /* Ambient Background Glows */
+    .glow-1 {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+      top: -100px;
+      left: -100px;
+      filter: blur(60px);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .glow-2 {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, transparent 70%);
+      bottom: -100px;
+      right: -100px;
+      filter: blur(60px);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Slide Content Layouts */
+    .slide-inner {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      max-width: 1540px;
+      margin: 0 auto;
+    }
+
+    /* Header inside slide */
+    .slide-head {
+      margin-bottom: 24px;
+    }
+    .slide-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent-amber);
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+    .slide-title {
+      font-size: clamp(26px, 3.2vw, 38px);
+      font-weight: 800;
+      line-height: 1.15;
+      color: #fff;
+    }
+    .slide-title span {
+      background: linear-gradient(135deg, #F59E0B, #FBBF24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .slide-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      max-width: 820px;
+    }
+
+    /* Two Columns Grid */
+    .grid-split {
+      display: grid;
+      grid-template-columns: 1.05fr 1.35fr;
+      gap: 36px;
+      flex: 1;
+      min-height: 0;
+      align-items: stretch;
+    }
+
+    /* Left Info Column */
+    .info-pane {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      padding-right: 8px;
+    }
+    .info-pane::-webkit-scrollbar { width: 4px; }
+    .info-pane::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 16px;
+      padding: 18px 22px;
+      backdrop-filter: blur(12px);
+      transition: all 0.25s;
+    }
+    .feature-card:hover {
+      border-color: rgba(245, 158, 11, 0.4);
+      background: rgba(18, 38, 102, 0.8);
+      transform: translateX(4px);
+    }
+    .feature-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .icon-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .icon-box.amber { background: rgba(245, 158, 11, 0.18); border-color: rgba(245, 158, 11, 0.4); color: #F59E0B; }
+    .icon-box.blue { background: rgba(59, 130, 246, 0.18); border-color: rgba(59, 130, 246, 0.4); color: #60A5FA; }
+    .icon-box.emerald { background: rgba(16, 185, 129, 0.18); border-color: rgba(16, 185, 129, 0.4); color: #34D399; }
+    .icon-box.cyan { background: rgba(6, 182, 212, 0.18); border-color: rgba(6, 182, 212, 0.4); color: #22D3EE; }
+
+    .feature-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .feature-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .metric-box {
+      background: rgba(13, 27, 74, 0.6);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+    .metric-value {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--accent-amber);
+      font-family: var(--font-mono);
+    }
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    /* Right Preview / Screenshot Pane */
+    .preview-pane {
+      position: relative;
+      background: rgba(9, 19, 53, 0.85);
+      border: 1px solid var(--border-card);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-in;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .preview-pane:hover {
+      border-color: var(--accent-amber);
+      box-shadow: 0 25px 50px rgba(245, 158, 11, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .window-header {
+      width: 100%;
+      height: 34px;
+      background: rgba(7, 14, 36, 0.95);
+      border-bottom: 1px solid var(--border-card);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 8px;
+    }
+    .window-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .window-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .window-dot.red { background: #EF4444; }
+    .window-dot.yellow { background: #F59E0B; }
+    .window-dot.green { background: #10B981; }
+    .window-title {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-left: 8px;
+    }
+
+    .preview-image-wrapper {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #040816;
+      position: relative;
+    }
+    .preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      transition: transform 0.4s ease;
+    }
+    .preview-pane:hover .preview-img {
+      transform: scale(1.02);
+    }
+
+    .zoom-hint {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      background: rgba(7, 14, 36, 0.85);
+      border: 1px solid var(--border-card);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 999px;
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0.85;
+      transition: opacity 0.2s;
+    }
+    .preview-pane:hover .zoom-hint {
+      opacity: 1;
+      border-color: var(--accent-amber);
+      color: var(--accent-amber);
+    }
+
+    /* Fixed Bottom Footer Bar */
+    footer.deck-footer {
+      position: fixed;
+      bottom: 16px;
+      left: 28px;
+      right: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 90;
+      pointer-events: none;
+    }
+    .slide-counter-badge {
+      pointer-events: auto;
+      background: rgba(13, 27, 74, 0.85);
+      border: 1px solid var(--border-card);
+      backdrop-filter: blur(10px);
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e2e8f0;
+      font-family: var(--font-mono);
+    }
+    .slide-counter-badge span {
+      color: var(--accent-amber);
+    }
+
+    .nav-controls {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-nav {
+      background: rgba(13, 27, 74, 0.85);
+      border: 1px solid var(--border-card);
+      color: #fff;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s;
+    }
+    .btn-nav:hover:not(:disabled) {
+      background: rgba(30, 58, 138, 0.95);
+      border-color: var(--accent-amber);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
+    }
+    .btn-nav:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    /* Lightbox Modal for Full Image Zoom */
+    .lightbox-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      backdrop-filter: blur(16px);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+    }
+    .lightbox-modal.open {
+      opacity: 1;
+      visibility: visible;
+    }
+    .lightbox-img {
+      max-width: 95vw;
+      max-height: 85vh;
+      border-radius: 12px;
+      border: 1px solid var(--border-card);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      object-fit: contain;
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 24px;
+      right: 28px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 8px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .lightbox-close:hover {
+      background: #EF4444;
+      border-color: #EF4444;
+    }
+    .lightbox-caption {
+      margin-top: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+
+    /* Presenter Notes Modal */
+    .notes-drawer {
+      position: fixed;
+      bottom: 75px;
+      right: 28px;
+      width: 420px;
+      background: rgba(13, 27, 74, 0.95);
+      border: 1px solid var(--accent-amber);
+      border-radius: 18px;
+      padding: 20px;
+      backdrop-filter: blur(20px);
+      z-index: 95;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      display: none;
+      animation: slideUp 0.25s ease-out;
+    }
+    .notes-drawer.open { display: block; }
+    .notes-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-card);
+      padding-bottom: 8px;
+    }
+    .notes-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-amber);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .notes-content {
+      font-size: 12.5px;
+      color: #e2e8f0;
+      line-height: 1.6;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    /* Keyframes */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.9); }
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Mobile / Tablet Responsive Adjustments */
+    @media (max-width: 1024px) {
+      .grid-split {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .slide {
+        padding: 70px 24px 70px 24px;
+      }
+      .preview-pane {
+        max-height: 38vh;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Progress Bar -->
+  <div class="progress-bar-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <!-- Ambient Glows -->
+  <div class="glow-1"></div>
+  <div class="glow-2"></div>
+
+  <!-- Header Controls -->
+  <header class="deck-header">
+    <div class="brand-badge">
+      <div class="brand-dot"></div>
+      <div class="brand-title">NEXUS<span>NET</span> &bull; Executive Pitch Deck</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-action" id="btnNotes" title="Buka Catatan Presenter (Tombol N)">
+        🎙️ <span>Catatan (N)</span>
+      </button>
+      <button class="btn-action" id="btnFullscreen" title="Toggle Fullscreen (Tombol F)">
+        ⛶ <span>Fullscreen (F)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Slide Deck -->
+  <main class="slide-deck" id="slideDeck">
+
+    <!-- ================= SLIDE 1: COVER ================= -->
+    <section class="slide active" data-title="Cover & Executive Vision" data-notes="Buka presentasi dengan percaya diri. Tekankan bahwa Nexus Net mengatasi masalah utama ISP FTTH: fragmentasi tools dan pencatatan manual WhatsApp/Excel.">
+      <div class="slide-inner" style="justify-content: center; text-align: center; max-width: 950px; margin: auto;">
+        <div style="margin-bottom: 24px;">
+          <span class="slide-tag" style="font-size: 12px; padding: 6px 18px;">Solusi Manajemen FTTH End-to-End Generasi Baru</span>
+        </div>
+        <h1 style="font-size: clamp(38px, 5.5vw, 68px); font-weight: 800; line-height: 1.1; margin-bottom: 20px; letter-spacing: -1px;">
+          Transformasi Operasional ISP:<br>
+          <span style="background: linear-gradient(135deg, #F59E0B, #60A5FA); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            Dari Lead Hingga Radius Billing
+          </span><br>
+          Dalam Satu Ekosistem Terpadu
+        </h1>
+        <p style="font-size: 18px; color: var(--text-muted); line-height: 1.6; max-width: 780px; margin: 0 auto 36px auto;">
+          Mengintegrasikan GIS Google Earth topologi optik, SPK WhatsApp otomatis, Portal PWA teknisi ber-watermark GPS & OPM redaman, hingga auto-sync akun PPPoE Mikrotik.
+        </p>
+
+        <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+          <div style="background: rgba(13, 27, 74, 0.7); border: 1px solid var(--border-card); padding: 14px 24px; border-radius: 14px; backdrop-filter: blur(10px); display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 24px;">⚡</span>
+            <div style="text-align: left;">
+              <div style="font-size: 15px; font-weight: 700; color: #fff;">1-Detik Otomasi</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Zero Double-Data Entry</div>
+            </div>
+          </div>
+          <div style="background: rgba(13, 27, 74, 0.7); border: 1px solid var(--border-card); padding: 14px 24px; border-radius: 14px; backdrop-filter: blur(10px); display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 24px;">📍</span>
+            <div style="text-align: left;">
+              <div style="font-size: 15px; font-weight: 700; color: #fff;">GIS Satelit 3D</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Alur Sinyal FTTH Real-Time</div>
+            </div>
+          </div>
+          <div style="background: rgba(13, 27, 74, 0.7); border: 1px solid var(--border-card); padding: 14px 24px; border-radius: 14px; backdrop-filter: blur(10px); display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 24px;">📱</span>
+            <div style="text-align: left;">
+              <div style="font-size: 15px; font-weight: 700; color: #fff;">PWA Mobile First</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Offline Sync di Blank Spot</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 2: PAIN POINTS VS SOLUTION ================= -->
+    <section class="slide" data-title="Masalah Operasional ISP & Solusi" data-notes="Jelaskan 3 masalah klasik ISP: port ODP bocor/penuh tanpa catatan, redaman tinggi karena teknisi tidak diukur OPM, dan komisi tim teknisi yang sering salah hitung.">
+      <div class="slide-inner">
+        <div class="slide-head">
+          <span class="slide-tag">Latar Belakang & Efisiensi Biaya</span>
+          <h2 class="slide-title">Mengapa ISP Membutuhkan <span>Nexus Net</span>?</h2>
+          <p class="slide-subtitle">Solusi atas kebocoran pendapatan, komplain redaman jelek, dan koordinasi lapangan yang lambat.</p>
+        </div>
+
+        <div class="grid-split">
+          <div class="info-pane">
+            <div class="feature-card" style="border-left: 4px solid #EF4444;">
+              <div class="feature-card-header">
+                <div class="icon-box" style="color: #EF4444; background: rgba(239, 68, 68, 0.15);">❌</div>
+                <div>
+                  <h3>Cara Konvensional (Sebelumnya)</h3>
+                  <p style="color: #f87171; font-size: 12px;">Manual, Terfragmentasi & Rawan Human Error</p>
+                </div>
+              </div>
+              <p>• Data port ODP di Excel sering tidak sinkron dengan fisik tiang (over-capacity).<br>
+                 • SPK disebar manual via grup WA tanpa deteksi bentrok jadwal.<br>
+                 • Teknisi serah terima tanpa bukti OPM (redaman > -25 dBm bikin komplain sering).<br>
+                 • Admin input ulang data pelanggan ke Mikrotik Radius di malam hari.</p>
+            </div>
+
+            <div class="feature-card" style="border-left: 4px solid var(--accent-emerald);">
+              <div class="feature-card-header">
+                <div class="icon-box emerald">✨</div>
+                <div>
+                  <h3>Standar Nexus Net (Sekarang)</h3>
+                  <p style="color: #34D399; font-size: 12px;">Terkoneksi Otomatis & Terverifikasi Real-Time</p>
+                </div>
+              </div>
+              <p>• Port ODP otomatis terisi & terkunci saat tugas teknisi berstatus SELESAI.<br>
+                 • Barometer OPM mewajibkan angka redaman optik valid dengan indikator visual.<br>
+                 • Foto bukti di-watermark koordinat GPS, timestamp WIB, dan barcode modem.<br>
+                 • Akun Radius PPPoE langsung aktif detik itu juga tanpa sentuhan admin.</p>
+            </div>
+          </div>
+
+          <div style="background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 20px; padding: 24px; display: flex; flex-direction: column; justify-content: center;">
+            <h4 style="font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 14px; text-align: center;">Perbandingan Waktu Siklus Pasang Baru (Menit)</h4>
+            <div style="flex: 1; min-height: 240px; position: relative;">
+              <canvas id="chartComparison"></canvas>
+            </div>
+            <div class="metric-row" style="margin-top: 14px;">
+              <div class="metric-box">
+                <div class="metric-value">65%</div>
+                <div class="metric-label">Hemat Waktu SPK</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-value">0%</div>
+                <div class="metric-label">Human Error Input</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-value">100%</div>
+                <div class="metric-label">Verifikasi Redaman</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 3: LOGIN & ROLE SWITCHER ================= -->
+    <section class="slide" data-title="Autentikasi & Multi-Role RBAC" data-notes="Tunjukkan kemudahan login. Terdapat tombol 1-Klik Isi Cepat (Admin vs Teknisi) yang mempermudah demonstrasi dan penggunaan harian.">
+      <div class="slide-inner">
+        <div class="slide-head">
+          <span class="slide-tag">Akses Aman & Multi-Peran</span>
+          <h2 class="slide-title">Autentikasi Terproteksi & <span>1-Klik Akses Demo</span></h2>
+          <p class="slide-subtitle">Role-Based Access Control (RBAC) membatasi privilese Admin, Dispatcher NOC, dan Teknisi Lapangan.</p>
+        </div>
+
+        <div class="grid-split">
+          <div class="info-pane">
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box blue">🛡️</div>
+                <div>
+                  <h3>Multi-Role Granular Access</h3>
+                </div>
+              </div>
+              <p>Memisahkan wewenang secara ketat. Admin memiliki hak penuh konfigurasi server, tim, dan finansial; sementara teknisi hanya dapat melihat portal tugas regu lapangannya.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box amber">⚡</div>
+                <div>
+                  <h3>1-Klik Quick Fill Credentials</h3>
+                </div>
+              </div>
+              <p>Tombol instan <strong>👑 Admin Demo</strong> dan <strong>🛠️ Teknisi Demo</strong> memudahkan perpindahan peran dalam hitungan detik tanpa repot mengetik email/password.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box emerald">🔒</div>
+                <div>
+                  <h3>Session Resilience & Fallback</h3>
+                </div>
+              </div>
+              <p>Dilengkapi auto-recovery session di local storage sehingga pengguna tidak terlempar keluar saat jaringan internet goyang.</p>
+            </div>
+          </div>
+
+          <div class="preview-pane" onclick="openLightbox('./screenshots/01_login.png', 'Halaman Login dengan Tombol Quick Demo Fill')">
+            <div class="window-header">
+              <div class="window-dots"><div class="window-dot red"></div><div class="window-dot yellow"></div><div class="window-dot green"></div></div>
+              <div class="window-title">nexus.net/login</div>
+            </div>
+            <div class="preview-image-wrapper">
+              <img src="./screenshots/01_login.png" class="preview-img" alt="Halaman Login Nexus Net">
+            </div>
+            <div class="zoom-hint">🔍 Klik untuk Perbesar</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 4: DASHBOARD EKSEKUTIF ================= -->
+    <section class="slide" data-title="Dashboard Eksekutif & Monitoring Real-time" data-notes="Perhatikan kartu ringkasan KPI dan badge realtime Supabase berdenyut hijau di kanan atas. Tim dispatch langsung tahu kapasitas ODP dan regu yang sedang bertugas.">
+      <div class="slide-inner">
+        <div class="slide-head">
+          <span class="slide-tag">Pusat Kendali Operasional</span>
+          <h2 class="slide-title">Dashboard Eksekutif & <span>Real-Time Status</span></h2>
+          <p class="slide-subtitle">Visibilitas menyeluruh atas metrik utama: Utilisasi port ODP, gangguan aktif, beban teknisi, dan pendapatan.</p>
+        </div>
+
+        <div class="grid-split">
+          <div class="info-pane">
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box emerald">📊</div>
+                <div>
+                  <h3>Kartu KPI Ringkas & Akurat</h3>
+                </div>
+              </div>
+              <p>Menampilkan total pelanggan aktif Radius, kapasitas sisa port ODP di seluruh wilayah, tiket gangguan berjalan, dan rasio pengerjaan hari ini.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box cyan">📡</div>
+                <div>
+                  <h3>Indikator Sinkronisasi Real-Time</h3>
+                </div>
+              </div>
+              <p>Lampu badge hijau berdenyut di header menandakan koneksi websocket Supabase aktif. Setiap perubahan di lapangan langsung terpantau seketika tanpa refresh halaman.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box amber">👷</div>
+                <div>
+                  <h3>Monitoring Beban Kerja Regu</h3>
+                </div>
+              </div>
+              <p>Dispatcher dapat langsung melihat regu teknisi yang sedang *idle* (siap ditugaskan) vs yang sedang berada di lokasi pengerjaan.</p>
+            </div>
+          </div>
+
+          <div class="preview-pane" onclick="openLightbox('./screenshots/02_dashboard.png', 'Dashboard Eksekutif Nexus Net')">
+            <div class="window-header">
+              <div class="window-dots"><div class="window-dot red"></div><div class="window-dot yellow"></div><div class="window-dot green"></div></div>
+              <div class="window-title">nexus.net/dashboard</div>
+            </div>
+            <div class="preview-image-wrapper">
+              <img src="./screenshots/02_dashboard.png" class="preview-img" alt="Dashboard Utama Nexus Net">
+            </div>
+            <div class="zoom-hint">🔍 Klik untuk Perbesar</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 5: GIS GOOGLE EARTH FTTH ================= -->
+    <section class="slide" data-title="GIS Google Earth & Topologi Optik" data-notes="Ini adalah salah satu fitur paling memukau audiens. Tunjukkan animasi laser sinyal optik dari OLT pusat sampai rumah pelanggan di citra satelit Google Earth.">
+      <div class="slide-inner">
+        <div class="slide-head">
+          <span class="slide-tag">Digital Twin Jaringan Fiber Optik</span>
+          <h2 class="slide-title">GIS Google Earth & <span>Animasi Denyut Laser</span></h2>
+          <p class="slide-subtitle">Visualisasi interaktif hierarki FTTH: OLT Kantor Pusat ➔ Feeder ➔ ODC ➔ Kabel Distribusi ➔ ODP ➔ Dropcore ➔ Rumah Pelanggan.</p>
+        </div>
+
+        <div class="grid-split">
+          <div class="info-pane">
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box amber">⚡</div>
+                <div>
+                  <h3>Animated Laser Signal Pulse</h3>
+                </div>
+              </div>
+              <p>Jalur serat optik divisualisasikan dengan animasi pulsa laser 60 FPS pada layer SVG berakselerasi GPU. Memberikan gambaran nyata arah aliran bandwidth internet.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box blue">🔍</div>
+                <div>
+                  <h3>End-to-End Spotlight Path Tracing</h3>
+                </div>
+              </div>
+              <p>Klik pada ODP atau rumah pelanggan mana saja, peta akan menyorot silsilah jalurnya ke belakang hingga ke OLT Kantor Pusat dengan estimasi link budget redaman (dBm).</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box emerald">🎯</div>
+                <div>
+                  <h3>Inspeksi Kapasitas Port Tiang</h3>
+                </div>
+              </div>
+              <p>Klik tiang ODP untuk melihat kapasitas port (misal 6/8 terpakai), nama-nama pelanggan yang tercolok pada port tersebut, dan port cadangan yang tersedia.</p>
+            </div>
+          </div>
+
+          <div class="preview-pane" onclick="openLightbox('./screenshots/03_odp_gis.png', 'GIS Topologi FTTH & Google Earth Map')">
+            <div class="window-header">
+              <div class="window-dots"><div class="window-dot red"></div><div class="window-dot yellow"></div><div class="window-dot green"></div></div>
+              <div class="window-title">nexus.net/odp (Google Earth Satellite)</div>
+            </div>
+            <div class="preview-image-wrapper">
+              <img src="./screenshots/03_odp_gis.png" class="preview-img" alt="Peta ODP Google Earth">
+            </div>
+            <div class="zoom-hint">🔍 Klik untuk Perbesar</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 6: LEADS & SURVEY FEASIBILITY ================= -->
+    <section class="slide" data-title="Akuisisi Leads & Survey 3D" data-notes="Ceritakan alur saat ada calon pelanggan mendaftar lewat WhatsApp. Cukup masukkan koordinat shareloc, sistem langsung menghitung jarak ke ODP terdekat dan kelayakan teknisnya.">
+      <div class="slide-inner">
+        <div class="slide-head">
+          <span class="slide-tag">Marketing & Pra-Instalasi</span>
+          <h2 class="slide-title">Akuisisi Leads & <span>Simulasi Survey 3D</span></h2>
+          <p class="slide-subtitle">Uji kelayakan pasang baru otomatis: Kalkulasi jarak dropcore, auto-matching ODP terdekat, dan estimasi redaman.</p>
+        </div>
+
+        <div class="grid-split">
+          <div class="info-pane">
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box cyan">📍</div>
+                <div>
+                  <h3>Auto Match ODP Terdekat</h3>
+                </div>
+              </div>
+              <p>Saat koordinat rumah dimasukkan, sistem otomatis mencari ODP dengan port kosong terdekat (radius &lt; 250m) dan mengukur jarak bentangan kabel dropcore.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box amber">📐</div>
+                <div>
+                  <h3>Estimasi Redaman Otomatis (Loss dBm)</h3>
+                </div>
+              </div>
+              <p>Menghitung loss redaman optik berdasarkan panjang tarikan kabel dan rasio splitter sebelum teknisi diberangkatkan ke lokasi.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box emerald">📋</div>
+                <div>
+                  <h3>1-Klik Konversi Menjadi SPK</h3>
+                </div>
+              </div>
+              <p>Setelah survey dinyatakan FEASIBLE, admin cukup klik satu tombol untuk membuat Surat Perintah Kerja (SPK) tanpa mengetik ulang data calon pelanggan.</p>
+            </div>
+          </div>
+
+          <div class="preview-pane" onclick="openLightbox('./screenshots/04_leads.png', 'Modul Leads & Analisis Kelayakan Jaringan')">
+            <div class="window-header">
+              <div class="window-dots"><div class="window-dot red"></div><div class="window-dot yellow"></div><div class="window-dot green"></div></div>
+              <div class="window-title">nexus.net/leads</div>
+            </div>
+            <div class="preview-image-wrapper">
+              <img src="./screenshots/04_leads.png" class="preview-img" alt="Halaman Leads Nexus Net">
+            </div>
+            <div class="zoom-hint">🔍 Klik untuk Perbesar</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 7: KANBAN & DISPATCH SPK ================= -->
+    <section class="slide" data-title="Kanban Board & Dispatch WhatsApp" data-notes="Jelaskan sistem dispatch. Tidak ada lagi penugasan yang bentrok karena sistem mengecek jadwal regu teknisi. SPK terkirim dengan link Google Maps presisi ke WhatsApp teknisi.">
+      <div class="slide-inner">
+        <div class="slide-head">
+          <span class="slide-tag">Alur Kerja Lapangan Terorganisir</span>
+          <h2 class="slide-title">Kanban Pekerjaan & <span>Dispatching WhatsApp</span></h2>
+          <p class="slide-subtitle">Manajemen penugasan visual dengan pencegahan bentrok jadwal dan notifikasi otomatis ke ponsel teknisi.</p>
+        </div>
+
+        <div class="grid-split">
+          <div class="info-pane">
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box blue">📑</div>
+                <div>
+                  <h3>Kanban Board Responsif</h3>
+                </div>
+              </div>
+              <p>Kolom tahapan yang jelas: <em>Menunggu Dispatch ➔ Ditugaskan ➔ Sedang Dikerjakan ➔ Selesai</em>. Dilengkapi filter regu teknisi dan tipe tugas (Pasang Baru, Gangguan, Maintenance, Dismantle).</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box emerald">💬</div>
+                <div>
+                  <h3>Generator SPK WhatsApp Otomatis</h3>
+                </div>
+              </div>
+              <p>Memformat pesan tugas resmi berisi: Nomor SPK, nama pelanggan, kontak WhatsApp, paket internet, lokasi Google Maps, dan ODP target yang siap dikirim sekali klik.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box amber">⚠️</div>
+                <div>
+                  <h3>Collision Prevention Warning</h3>
+                </div>
+              </div>
+              <p>Mencegah regu teknisi yang sama ditugaskan pada dua lokasi berbeda dalam jam yang bersamaan, menjaga SLA dan keselamatan kerja.</p>
+            </div>
+          </div>
+
+          <div class="preview-pane" onclick="openLightbox('./screenshots/05_pekerjaan_kanban.png', 'Kanban Board Pekerjaan & Modal Dispatch SPK')">
+            <div class="window-header">
+              <div class="window-dots"><div class="window-dot red"></div><div class="window-dot yellow"></div><div class="window-dot green"></div></div>
+              <div class="window-title">nexus.net/pekerjaan</div>
+            </div>
+            <div class="preview-image-wrapper">
+              <img src="./screenshots/05_pekerjaan_kanban.png" class="preview-img" alt="Kanban Board Pekerjaan">
+            </div>
+            <div class="zoom-hint">🔍 Klik untuk Perbesar</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 8: PORTAL TEKNISI PWA (STAR OF DEMO) ================= -->
+    <section class="slide" data-title="Portal Mobile PWA Teknisi" data-notes="Ini puncaknya! Tunjukkan tampilan mobile teknisi. Ada speedometer OPM barometer warna-warni, checklist helm K3, kamera ber-watermark GPS dan jam WIB, serta toleransi offline jika tidak ada sinyal.">
+      <div class="slide-inner">
+        <div class="slide-head">
+          <span class="slide-tag">PWA Mobile First & Standar Lapangan</span>
+          <h2 class="slide-title">Portal Lapangan Teknisi: <span>OPM Barometer & SOP K3</span></h2>
+          <p class="slide-subtitle">Antarmuka khusus ponsel pintar teknisi yang ramah jempol, hemat kuota, dan tangguh di area blank spot.</p>
+        </div>
+
+        <div class="grid-split">
+          <div class="info-pane">
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box amber">📟</div>
+                <div>
+                  <h3>Barometer OPM Redaman Dinamis</h3>
+                </div>
+              </div>
+              <p>Teknisi memasukkan hasil ukur Optical Power Meter. Sistem memberi feedback visual instan:<br>
+                 🟢 <strong>Optimal (&le; -22 dBm)</strong> | 🟡 <strong>Standar (-22 s/d -24 dBm)</strong> | 🔴 <strong>Buruk (&gt; -24 dBm)</strong>.<br>
+                 Mencegah serah terima sebelum sambungan redaman benar-benar bagus.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box blue">📷</div>
+                <div>
+                  <h3>Watermark Geotag Kamera Otomatis</h3>
+                </div>
+              </div>
+              <p>Foto bukti instalasi langsung dibubuhi stempel permanen: Koordinat GPS presisi, tanggal & jam WIB, nama tim teknisi, serta ID Pelanggan sebagai bukti audit fisik anti-rekayasa.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box emerald">📶</div>
+                <div>
+                  <h3>Offline Queue Resiliency</h3>
+                </div>
+              </div>
+              <p>Jika teknisi berada di area minim sinyal, data tersimpan aman di antrean lokal perangkat dan otomatis terkirim saat sinyal kembali normal.</p>
+            </div>
+          </div>
+
+          <div class="preview-pane" style="max-width: 360px; margin: auto;" onclick="openLightbox('./screenshots/08_teknisi_mobile.png', 'Tampilan Mobile PWA Portal Teknisi Lapangan')">
+            <div class="window-header">
+              <div class="window-dots"><div class="window-dot red"></div><div class="window-dot yellow"></div><div class="window-dot green"></div></div>
+              <div class="window-title">Mobile PWA (390 x 844)</div>
+            </div>
+            <div class="preview-image-wrapper">
+              <img src="./screenshots/08_teknisi_mobile.png" class="preview-img" style="object-position: top center;" alt="Mobile Portal Teknisi">
+            </div>
+            <div class="zoom-hint">🔍 Klik untuk Perbesar</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 9: CLOSED-LOOP RADIUS SYNC ================= -->
+    <section class="slide" data-title="Closed-Loop Radius & Port Lifecycle" data-notes="Jelaskan keajaiban otomasi: Sekali teknisi tekan 'Selesai' di HP-nya, 3 hal terjadi bersamaan tanpa admin menyentuh apapun: Akun PPPoE Radius aktif, port ODP terkunci, dan komisi terhitung.">
+      <div class="slide-inner">
+        <div class="slide-head">
+          <span class="slide-tag">Otomasi Siklus Tertutup</span>
+          <h2 class="slide-title">Sinkronisasi Radius PPPoE & <span>Port Lifecycle</span></h2>
+          <p class="slide-subtitle">Integrasi menyeluruh: Pekerjaan tuntas di lapangan langsung mengaktifkan akun billing dan menduduki port ODP.</p>
+        </div>
+
+        <div class="grid-split">
+          <div class="info-pane">
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box emerald">⚡</div>
+                <div>
+                  <h3>Auto-Creation Akun Radius PPPoE</h3>
+                </div>
+              </div>
+              <p>Saat SPK ditandai SELESAI, sistem otomatis membuat kredensial PPPoE (username/password) di tabel Radius pelanggan dengan status <strong>AKTIF</strong> siap login ke Mikrotik Bras.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box cyan">🔌</div>
+                <div>
+                  <h3>Otomasi Utilisasi Port ODP</h3>
+                </div>
+              </div>
+              <p>Port ODP yang dipilih otomatis dialokasikan ke pelanggan tersebut, merubah kapasitas port (misal 5/8 menjadi 6/8) dan menghalangi pemakaian ganda.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box amber">🔄</div>
+                <div>
+                  <h3>Auto-Release saat Pemutusan (Dismantle)</h3>
+                </div>
+              </div>
+              <p>Jika ada pekerjaan pemutusan layanan, port ODP otomatis dilepas menjadi kosong kembali dan akun Radius diisolir secara otomatis.</p>
+            </div>
+          </div>
+
+          <div class="preview-pane" onclick="openLightbox('./screenshots/06_pelanggan_radius.png', 'Tabel Pelanggan Radius & Mikrotik PPPoE Sync')">
+            <div class="window-header">
+              <div class="window-dots"><div class="window-dot red"></div><div class="window-dot yellow"></div><div class="window-dot green"></div></div>
+              <div class="window-title">nexus.net/pelanggan (Radius Billing Sync)</div>
+            </div>
+            <div class="preview-image-wrapper">
+              <img src="./screenshots/06_pelanggan_radius.png" class="preview-img" alt="Halaman Pelanggan Radius">
+            </div>
+            <div class="zoom-hint">🔍 Klik untuk Perbesar</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 10: LAPORAN & PAYROLL KOMISI ================= -->
+    <section class="slide" data-title="Laporan, Finansial & Payroll Komisi" data-notes="Tunjukkan transparansi keuangan. Teknisi termotivasi karena insentif pasang baru dan perbaikan gangguan tercatat otomatis dan bisa diekspor ke Excel untuk bagian finance.">
+      <div class="slide-inner">
+        <div class="slide-head">
+          <span class="slide-tag">Transparansi Finansial & Kinerja</span>
+          <h2 class="slide-title">Laporan Kinerja & <span>Payroll Komisi Teknisi</span></h2>
+          <p class="slide-subtitle">Perhitungan insentif otomatis berdasarkan bukti pekerjaan valid dan ekspor rekapitulasi ke Excel (XLSX).</p>
+        </div>
+
+        <div class="grid-split">
+          <div class="info-pane">
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box emerald">💰</div>
+                <div>
+                  <h3>Perhitungan Komisi Otomatis</h3>
+                </div>
+              </div>
+              <p>Insentif per titik (Pasang Baru Rp 50.000 / titik, Perbaikan Gangguan Rp 25.000 / titik) langsung diakumulasikan ke masing-masing regu teknisi yang menyelesaikan tugas.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box blue">📈</div>
+                <div>
+                  <h3>Grafik Tren Produktivitas Regu</h3>
+                </div>
+              </div>
+              <p>Visualisasi leaderboard tim teraktif, rata-rata durasi penyelesaian tiket perbaikan, dan rasio komplain berulang per area.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-card-header">
+                <div class="icon-box amber">📑</div>
+                <div>
+                  <h3>Ekspor 1-Klik ke Microsoft Excel</h3>
+                </div>
+              </div>
+              <p>Laporan komisi dan kinerja dapat langsung diunduh dalam format `.xlsx` rapi, siap diserahkan ke bagian finance/HRD untuk penggajian mingguan atau bulanan.</p>
+            </div>
+          </div>
+
+          <div class="preview-pane" onclick="openLightbox('./screenshots/07_laporan_komisi.png', 'Laporan Kinerja Tim & Akumulasi Insentif')">
+            <div class="window-header">
+              <div class="window-dots"><div class="window-dot red"></div><div class="window-dot yellow"></div><div class="window-dot green"></div></div>
+              <div class="window-title">nexus.net/laporan</div>
+            </div>
+            <div class="preview-image-wrapper">
+              <img src="./screenshots/07_laporan_komisi.png" class="preview-img" alt="Halaman Laporan Komisi">
+            </div>
+            <div class="zoom-hint">🔍 Klik untuk Perbesar</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 11: TEKNOLOGI & ARSITEKTUR ================= -->
+    <section class="slide" data-title="Arsitektur Sistem & Ketahanan" data-notes="Bagi tim teknis atau pimpinan IT: Jelaskan bahwa aplikasi menggunakan arsitektur modern React 19, Supabase PostgreSQL, Tailwind CSS v4, dan PWA Workbox yang sangat ringan dan teruji.">
+      <div class="slide-inner">
+        <div class="slide-head">
+          <span class="slide-tag">Arsitektur Modern & Andal</span>
+          <h2 class="slide-title">Pondasi Teknologi: <span>Ringan, Cepat & Aman</span></h2>
+          <p class="slide-subtitle">Dibangun dengan standar rekayasa perangkat lunak modern untuk performa tinggi dan uptime maksimal.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; flex: 1; align-items: stretch;">
+          <div class="feature-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div class="icon-box blue" style="margin-bottom: 12px; font-size: 20px;">⚛️</div>
+              <h3 style="font-size: 18px; margin-bottom: 8px;">Frontend Modern</h3>
+              <p>React 19 + Vite 8 dengan Tailwind CSS v4. Waktu build produksi super kilat (&lt; 0.6 detik) dan rendering komponen 60 FPS.</p>
+            </div>
+            <div style="margin-top: 14px; font-size: 11px; color: var(--accent-blue); font-family: var(--font-mono); font-weight: 700;">React 19 &bull; Vite 8</div>
+          </div>
+
+          <div class="feature-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div class="icon-box emerald" style="margin-bottom: 12px; font-size: 20px;">⚡</div>
+              <h3 style="font-size: 18px; margin-bottom: 8px;">Real-Time DB</h3>
+              <p>Supabase PostgreSQL dengan Row Level Security (RLS) dan sinkronisasi websocket instan ke semua perangkat.</p>
+            </div>
+            <div style="margin-top: 14px; font-size: 11px; color: var(--accent-emerald); font-family: var(--font-mono); font-weight: 700;">PostgreSQL &bull; WebSockets</div>
+          </div>
+
+          <div class="feature-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div class="icon-box amber" style="margin-bottom: 12px; font-size: 20px;">📱</div>
+              <h3 style="font-size: 18px; margin-bottom: 8px;">PWA & Offline</h3>
+              <p>Service Worker Workbox v1.3. Precache cerdas, instalasi instan Add-to-Home-Screen, dan penanganan koneksi fluktuatif.</p>
+            </div>
+            <div style="margin-top: 14px; font-size: 11px; color: var(--accent-amber); font-family: var(--font-mono); font-weight: 700;">Workbox &bull; PWA Cache</div>
+          </div>
+
+          <div class="feature-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div class="icon-box cyan" style="margin-bottom: 12px; font-size: 20px;">🗺️</div>
+              <h3 style="font-size: 18px; margin-bottom: 8px;">GIS & Hardware</h3>
+              <p>Leaflet GIS + citra Google Earth Satelit dengan akselerasi GPU SVG path tracing dan integrasi Mikrotik Radius API.</p>
+            </div>
+            <div style="margin-top: 14px; font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono); font-weight: 700;">Leaflet &bull; GPU SVG</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 12: KESIMPULAN & ROI ================= -->
+    <section class="slide" data-title="Ringkasan Nilai Bisnis & ROI" data-notes="Tutup presentasi dengan merangkum keuntungan finansial dan operasional. Buka sesi tanya jawab dengan percaya diri.">
+      <div class="slide-inner" style="justify-content: center; text-align: center; max-width: 980px; margin: auto;">
+        <span class="slide-tag" style="margin-bottom: 16px;">Ringkasan Eksekutif & Nilai Investasi</span>
+        <h2 style="font-size: clamp(34px, 4.5vw, 54px); font-weight: 800; line-height: 1.15; margin-bottom: 20px;">
+          Nexus Net: Standar Baru Efisiensi &<br>
+          <span style="background: linear-gradient(135deg, #F59E0B, #10B981); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            Keunggulan Kompetitif Operasional ISP
+          </span>
+        </h2>
+        <p style="font-size: 16px; color: var(--text-muted); line-height: 1.6; max-width: 760px; margin: 0 auto 36px auto;">
+          Mengubah cara kerja manual menjadi ekosistem digital otomatis yang melindungi aset fiber optik, memangkas komplain redaman, dan meningkatkan kebahagiaan teknisi serta pelanggan.
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: left; margin-bottom: 36px;">
+          <div style="background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 16px; padding: 20px;">
+            <div style="font-size: 28px; font-weight: 800; color: var(--accent-emerald); font-family: var(--font-mono); margin-bottom: 6px;">+60%</div>
+            <div style="font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px;">Kecepatan Pasang Baru</div>
+            <p style="font-size: 12px; color: var(--text-muted);">Dari lead masuk hingga modem online selesai dalam hitungan jam.</p>
+          </div>
+
+          <div style="background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 16px; padding: 20px;">
+            <div style="font-size: 28px; font-weight: 800; color: var(--accent-amber); font-family: var(--font-mono); margin-bottom: 6px;">-90%</div>
+            <div style="font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px;">Kasus Redaman Buruk</div>
+            <p style="font-size: 12px; color: var(--text-muted);">SOP K3 & verifikasi OPM menjamin kualitas laser optik stabil.</p>
+          </div>
+
+          <div style="background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 16px; padding: 20px;">
+            <div style="font-size: 28px; font-weight: 800; color: var(--accent-blue); font-family: var(--font-mono); margin-bottom: 6px;">100%</div>
+            <div style="font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px;">Akurasi Data Port & Billing</div>
+            <p style="font-size: 12px; color: var(--text-muted);">Tidak ada port ODP liar atau selisih tagihan pelanggan.</p>
+          </div>
+        </div>
+
+        <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 14px; padding: 14px 28px; display: inline-flex; align-items: center; gap: 14px;">
+          <span style="font-size: 22px;">🤝</span>
+          <span style="font-size: 14px; font-weight: 600; color: #fff;">Terima kasih atas perhatian Anda &bull; Mari berdiskusi dalam sesi Tanya Jawab (Q&amp;A)</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Footer Controls -->
+  <footer class="deck-footer">
+    <div class="slide-counter-badge" id="slideCounter">
+      Slide <span>01</span> / 12 &bull; Cover & Executive Vision
+    </div>
+    <div class="nav-controls">
+      <button class="btn-nav" id="btnPrev" title="Slide Sebelumnya (Panah Kiri)">◀</button>
+      <button class="btn-nav" id="btnNext" title="Slide Berikutnya (Panah Kanan / Spasi)">▶</button>
+    </div>
+  </footer>
+
+  <!-- Lightbox Modal for Screenshot Zoom -->
+  <div class="lightbox-modal" id="lightboxModal" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">✕ Tutup</button>
+    <img src="" class="lightbox-img" id="lightboxImg" alt="Enlarged screenshot">
+    <div class="lightbox-caption" id="lightboxCaption"></div>
+  </div>
+
+  <!-- Presenter Notes Drawer -->
+  <div class="notes-drawer" id="notesDrawer">
+    <div class="notes-header">
+      <div class="notes-title">🎙️ <span>Catatan Presenter</span></div>
+      <button onclick="toggleNotes()" style="background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 16px;">✕</button>
+    </div>
+    <div class="notes-content" id="notesContent">
+      Catatan narasi untuk slide ini akan muncul di sini.
+    </div>
+  </div>
+
+  <script>
+    // State
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    let currentIndex = 0;
+    const totalSlides = slides.length;
+
+    // Elements
+    const progressBar = document.getElementById('progressBar');
+    const slideCounter = document.getElementById('slideCounter');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const notesDrawer = document.getElementById('notesDrawer');
+    const notesContent = document.getElementById('notesContent');
+    const btnNotes = document.getElementById('btnNotes');
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    const lightboxModal = document.getElementById('lightboxModal');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const lightboxCaption = document.getElementById('lightboxCaption');
+
+    function updateSlide(index) {
+      if (index < 0 || index >= totalSlides) return;
+      slides[currentIndex].classList.remove('active');
+      currentIndex = index;
+      slides[currentIndex].classList.add('active');
+
+      // Update progress bar
+      const progressPercent = ((currentIndex + 1) / totalSlides) * 100;
+      progressBar.style.width = progressPercent + '%';
+
+      // Update slide counter
+      const currentSlideEl = slides[currentIndex];
+      const title = currentSlideEl.getAttribute('data-title') || '';
+      const padIndex = String(currentIndex + 1).padStart(2, '0');
+      slideCounter.innerHTML = `Slide <span>${padIndex}</span> / ${totalSlides} &bull; ${title}`;
+
+      // Update button states
+      btnPrev.disabled = currentIndex === 0;
+      btnNext.disabled = currentIndex === totalSlides - 1;
+
+      // Update notes
+      const notes = currentSlideEl.getAttribute('data-notes') || 'Tidak ada catatan untuk slide ini.';
+      notesContent.innerHTML = notes;
+
+      // Init Chart if on slide 2
+      if (currentIndex === 1 && !window.chartInitialized) {
+        initComparisonChart();
+      }
+    }
+
+    function nextSlide() {
+      if (currentIndex < totalSlides - 1) updateSlide(currentIndex + 1);
+    }
+
+    function prevSlide() {
+      if (currentIndex > 0) updateSlide(currentIndex - 1);
+    }
+
+    // Lightbox handlers
+    window.openLightbox = function(src, caption) {
+      lightboxImg.src = src;
+      lightboxCaption.innerText = caption;
+      lightboxModal.classList.add('open');
+    };
+
+    window.closeLightbox = function() {
+      lightboxModal.classList.remove('open');
+    };
+
+    // Notes toggle
+    window.toggleNotes = function() {
+      notesDrawer.classList.toggle('open');
+    };
+
+    // Fullscreen toggle
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    // Chart initialization
+    function initComparisonChart() {
+      const ctx = document.getElementById('chartComparison');
+      if (!ctx) return;
+      window.chartInitialized = true;
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Koordinasi SPK', 'Survey & ODP', 'Instalasi & OPM', 'Radius Billing Sync'],
+          datasets: [
+            {
+              label: 'Manual (Excel & WA)',
+              data: [45, 60, 90, 40],
+              backgroundColor: 'rgba(239, 68, 68, 0.75)',
+              borderRadius: 6,
+            },
+            {
+              label: 'Nexus Net (Otomatis)',
+              data: [5, 12, 45, 1],
+              backgroundColor: 'rgba(16, 185, 129, 0.85)',
+              borderRadius: 6,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#cbd5e1', font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' } }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255,255,255,0.06)' },
+              ticks: { color: '#94a3b8', font: { size: 11 } }
+            },
+            y: {
+              grid: { color: 'rgba(255,255,255,0.06)' },
+              ticks: { color: '#94a3b8', font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (lightboxModal.classList.contains('open')) {
+        if (e.key === 'Escape') closeLightbox();
+        return;
+      }
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'Backspace') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        updateSlide(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        updateSlide(totalSlides - 1);
+      } else if (e.key === 'n' || e.key === 'N') {
+        toggleNotes();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      }
+    });
+
+    // Event listeners
+    btnNext.addEventListener('click', nextSlide);
+    btnPrev.addEventListener('click', prevSlide);
+    btnNotes.addEventListener('click', toggleNotes);
+    btnFullscreen.addEventListener('click', toggleFullscreen);
+
+    // Initial load
+    updateSlide(0);
+  </script>
+</body>
+</html>
