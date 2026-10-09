@@ -78,6 +78,7 @@ import BuktiLapanganModal from "../components/BuktiLapanganModal";
 import { enrichOdpWithPortUtilization } from "../lib/odpUtilization";
 import { uploadTaskEvidenceBundle } from "../lib/storageUpload";
 import { syncCustomerOnTaskCompletion } from "../lib/customerPortLifecycle";
+import OpticalPowerGauge from "../components/OpticalPowerGauge";
 import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import { formatPhoneWa as formatPhoneForWa } from "../lib/spkGenerator";
@@ -820,6 +821,13 @@ export default function TeknisiDashboard() {
     const cleanWaPhone = task.telepon ? formatPhoneForWa(task.telepon) : null;
     const waMessage = `Halo Bpk/Ibu ${task.pelanggan}, kami dari Tim Teknisi Nexus Net (${activeTeam}). Kami sedang memproses pekerjaan ${task.jenis} di lokasi Anda: ${task.alamat}.`;
 
+    // Direct Turn-by-Turn GPS navigation link
+    const mapsNavigationUrl = task.shareloc?.startsWith("http")
+      ? task.shareloc
+      : task.shareloc && task.shareloc.includes(",")
+      ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(task.shareloc.trim())}`
+      : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(task.alamat || task.pelanggan || "")}`;
+
     // Redaman & insentif evaluasi
     const rawDbm = task.redaman ? parseFloat(task.redaman) : extractDbmFromKeterangan(task.keterangan);
     const dbmEval = getDbmQuality(rawDbm);
@@ -980,13 +988,13 @@ export default function TeknisiDashboard() {
             )}
 
             <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.alamat)}`}
+              href={mapsNavigationUrl}
               target="_blank"
               rel="noreferrer"
               className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center border border-slate-200 transition-colors"
-              title="Navigasi Maps"
+              title="Navigasi Rute Langsung (Google Maps)"
             >
-              <Navigation className="w-3.5 h-3.5" />
+              <Navigation className="w-3.5 h-3.5 text-blue-600" />
             </a>
           </div>
 
@@ -2717,6 +2725,7 @@ export default function TeknisiDashboard() {
                       dBm
                     </span>
                   </div>
+                  <OpticalPowerGauge value={completionForm.redaman} mode="full" className="mt-2.5" />
                 </div>
               )}
 

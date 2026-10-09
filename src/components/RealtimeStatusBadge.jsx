@@ -1,11 +1,44 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Radio, Wifi, WifiOff, RefreshCw, CheckCircle2, AlertCircle, Database } from "lucide-react";
-import { useRealtimeStatus } from "../hooks/usePersistState";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { Radio, Wifi, WifiOff, RefreshCw, CheckCircle2, AlertCircle, Database, CloudUpload } from "lucide-react";
+import { useRealtimeStatus, usePersistState } from "../hooks/usePersistState";
+import { countPendingOfflinePhotos, flushPendingOfflineEvidence } from "../lib/offlineSyncQueue";
 
 export default function RealtimeStatusBadge() {
   const { isOnline, overallStatus, activeChannelsCount, tableStatuses } = useRealtimeStatus();
+  const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", []);
+  const [isSyncingOffline, setIsSyncingOffline] = useState(false);
   const [open, setOpen] = useState(false);
   const popoverRef = useRef(null);
+
+  const pendingPhotosCount = useMemo(() => countPendingOfflinePhotos(pekerjaan), [pekerjaan]);
+
+  // Otomatis sinkronkan foto offline ke Supabase Cloud saat koneksi pulih (online)
+  useEffect(() => {
+    const handleOnline = async () => {
+      if (pendingPhotosCount > 0 && !isSyncingOffline) {
+        setIsSyncingOffline(true);
+        try {
+          await flushPendingOfflineEvidence(pekerjaan, setPekerjaan);
+        } finally {
+          setIsSyncingOffline(false);
+        }
+      }
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [pendingPhotosCount, pekerjaan, setPekerjaan, isSyncingOffline]);
+
+  const handleFlushOffline = async (e) => {
+    e.stopPropagation();
+    if (isSyncingOffline) return;
+    setIsSyncingOffline(true);
+    try {
+      await flushPendingOfflineEvidence(pekerjaan, setPekerjaan);
+    } finally {
+      setIsSyncingOffline(false);
+    }
+  };
 
   // Close popover on click outside
   useEffect(() => {
@@ -69,7 +102,33 @@ export default function RealtimeStatusBadge() {
   };
 
   return (
-    <div className="relative" ref={popoverRef}>
+    <div className="relative flex items-center gap-1.5" ref={popoverRef}>
+      {/* Offline Pending Photos Sync Button */}
+      {pendingPhotosCount > 0 && (
+        <button
+          onClick={handleFlushOffline}
+          type="button"
+          disabled={isSyncingOffline || !isOnline}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
+            isSyncingOffline
+              ? "bg-amber-100 text-amber-800 border border-amber-300"
+              : isOnline
+              ? "bg-amber-500 hover:bg-amber-600 text-white animate-pulse"
+              : "bg-slate-200 text-slate-600 border border-slate-300 opacity-70"
+          }`}
+          title={
+            !isOnline
+              ? `${pendingPhotosCount} foto offline tersimpan di perangkat. Akan diunggah saat online.`
+              : `${pendingPhotosCount} foto bukti lapangan belum diunggah. Klik untuk sinkronisasi cloud.`
+          }
+        >
+          <CloudUpload className={`w-3.5 h-3.5 ${isSyncingOffline ? "animate-bounce" : ""}`} />
+          <span className="font-extrabold">{pendingPhotosCount}</span>
+          <span className="hidden sm:inline">{isSyncingOffline ? "Mengunggah..." : "Sync Cloud"}</span>
+        </button>
+      )}
+
+      {/* Main Status Badge */}
       <button
         onClick={() => setOpen((prev) => !prev)}
         type="button"
@@ -87,7 +146,7 @@ export default function RealtimeStatusBadge() {
 
       {/* Popover Detail Status */}
       {open && (
-        <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-100 p-3.5 z-50 text-left animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute right-0 mt-2 top-full w-76 bg-white rounded-2xl shadow-xl border border-gray-100 p-3.5 z-50 text-left animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-gray-100">
             <div className="flex items-center gap-2">
               <div className={`w-2.5 h-2.5 rounded-full ${config.dotClass}`} />
@@ -107,6 +166,17 @@ export default function RealtimeStatusBadge() {
               </span>
               <span className={`font-semibold ${isOnline ? "text-emerald-700" : "text-red-600"}`}>
                 {isOnline ? "Online" : "Terputus"}
+              </span>
+            </div>
+
+            {/* Antrean Foto Offline */}
+            <div className="flex items-center justify-between p-2 rounded-xl bg-gray-50">
+              <span className="text-gray-500 flex items-center gap-1.5">
+                <CloudUpload className="w-3.5 h-3.5 text-amber-600" />
+                Antrean Bukti Offline
+              </span>
+              <span className={`font-bold ${pendingPhotosCount > 0 ? "text-amber-700 font-mono" : "text-slate-600"}`}>
+                {pendingPhotosCount > 0 ? `${pendingPhotosCount} Menunggu Upload` : "Semua Sinkron"}
               </span>
             </div>
 
@@ -139,7 +209,17 @@ export default function RealtimeStatusBadge() {
             )}
           </div>
 
-          <div className="mt-3 pt-2.5 border-t border-gray-100 flex justify-end">
+          <div className="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-1.5">
+            {pendingPhotosCount > 0 && (
+              <button
+                onClick={handleFlushOffline}
+                disabled={isSyncingOffline || !isOnline}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold transition-all cursor-pointer w-full justify-center"
+              >
+                <CloudUpload className="w-3.5 h-3.5" />
+                {isSyncingOffline ? "Mengunggah ke Cloud..." : `Unggah Sekarang (${pendingPhotosCount} Foto)`}
+              </button>
+            )}
             <button
               onClick={handleRefresh}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold transition-all cursor-pointer w-full justify-center"

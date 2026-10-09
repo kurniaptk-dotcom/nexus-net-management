@@ -15,6 +15,7 @@ import {
   Coins,
 } from "lucide-react";
 import { getDbmQuality, calculateTaskIncentive, formatRupiah, KOMISI_PEKERJAAN_MASTER } from "../lib/incentives";
+import OpticalPowerGauge from "./OpticalPowerGauge";
 
 function PhotoItem({ photo, title, emptyLabel, icon: Icon, onZoom }) {
   const isPruned = typeof photo === "string" && (photo.includes("[Tersimpan") || photo.includes("[Cloud Backup]") || photo.includes("[Arsip"));
@@ -152,21 +153,19 @@ export default function BuktiLapanganModal({ task, onClose, masterKomisi }) {
         <div className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1">
           {/* Parameter Kualitas & Redaman Optik */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                Redaman Optik (OPM)
-              </span>
-              <div className="flex items-center gap-2">
-                <Gauge className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="text-base font-black text-slate-900">
-                  {redaman ? `${redaman} dBm` : "Tidak dicatat"}
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70 flex flex-col justify-between">
+              <div>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Redaman Optik (OPM)
                 </span>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Gauge className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="text-base font-black text-slate-900">
+                    {redaman ? `${redaman} dBm` : "Tidak dicatat"}
+                  </span>
+                </div>
               </div>
-              {dbmQuality && (
-                <span className={`inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-md border ${dbmQuality.color}`}>
-                  {dbmQuality.label}
-                </span>
-              )}
+              {redaman && <OpticalPowerGauge value={redaman} mode="badge" />}
             </div>
 
             <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70">
