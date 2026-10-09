@@ -148,9 +148,9 @@ export default function NotificationPanel() {
         )}
       </button>
 
-      {/* Dropdown Panel */}
+      {/* Dropdown Panel (Responsive: full width inset-x-3 on mobile, 380px on sm+) */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-[380px] max-h-[520px] bg-white rounded-2xl shadow-2xl shadow-black/15 border border-gray-100 overflow-hidden z-50">
+        <div className="fixed sm:absolute inset-x-3 sm:inset-x-auto sm:right-0 top-16 sm:top-full mt-0 sm:mt-2 w-auto sm:w-[380px] max-h-[75vh] sm:max-h-[520px] bg-white rounded-2xl shadow-2xl shadow-black/20 border border-gray-100 overflow-hidden z-50 flex flex-col animate-in fade-in zoom-in-95 duration-150">
           {/* Header */}
           <div className="px-4 py-3 border-b border-gray-100 bg-[#0D1B4A]">
             <div className="flex items-center justify-between">

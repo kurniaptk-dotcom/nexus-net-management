@@ -146,7 +146,7 @@ export default function RealtimeStatusBadge() {
 
       {/* Popover Detail Status */}
       {open && (
-        <div className="absolute right-0 mt-2 top-full w-76 bg-white rounded-2xl shadow-xl border border-gray-100 p-3.5 z-50 text-left animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute right-0 mt-2 top-full w-72 sm:w-76 max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-xl border border-gray-100 p-3.5 z-50 text-left animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-gray-100">
             <div className="flex items-center gap-2">
               <div className={`w-2.5 h-2.5 rounded-full ${config.dotClass}`} />

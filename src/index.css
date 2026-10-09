@@ -48,16 +48,23 @@ html, body {
   color: #0D1B4A;
 }
 
-/* Ergonomi Mobile: Cegah auto-zoom browser iOS hanya pada form input teks */
+/* Ergonomi Mobile: Cegah auto-zoom browser iOS pada form input & select */
 @media (max-width: 640px) {
   input[type="text"],
   input[type="tel"],
   input[type="email"],
   input[type="search"],
   input[type="password"],
+  input[type="number"],
+  select,
   textarea {
     font-size: 16px !important;
   }
+}
+
+/* Responsif Ketukan Mobile Instan (Hilangkan delay 300ms double-tap) */
+button, a, input, select, textarea {
+  touch-action: manipulation;
 }
 
 /* ========================================================================== */

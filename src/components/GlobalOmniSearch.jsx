@@ -167,7 +167,7 @@ export default function GlobalOmniSearch({
       className={
         standalone
           ? "w-full"
-          : "fixed inset-0 z-50 flex items-start justify-center pt-14 sm:pt-20 px-3 sm:px-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+          : "fixed inset-0 z-50 flex items-start justify-center pt-3 sm:pt-20 px-2 sm:px-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
       }
       onClick={(e) => {
         if (!standalone && e.target === e.currentTarget && onClose) onClose();
@@ -175,11 +175,11 @@ export default function GlobalOmniSearch({
     >
       <div
         className={`w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col ${
-          standalone ? "" : "animate-in zoom-in-95 duration-150 max-h-[82vh]"
+          standalone ? "" : "animate-in zoom-in-95 duration-150 max-h-[88vh]"
         }`}
       >
         {/* Search Input Bar */}
-        <div className="p-3.5 sm:p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
+        <div className="p-3.5 sm:p-4 border-b border-slate-100 flex items-center gap-2.5 sm:gap-3 bg-slate-50/50">
           <Search className="w-5 h-5 text-blue-600 shrink-0" />
           <input
             ref={inputRef}
@@ -199,15 +199,26 @@ export default function GlobalOmniSearch({
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg active:scale-95"
+              title="Hapus pencarian"
             >
               <X className="w-4 h-4" />
             </button>
           )}
           {!standalone && (
-            <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-slate-400 bg-white border border-slate-200 rounded-lg shadow-2xs">
-              ESC
-            </kbd>
+            <>
+              <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-slate-400 bg-white border border-slate-200 rounded-lg shadow-2xs">
+                ESC
+              </kbd>
+              <button
+                type="button"
+                onClick={onClose}
+                className="sm:hidden p-1.5 text-slate-400 hover:text-slate-700 rounded-lg active:scale-95"
+                title="Tutup pencarian"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </>
           )}
         </div>
 

@@ -41,17 +41,17 @@ function TeamCard({ tim, pekerjaanData, masterKomisi, onEdit, onDelete }) {
               <p className="text-[11px] text-white/70">Tim Field Technician</p>
             </div>
           </div>
-          <div className="flex gap-1 shrink-0">
+          <div className="flex gap-1.5 shrink-0">
             <button
               onClick={() => onEdit(tim)}
-              className="p-1.5 sm:p-2 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
+              className="min-w-[34px] min-h-[34px] flex items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 text-white transition-all active:scale-95 cursor-pointer"
               title="Edit Tim"
             >
               <Edit2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => onDelete(tim.id)}
-              className="p-1.5 sm:p-2 rounded-lg hover:bg-white/20 text-white/80 hover:text-red-300 transition-colors cursor-pointer"
+              className="min-w-[34px] min-h-[34px] flex items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 text-white/90 hover:text-red-300 transition-all active:scale-95 cursor-pointer"
               title="Hapus Tim"
             >
               <Trash2 className="w-4 h-4" />
@@ -257,12 +257,21 @@ export default function Tim() {
       {/* Modal */}
       {/* Modal Tambah/Edit Tim */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="px-6 py-4 border-b border-gray-100">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+            {/* Mobile Drag Indicator Handle */}
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 sm:hidden" />
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">
                 {editingTim ? "Edit Tim" : "Tambah Tim Baru"}
               </h3>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-xl"
+              >
+                ✕
+              </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
