@@ -223,7 +223,7 @@ export default function TeknisiDashboard() {
 
   // View Mode: DASHBOARD | KANBAN | LIST | ODP_TOOL | WALLET
   const [viewMode, setViewMode] = usePersistState("xnet_active_tech_view_mode", "DASHBOARD");
-  const [dashboardStatusPeriod, setDashboardStatusPeriod] = useState("September 2026");
+  const [dashboardStatusPeriod, setDashboardStatusPeriod] = useState("CURRENT_MONTH");
   const [dashboardStatPeriod, setDashboardStatPeriod] = useState("Mingguan");
   const [activeActionTaskId, setActiveActionTaskId] = useState(null);
 
@@ -436,6 +436,133 @@ export default function TeknisiDashboard() {
     const percentage = total > 0 ? Math.round((selesai / total) * 100) : 0;
     return { total, selesai, waiting, dijadwalkan, gagal, percentage };
   }, [teamTasks]);
+
+  const currentMonthLabel = useMemo(() => {
+    return new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+  }, []);
+
+  const prevMonthLabel = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+  }, []);
+
+  // Filter tugas untuk tim aktif berdasarkan pilihan periode dashboard
+  const dashboardTasksForPeriod = useMemo(() => {
+    if (dashboardStatusPeriod === "ALL") return teamTasks;
+
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+
+    return teamTasks.filter((p) => {
+      const dateStr = p.waktu_selesai || p.tanggal;
+      if (!dateStr) return true;
+      const d = parseRecordDate(dateStr) || new Date(dateStr);
+      if (isNaN(d.getTime())) return true;
+
+      if (dashboardStatusPeriod === "CURRENT_MONTH") {
+        return d.getFullYear() === curYear && d.getMonth() === curMonth;
+      }
+      if (dashboardStatusPeriod === "PREV_MONTH") {
+        const prev = new Date(curYear, curMonth - 1, 1);
+        return d.getFullYear() === prev.getFullYear() && d.getMonth() === prev.getMonth();
+      }
+      return true;
+    });
+  }, [teamTasks, dashboardStatusPeriod]);
+
+  // Metrik Statistik Dashboard Berdasarkan Periode Pilihan
+  const dashboardStats = useMemo(() => {
+    const total = dashboardTasksForPeriod.length;
+    const selesai = dashboardTasksForPeriod.filter((t) => t.status === "SELESAI").length;
+    const waiting = dashboardTasksForPeriod.filter((t) => t.status === "WAITING LIST").length;
+    const dijadwalkan = dashboardTasksForPeriod.filter((t) => t.status === "DIJADWALKAN").length;
+    const gagal = dashboardTasksForPeriod.filter((t) => t.status === "GAGAL").length;
+    const percentage = total > 0 ? Math.round((selesai / total) * 100) : 0;
+    return { total, selesai, waiting, dijadwalkan, gagal, percentage };
+  }, [dashboardTasksForPeriod]);
+
+  // Data Grafik Statistik Garis (Mingguan / Bulanan)
+  const dashboardLineChartData = useMemo(() => {
+    const now = new Date();
+    if (dashboardStatPeriod === "Mingguan") {
+      const curYear = now.getFullYear();
+      const curMonth = now.getMonth();
+      const weeks = [
+        { label: "Mgu 1", count: 0 },
+        { label: "Mgu 2", count: 0 },
+        { label: "Mgu 3", count: 0 },
+        { label: "Mgu 4+", count: 0 },
+      ];
+      teamTasks.forEach((p) => {
+        const dateStr = p.waktu_selesai || p.tanggal;
+        if (!dateStr) return;
+        const d = parseRecordDate(dateStr) || new Date(dateStr);
+        if (isNaN(d.getTime())) return;
+        if (d.getFullYear() === curYear && d.getMonth() === curMonth) {
+          const day = d.getDate();
+          if (day <= 7) weeks[0].count++;
+          else if (day <= 14) weeks[1].count++;
+          else if (day <= 21) weeks[2].count++;
+          else weeks[3].count++;
+        }
+      });
+      return weeks;
+    } else {
+      const months = [];
+      for (let i = 4; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push({
+          label: d.toLocaleDateString("id-ID", { month: "short" }),
+          year: d.getFullYear(),
+          month: d.getMonth(),
+          count: 0,
+        });
+      }
+      teamTasks.forEach((p) => {
+        const dateStr = p.waktu_selesai || p.tanggal;
+        if (!dateStr) return;
+        const d = parseRecordDate(dateStr) || new Date(dateStr);
+        if (isNaN(d.getTime())) return;
+        const found = months.find((m) => m.year === d.getFullYear() && m.month === d.getMonth());
+        if (found) found.count++;
+      });
+      return months;
+    }
+  }, [teamTasks, dashboardStatPeriod]);
+
+  const lineChartPoints = useMemo(() => {
+    const data = dashboardLineChartData;
+    if (!data || data.length === 0) return [];
+    const counts = data.map((d) => d.count);
+    const maxVal = Math.max(...counts, 4);
+    const n = data.length;
+    return data.map((item, idx) => {
+      const cx = 40 + idx * (420 / (n - 1 || 1));
+      const cy = 130 - (item.count / maxVal) * 105;
+      return { cx: Math.round(cx), cy: Math.round(cy), count: item.count, label: item.label, maxVal };
+    });
+  }, [dashboardLineChartData]);
+
+  const linePathD = useMemo(() => {
+    if (lineChartPoints.length === 0) return "";
+    return lineChartPoints.reduce((acc, pt, i, arr) => {
+      if (i === 0) return `M ${pt.cx} ${pt.cy}`;
+      const prev = arr[i - 1];
+      const cp1x = prev.cx + (pt.cx - prev.cx) / 2;
+      const cp1y = prev.cy;
+      const cp2x = prev.cx + (pt.cx - prev.cx) / 2;
+      const cp2y = pt.cy;
+      return `${acc} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${pt.cx} ${pt.cy}`;
+    }, "");
+  }, [lineChartPoints]);
+
+  const areaPathD = useMemo(() => {
+    if (lineChartPoints.length === 0) return "";
+    const first = lineChartPoints[0];
+    const last = lineChartPoints[lineChartPoints.length - 1];
+    return `${linePathD} L ${last.cx} 140 L ${first.cx} 140 Z`;
+  }, [linePathD, lineChartPoints]);
 
   // Handle Mark In-Progress (Mulai Jalan)
   const handleStartTask = (task) => {
@@ -690,7 +817,7 @@ export default function TeknisiDashboard() {
   const renderCard = (task, runSheetIndex = null) => {
     const isCompleted = task.status === "SELESAI";
     const isScheduled = task.status === "DIJADWALKAN";
-    const cleanWaPhone = formatPhoneForWa(task.telepon || "081234567890");
+    const cleanWaPhone = task.telepon ? formatPhoneForWa(task.telepon) : null;
     const waMessage = `Halo Bpk/Ibu ${task.pelanggan}, kami dari Tim Teknisi Nexus Net (${activeTeam}). Kami sedang memproses pekerjaan ${task.jenis} di lokasi Anda: ${task.alamat}.`;
 
     // Redaman & insentif evaluasi
@@ -840,15 +967,17 @@ export default function TeknisiDashboard() {
               </a>
             )}
 
-            <a
-              href={`https://wa.me/${cleanWaPhone}?text=${encodeURIComponent(waMessage)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center border border-emerald-200 transition-colors"
-              title="Chat WhatsApp"
-            >
-              <MessageCircle className="w-3.5 h-3.5" />
-            </a>
+            {cleanWaPhone && (
+              <a
+                href={createWhatsAppUrl(cleanWaPhone, waMessage)}
+                target="_blank"
+                rel="noreferrer"
+                className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center border border-emerald-200 transition-colors"
+                title="Chat WhatsApp Pelanggan"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+              </a>
+            )}
 
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.alamat)}`}
@@ -1293,9 +1422,9 @@ export default function TeknisiDashboard() {
                     onChange={(e) => setDashboardStatusPeriod(e.target.value)}
                     className="text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg px-2.5 py-1 pr-6 outline-none cursor-pointer hover:border-slate-300 appearance-none shadow-2xs"
                   >
-                    <option value="September 2026">September 2026</option>
-                    <option value="Agustus 2026">Agustus 2026</option>
-                    <option value="Semua Waktu">Semua Waktu</option>
+                    <option value="CURRENT_MONTH">{currentMonthLabel} (Bulan Ini)</option>
+                    <option value="PREV_MONTH">{prevMonthLabel} (Bulan Lalu)</option>
+                    <option value="ALL">Semua Waktu</option>
                   </select>
                   <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
@@ -1307,34 +1436,70 @@ export default function TeknisiDashboard() {
                 <div className="relative w-44 h-44 flex items-center justify-center shrink-0">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
                     <circle cx="80" cy="80" r="56" fill="none" stroke="#F1F5F9" strokeWidth="18" />
-                    {/* Selesai: 61% = 214.8 stroke dash (dari circumference ~351.86) */}
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="56"
-                      fill="none"
-                      stroke="#10B981"
-                      strokeWidth="18"
-                      strokeDasharray="214.8 351.86"
-                      strokeDashoffset="0"
-                      className="transition-all duration-700"
-                    />
-                    {/* Menunggu: 39% = 137.0 stroke dash */}
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="56"
-                      fill="none"
-                      stroke="#F59E0B"
-                      strokeWidth="18"
-                      strokeDasharray="137.0 351.86"
-                      strokeDashoffset="-214.8"
-                      className="transition-all duration-700"
-                    />
+                    {dashboardStats.total > 0 && (
+                      <>
+                        {/* Selesai: Hijau */}
+                        {dashboardStats.selesai > 0 && (
+                          <circle
+                            cx="80"
+                            cy="80"
+                            r="56"
+                            fill="none"
+                            stroke="#10B981"
+                            strokeWidth="18"
+                            strokeDasharray={`${((dashboardStats.selesai / dashboardStats.total) * 351.86).toFixed(1)} 351.86`}
+                            strokeDashoffset="0"
+                            className="transition-all duration-700"
+                          />
+                        )}
+                        {/* Menunggu: Amber */}
+                        {dashboardStats.waiting > 0 && (
+                          <circle
+                            cx="80"
+                            cy="80"
+                            r="56"
+                            fill="none"
+                            stroke="#F59E0B"
+                            strokeWidth="18"
+                            strokeDasharray={`${((dashboardStats.waiting / dashboardStats.total) * 351.86).toFixed(1)} 351.86`}
+                            strokeDashoffset={`-${((dashboardStats.selesai / dashboardStats.total) * 351.86).toFixed(1)}`}
+                            className="transition-all duration-700"
+                          />
+                        )}
+                        {/* Dalam Proses / Dijadwalkan: Biru */}
+                        {dashboardStats.dijadwalkan > 0 && (
+                          <circle
+                            cx="80"
+                            cy="80"
+                            r="56"
+                            fill="none"
+                            stroke="#3B82F6"
+                            strokeWidth="18"
+                            strokeDasharray={`${((dashboardStats.dijadwalkan / dashboardStats.total) * 351.86).toFixed(1)} 351.86`}
+                            strokeDashoffset={`-${(((dashboardStats.selesai + dashboardStats.waiting) / dashboardStats.total) * 351.86).toFixed(1)}`}
+                            className="transition-all duration-700"
+                          />
+                        )}
+                        {/* Gagal: Merah */}
+                        {dashboardStats.gagal > 0 && (
+                          <circle
+                            cx="80"
+                            cy="80"
+                            r="56"
+                            fill="none"
+                            stroke="#EF4444"
+                            strokeWidth="18"
+                            strokeDasharray={`${((dashboardStats.gagal / dashboardStats.total) * 351.86).toFixed(1)} 351.86`}
+                            strokeDashoffset={`-${(((dashboardStats.selesai + dashboardStats.waiting + dashboardStats.dijadwalkan) / dashboardStats.total) * 351.86).toFixed(1)}`}
+                            className="transition-all duration-700"
+                          />
+                        )}
+                      </>
+                    )}
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
                     <span className="text-3xl font-black text-slate-900 tracking-tight leading-none">
-                      36
+                      {dashboardStats.total}
                     </span>
                     <span className="text-[11px] font-semibold text-slate-400 mt-1">
                       Total Tugas
@@ -1349,7 +1514,9 @@ export default function TeknisiDashboard() {
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
                       <span className="font-semibold text-slate-700">Selesai</span>
                     </div>
-                    <span className="font-bold text-slate-900">22 (61%)</span>
+                    <span className="font-bold text-slate-900">
+                      {dashboardStats.selesai} ({dashboardStats.total > 0 ? Math.round((dashboardStats.selesai / dashboardStats.total) * 100) : 0}%)
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between text-xs py-1 border-b border-slate-50">
@@ -1357,7 +1524,9 @@ export default function TeknisiDashboard() {
                       <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
                       <span className="font-semibold text-slate-700">Menunggu</span>
                     </div>
-                    <span className="font-bold text-slate-900">14 (39%)</span>
+                    <span className="font-bold text-slate-900">
+                      {dashboardStats.waiting} ({dashboardStats.total > 0 ? Math.round((dashboardStats.waiting / dashboardStats.total) * 100) : 0}%)
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between text-xs py-1 border-b border-slate-50">
@@ -1365,15 +1534,19 @@ export default function TeknisiDashboard() {
                       <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
                       <span className="font-semibold text-slate-700">Dalam Proses</span>
                     </div>
-                    <span className="font-bold text-slate-900">0 (0%)</span>
+                    <span className="font-bold text-slate-900">
+                      {dashboardStats.dijadwalkan} ({dashboardStats.total > 0 ? Math.round((dashboardStats.dijadwalkan / dashboardStats.total) * 100) : 0}%)
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between text-xs py-1">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
-                      <span className="font-semibold text-slate-700">Tertunda</span>
+                      <span className="font-semibold text-slate-700">Tertunda / Gagal</span>
                     </div>
-                    <span className="font-bold text-slate-900">0 (0%)</span>
+                    <span className="font-bold text-slate-900">
+                      {dashboardStats.gagal} ({dashboardStats.total > 0 ? Math.round((dashboardStats.gagal / dashboardStats.total) * 100) : 0}%)
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1417,61 +1590,65 @@ export default function TeknisiDashboard() {
                     </defs>
 
                     {/* Grid Lines Horizontal */}
-                    <line x1="25" y1="20" x2="490" y2="20" stroke="#F1F5F9" strokeWidth="1" />
+                    <line x1="25" y1="25" x2="490" y2="25" stroke="#F1F5F9" strokeWidth="1" />
                     <line x1="25" y1="60" x2="490" y2="60" stroke="#F1F5F9" strokeWidth="1" />
-                    <line x1="25" y1="100" x2="490" y2="100" stroke="#F1F5F9" strokeWidth="1" />
-                    <line x1="25" y1="140" x2="490" y2="140" stroke="#E2E8F0" strokeWidth="1" />
+                    <line x1="25" y1="95" x2="490" y2="95" stroke="#F1F5F9" strokeWidth="1" />
+                    <line x1="25" y1="130" x2="490" y2="130" stroke="#E2E8F0" strokeWidth="1" />
 
                     {/* Y-axis Labels */}
-                    <text x="5" y="24" className="text-[10px] fill-slate-400 font-medium">15</text>
-                    <text x="5" y="64" className="text-[10px] fill-slate-400 font-medium">10</text>
-                    <text x="10" y="104" className="text-[10px] fill-slate-400 font-medium">5</text>
-                    <text x="10" y="144" className="text-[10px] fill-slate-400 font-medium">0</text>
+                    <text x="5" y="29" className="text-[10px] fill-slate-400 font-medium">
+                      {lineChartPoints[0]?.maxVal || 4}
+                    </text>
+                    <text x="5" y="64" className="text-[10px] fill-slate-400 font-medium">
+                      {Math.round(((lineChartPoints[0]?.maxVal || 4) * 2) / 3)}
+                    </text>
+                    <text x="5" y="99" className="text-[10px] fill-slate-400 font-medium">
+                      {Math.round((lineChartPoints[0]?.maxVal || 4) / 3)}
+                    </text>
+                    <text x="10" y="134" className="text-[10px] fill-slate-400 font-medium">0</text>
 
                     {/* Area under curve */}
-                    <path
-                      d="M 40 130 C 95 125, 115 112, 150 108 C 190 102, 220 62, 260 60 C 300 58, 335 90, 370 86 C 410 82, 440 25, 475 20 L 475 140 L 40 140 Z"
-                      fill="url(#techBlueGrad)"
-                    />
+                    {areaPathD && (
+                      <path
+                        d={areaPathD}
+                        fill="url(#techBlueGrad)"
+                      />
+                    )}
 
                     {/* Smooth Curved Line */}
-                    <path
-                      d="M 40 130 C 95 125, 115 112, 150 108 C 190 102, 220 62, 260 60 C 300 58, 335 90, 370 86 C 410 82, 440 25, 475 20"
-                      fill="none"
-                      stroke="#2563EB"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                    />
+                    {linePathD && (
+                      <path
+                        d={linePathD}
+                        fill="none"
+                        stroke="#2563EB"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                      />
+                    )}
 
                     {/* Data Points */}
-                    {[
-                      { cx: 40, cy: 130 },
-                      { cx: 150, cy: 108 },
-                      { cx: 260, cy: 60 },
-                      { cx: 370, cy: 86 },
-                      { cx: 475, cy: 20 },
-                    ].map((pt, i) => (
-                      <circle
-                        key={i}
-                        cx={pt.cx}
-                        cy={pt.cy}
-                        r="4.5"
-                        fill="#2563EB"
-                        stroke="#FFFFFF"
-                        strokeWidth="2.5"
-                        className="hover:scale-125 transition-transform cursor-pointer"
-                      />
+                    {lineChartPoints.map((pt, i) => (
+                      <g key={i}>
+                        <circle
+                          cx={pt.cx}
+                          cy={pt.cy}
+                          r="4.5"
+                          fill="#2563EB"
+                          stroke="#FFFFFF"
+                          strokeWidth="2.5"
+                          className="hover:scale-125 transition-transform cursor-pointer"
+                        />
+                        <title>{`${pt.label}: ${pt.count} tugas`}</title>
+                      </g>
                     ))}
                   </svg>
                 </div>
 
                 {/* X-axis Labels */}
-                <div className="flex items-center justify-between pl-6 pr-2 pt-1 text-[11px] font-semibold text-slate-500">
-                  <span>1 Sep</span>
-                  <span>8 Sep</span>
-                  <span>15 Sep</span>
-                  <span>22 Sep</span>
-                  <span>30 Sep</span>
+                <div className="flex items-center justify-between pl-8 pr-3 pt-1 text-[11px] font-semibold text-slate-500">
+                  {lineChartPoints.map((pt, i) => (
+                    <span key={i}>{pt.label}</span>
+                  ))}
                 </div>
               </div>
             </div>
