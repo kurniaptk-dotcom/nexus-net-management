@@ -83,6 +83,8 @@ import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import { formatPhoneWa as formatPhoneForWa } from "../lib/spkGenerator";
 import { createWhatsAppUrl } from "../lib/whatsapp";
+import { calculateTeamPayroll } from "../lib/payroll";
+import SlipGajiModal from "../components/SlipGajiModal";
 
 function parseRecordDate(dStr) {
   if (!dStr) return null;
@@ -412,6 +414,18 @@ export default function TeknisiDashboard() {
   const teamIncentives = useMemo(() => {
     return calculateTeamIncentives(walletFilteredTasks, activeTeam, incentiveConfig, masterKomisi);
   }, [walletFilteredTasks, activeTeam, incentiveConfig, masterKomisi]);
+
+  // Perhitungan slip gaji resmi tim aktif
+  const technicianPayrollData = useMemo(() => {
+    const targetTeam = activeTeam === "ALL" ? (profile?.tim || "GATRA - AIS") : activeTeam;
+    return calculateTeamPayroll({
+      timNama: targetTeam,
+      tasks: walletFilteredTasks,
+      periodLabel: walletPeriodLabel,
+      config: incentiveConfig,
+      masterList: masterKomisi,
+    });
+  }, [activeTeam, profile, walletFilteredTasks, walletPeriodLabel, incentiveConfig, masterKomisi]);
 
   // Pencarian
   const searchedTasks = useMemo(() => {
@@ -3841,6 +3855,14 @@ export default function TeknisiDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Cetak Slip Gaji & Insentif Resmi Teknisi */}
+      {showSlipModal && (
+        <SlipGajiModal
+          payrollData={technicianPayrollData}
+          onClose={() => setShowSlipModal(false)}
+        />
       )}
 
       {/* Modal Bukti Dokumentasi Lapangan Teknisi */}

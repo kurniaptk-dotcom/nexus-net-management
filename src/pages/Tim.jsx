@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Users, Plus, Edit2, Trash2, Mail, Phone, Award, Coins, Wallet, Wrench } from "lucide-react";
+import { Users, Plus, Edit2, Trash2, Mail, Phone, Award, Coins, Wallet, Wrench, Receipt } from "lucide-react";
 import { initialTimData, pekerjaanList } from "../data/mockData";
 import { usePersistState } from "../hooks/usePersistState";
 import { calculateTaskIncentive, formatRupiah, MASTER_KOMISI_ITEMS } from "../lib/incentives";
 import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
+import PayrollManagementTab from "../components/PayrollManagementTab";
 
 function TeamCard({ tim, pekerjaanData, masterKomisi, onEdit, onDelete }) {
   const timPekerjaan = pekerjaanData.filter((p) => p.tim === tim.nama);
@@ -121,6 +122,7 @@ export default function Tim() {
   const [timData, setTimData] = usePersistState("xnet_tim", initialTimData);
   const [pekerjaanData] = usePersistState("xnet_pekerjaan", pekerjaanList);
   const [masterKomisi] = usePersistState("xnet_master_komisi", MASTER_KOMISI_ITEMS);
+  const [activeTab, setActiveTab] = useState("TIM"); // "TIM" | "PAYROLL"
   const [showModal, setShowModal] = useState(false);
   const [editingTim, setEditingTim] = useState(null);
   const [formData, setFormData] = useState({ nama: "" });
@@ -186,7 +188,7 @@ export default function Tim() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {toast && (
         <Toast
           type={toast.type}
@@ -196,63 +198,102 @@ export default function Tim() {
       )}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Manajemen Tim</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Kelola tim field technician & pantau akumulasi komisi kerja</p>
+          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Manajemen Tim & Penggajian</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Kelola tim field technician, struktur gaji, dan slip komisi kerja</p>
         </div>
+        {activeTab === "TIM" && (
+          <button
+            onClick={handleAdd}
+            className="flex items-center justify-center gap-2 bg-[#0D1B4A] hover:bg-[#1a237e] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all cursor-pointer active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Tim</span>
+          </button>
+        )}
+      </div>
+
+      {/* Sub-Tabs Navigasi */}
+      <div className="flex border-b border-gray-200 gap-6">
         <button
-          onClick={handleAdd}
-          className="flex items-center justify-center gap-2 bg-[#0D1B4A] hover:bg-[#1a237e] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-md transition-all cursor-pointer active:scale-95"
+          onClick={() => setActiveTab("TIM")}
+          className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+            activeTab === "TIM"
+              ? "border-[#0D1B4A] text-[#0D1B4A]"
+              : "border-transparent text-gray-400 hover:text-gray-700"
+          }`}
         >
-          <Plus className="w-4 h-4" />
-          <span>Tambah Tim</span>
+          <Users className="w-4 h-4" />
+          <span>Daftar Regu & Kinerja ({timData.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("PAYROLL")}
+          className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+            activeTab === "PAYROLL"
+              ? "border-[#F59E0B] text-[#F59E0B]"
+              : "border-transparent text-gray-400 hover:text-gray-700"
+          }`}
+        >
+          <Wallet className="w-4 h-4" />
+          <span>Penggajian & Slip Gaji</span>
         </button>
       </div>
 
-      {/* KPI Cards Ringkasan Tim & Komisi */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0D1B4A] flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Regu Teknisi</p>
-            <p className="text-xl font-black text-gray-900">{timData.length} Tim</p>
-          </div>
-        </div>
+      {activeTab === "PAYROLL" ? (
+        <PayrollManagementTab
+          timList={timData}
+          pekerjaanData={pekerjaanData}
+          masterKomisi={masterKomisi}
+        />
+      ) : (
+        <>
+          {/* KPI Cards Ringkasan Tim & Komisi */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0D1B4A] flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Regu Teknisi</p>
+                <p className="text-xl font-black text-gray-900">{timData.length} Tim</p>
+              </div>
+            </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <Award className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Tugas Selesai</p>
-            <p className="text-xl font-black text-gray-900">{totalSelesaiSemua} Tugas</p>
-          </div>
-        </div>
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <Award className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Tugas Selesai</p>
+                <p className="text-xl font-black text-gray-900">{totalSelesaiSemua} Tugas</p>
+              </div>
+            </div>
 
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50/60 p-4 rounded-2xl border border-amber-200/80 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-400 text-[#0D1B4A] flex items-center justify-center shrink-0 shadow-xs font-bold">
-            <Coins className="w-5 h-5" />
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50/60 p-4 rounded-2xl border border-amber-200/80 shadow-2xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-400 text-[#0D1B4A] flex items-center justify-center shrink-0 shadow-xs font-bold">
+                <Coins className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Total Komisi Seluruh Tim</p>
+                <p className="text-xl font-black text-amber-700 font-mono">{formatRupiah(totalKomisiSemua)}</p>
+              </div>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Total Komisi Seluruh Tim</p>
-            <p className="text-xl font-black text-amber-700 font-mono">{formatRupiah(totalKomisiSemua)}</p>
-          </div>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        {timData.map((tim) => (
-          <TeamCard
-            key={tim.id}
-            tim={tim}
-            pekerjaanData={pekerjaanData}
-            masterKomisi={masterKomisi}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        ))}
-      </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {timData.map((tim) => (
+              <TeamCard
+                key={tim.id}
+                tim={tim}
+                pekerjaanData={pekerjaanData}
+                masterKomisi={masterKomisi}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Modal */}
       {/* Modal Tambah/Edit Tim */}

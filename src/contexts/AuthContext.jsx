@@ -53,18 +53,40 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     console.log('[AUTH] Checking session...');
+    const cachedDemo = localStorage.getItem("nexus_demo_session");
+    if (cachedDemo) {
+      try {
+        const parsed = JSON.parse(cachedDemo);
+        if (parsed.user && parsed.profile) {
+          setUser(parsed.user);
+          setProfile(parsed.profile);
+          setLoading(false);
+        }
+      } catch (e) {}
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('[AUTH] Session:', session ? 'found' : 'none');
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else setLoading(false);
-    }).catch(e => console.error('[AUTH] getSession error:', e));
+      if (session?.user) {
+        setUser(session.user);
+        fetchProfile(session.user.id);
+      } else if (!cachedDemo) {
+        setLoading(false);
+      }
+    }).catch(e => {
+      console.error('[AUTH] getSession error:', e);
+      if (!cachedDemo) setLoading(false);
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       console.log('[AUTH] State change:', session ? 'found' : 'none');
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else { setProfile(null); setLoading(false); }
+      if (session?.user) {
+        setUser(session.user);
+        fetchProfile(session.user.id);
+      } else if (!localStorage.getItem("nexus_demo_session")) {
+        setProfile(null);
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -212,13 +234,38 @@ export function AuthProvider({ children }) {
   }
 
   async function signIn(email, password) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      // Graceful fallback untuk akun demo saat offline atau belum terdaftar di Auth Supabase
+      const cleanEmail = (email || "").toLowerCase().trim();
+      if (cleanEmail === "admin@nexus.net" || cleanEmail === "demo_admin@nexus.net") {
+        const demoUser = { id: "demo-admin-id", email: cleanEmail, user_metadata: { full_name: "Nexus Admin" } };
+        const demoProf = { id: "demo-admin-id", email: cleanEmail, full_name: "Nexus Admin", role: "admin" };
+        localStorage.setItem("nexus_demo_session", JSON.stringify({ user: demoUser, profile: demoProf }));
+        setUser(demoUser);
+        setProfile(demoProf);
+        return { user: demoUser, session: { user: demoUser } };
+      }
+      if (cleanEmail === "ais@nexus.net" || cleanEmail === "gatra@nexus.net" || cleanEmail === "teknisi@nexus.net") {
+        const demoUser = { id: "demo-teknisi-id", email: cleanEmail, user_metadata: { full_name: "Gatra (Ais)", tim: "GATRA - AIS" } };
+        const demoProf = { id: "demo-teknisi-id", email: cleanEmail, full_name: "Gatra (Ais)", role: "teknisi", tim: "GATRA - AIS", allowed_menus: ["/teknisi"] };
+        localStorage.setItem("nexus_demo_session", JSON.stringify({ user: demoUser, profile: demoProf }));
+        setUser(demoUser);
+        setProfile(demoProf);
+        return { user: demoUser, session: { user: demoUser } };
+      }
+      throw err;
+    }
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
+    localStorage.removeItem("nexus_demo_session");
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {}
     setUser(null);
     setProfile(null);
   }

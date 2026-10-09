@@ -1,4 +1,4 @@
-import { db } from "./supabase";
+import { db } from "./supabase.js";
 
 /**
  * Utilitas Otomatisasi Sinkronisasi Pelanggan Radius, Tiket Gangguan, dan Leads

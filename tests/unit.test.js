@@ -144,3 +144,63 @@ test("Customer & Port Lifecycle - activation and disconnection sync", () => {
   assert.equal(resPutus.type, "DISCONNECTED");
   assert.equal(customers.find((c) => c.nama === "Joko").status, "PUTUS");
 });
+
+test("Payroll Engine - calculates Take Home Pay with base salary, allowances, tasks commission and deductions", async () => {
+  const { calculateTeamPayroll, terbilangRupiah, generateWhatsAppSlipMessage } = await import("../src/lib/payroll.js");
+
+  const sampleTasks = [
+    {
+      id: 1,
+      tim: "GATRA - AIS",
+      status: "SELESAI",
+      komisi_total: 25000,
+    },
+    {
+      id: 2,
+      tim: "GATRA - AIS",
+      status: "SELESAI",
+      komisi_total: 35000,
+    },
+  ];
+
+  const profileTetap = {
+    skema: "TETAP_KOMISI",
+    gajiPokok: 2500000,
+    tunjanganMakan: 300000,
+    tunjanganTransport: 200000,
+    tunjanganKomunikasi: 100000,
+    potonganKasbon: 100000,
+    potonganBpjs: 50000,
+    potonganLain: 0,
+    rekeningBank: "BCA - 12345678",
+    atasNama: "Gatra",
+    nomorWa: "081234567890",
+  };
+
+  const payroll = calculateTeamPayroll({
+    timNama: "GATRA - AIS",
+    tasks: sampleTasks,
+    profile: profileTetap,
+    periodLabel: "Oktober 2026",
+  });
+
+  // Komisi tugas = 25.000 + 35.000 = 60.000
+  assert.equal(payroll.totalKomisiTugas, 60000);
+  assert.equal(payroll.totalTugasSelesai, 2);
+  assert.equal(payroll.gajiPokok, 2500000);
+  assert.equal(payroll.totalTunjangan, 600000);
+  assert.equal(payroll.totalPotongan, 150000);
+
+  // Take Home Pay = 2.500.000 + 600.000 + 60.000 - 150.000 = 3.010.000
+  assert.equal(payroll.takeHomePay, 3010000);
+
+  // Terbilang
+  const terbilang = terbilangRupiah(payroll.takeHomePay);
+  assert.ok(terbilang.includes("Juta"));
+  assert.ok(terbilang.includes("Rupiah"));
+
+  // Format WhatsApp message
+  const waMsg = generateWhatsAppSlipMessage(payroll);
+  assert.ok(waMsg.includes("SLIP GAJI & KOMISI RESMI NEXUS NET"));
+  assert.ok(waMsg.includes("3.010.000"));
+});
