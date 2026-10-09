@@ -922,29 +922,29 @@ export default function ODP() {
                                   </button>
                                   <a
                                     href={`https://earth.google.com/web/search/${encodeURIComponent(item.nama + ' Pontianak')}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-flex items-center"
-                                    title="Google Earth 3D"
-                                  >
-                                    <Globe className="w-3.5 h-3.5" />
-                                  </a>
-                                  <button
-                                    onClick={() => handleOpenEditOdp(item)}
-                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                                    title="Edit"
-                                  >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => setDeleteConfirm(item)}
-                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                                    title="Hapus"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="min-w-[32px] min-h-[32px] text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-flex items-center justify-center active:scale-95"
+                                      title="Google Earth 3D"
+                                    >
+                                      <Globe className="w-4 h-4" />
+                                    </a>
+                                    <button
+                                      onClick={() => handleOpenEditOdp(item)}
+                                      className="min-w-[32px] min-h-[32px] text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer flex items-center justify-center active:scale-95"
+                                      title="Edit"
+                                    >
+                                      <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => setDeleteConfirm(item)}
+                                      className="min-w-[32px] min-h-[32px] text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer flex items-center justify-center active:scale-95"
+                                      title="Hapus"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
 
                               {item.keterangan && (
                                 <p className="text-xs text-gray-600 bg-gray-50 p-2 rounded-lg leading-relaxed">
@@ -1179,8 +1179,10 @@ export default function ODP() {
 
       {/* Modal Tambah / Edit ODC */}
       {isOdcModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+            {/* Mobile Drag Indicator Handle */}
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 sm:hidden" />
             <div className="px-6 py-4 bg-[#0D1B4A] text-white flex items-center justify-between">
               <h3 className="font-bold text-base flex items-center gap-2">
                 <Layers className="w-4 h-4 text-purple-300" />
@@ -1188,7 +1190,7 @@ export default function ODP() {
               </h3>
               <button
                 onClick={() => setIsOdcModalOpen(false)}
-                className="text-white/60 hover:text-white transition-colors"
+                className="text-white/60 hover:text-white transition-colors p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1270,8 +1272,10 @@ export default function ODP() {
 
       {/* Modal Tambah / Edit ODP */}
       {isOdpModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+            {/* Mobile Drag Indicator Handle */}
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 sm:hidden" />
             <div className="px-6 py-4 bg-[#F59E0B] text-white flex items-center justify-between">
               <h3 className="font-bold text-base flex items-center gap-2">
                 <Network className="w-4 h-4 text-white" />
@@ -1279,7 +1283,7 @@ export default function ODP() {
               </h3>
               <button
                 onClick={() => setIsOdpModalOpen(false)}
-                className="text-white/80 hover:text-white transition-colors"
+                className="text-white/80 hover:text-white transition-colors p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1428,8 +1432,10 @@ export default function ODP() {
 
       {/* Modal Daftar Pelanggan yang Terhubung ke ODP */}
       {selectedOdpCustomers && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 animate-in fade-in">
+          <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-100 max-h-[88vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+            {/* Mobile Drag Indicator Handle */}
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 sm:hidden" />
             <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shrink-0">

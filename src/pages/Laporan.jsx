@@ -574,16 +574,59 @@ export default function Laporan() {
 
       {/* Detail Table */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-bold text-gray-800">Detail & Rekap Komisi per Tim</h3>
             <p className="text-xs text-gray-400">Akumulasi komisi pekerjaan sukses masing-masing regu teknisi</p>
           </div>
-          <span className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-xl border border-amber-200">
+          <span className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 self-start sm:self-auto">
             Total Beban: {formatRupiah(totalBebanKomisi)}
           </span>
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Mobile Card View for Komisi */}
+        <div className="sm:hidden p-3.5 space-y-3 divide-y divide-gray-100">
+          {timData.map((t) => {
+            const timP = filteredPekerjaan.filter((p) => p.tim === t.nama);
+            const pemasangan = timP.filter((p) => p.jenis === "PEMASANGAN" && p.status === "SELESAI").length;
+            const perbaikan = timP.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length;
+            const perbaikanKhusus = timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length;
+            const pemutusan = timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length;
+            const total = pemasangan + perbaikan + perbaikanKhusus + pemutusan;
+            const timKomisi = getTeamKomisi(t.nama);
+            return (
+              <div key={t.id || t.nama} className="pt-3 first:pt-0 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="font-bold text-gray-900 text-sm">{t.nama}</h4>
+                  <span className="font-extrabold text-amber-600 font-mono text-xs bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                    {formatRupiah(timKomisi)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
+                  <div className="bg-blue-50/70 p-1.5 rounded-lg">
+                    <span className="text-gray-400 block font-bold">Pasang</span>
+                    <span className="font-black text-[#0D1B4A]">{pemasangan}</span>
+                  </div>
+                  <div className="bg-amber-50/70 p-1.5 rounded-lg">
+                    <span className="text-gray-400 block font-bold">Perbaikan</span>
+                    <span className="font-black text-[#F59E0B]">{perbaikan}</span>
+                  </div>
+                  <div className="bg-purple-50/70 p-1.5 rounded-lg">
+                    <span className="text-gray-400 block font-bold">Khusus</span>
+                    <span className="font-black text-[#8B5CF6]">{perbaikanKhusus}</span>
+                  </div>
+                  <div className="bg-orange-50/70 p-1.5 rounded-lg">
+                    <span className="text-gray-400 block font-bold">Putus</span>
+                    <span className="font-black text-[#F97316]">{pemutusan}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop Table */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50/80">
               <tr>
@@ -631,7 +674,37 @@ export default function Laporan() {
         <div className="px-5 py-4 border-b border-gray-100">
           <h3 className="text-sm font-bold text-gray-800">Kinerja Progress Pemasangan</h3>
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Mobile Card View for Kinerja */}
+        <div className="sm:hidden p-3.5 space-y-2.5 divide-y divide-gray-100">
+          {timData.map((t) => {
+            const timP = filteredPekerjaan.filter((p) => p.tim === t.nama && p.jenis === "PEMASANGAN");
+            const selesai = timP.filter((p) => p.status === "SELESAI").length;
+            const total = timP.length;
+            const gagal = timP.filter((p) => p.status === "GAGAL").length;
+            const persen = total > 0 ? (selesai / total) * 100 : 0;
+            return (
+              <div key={t.nama} className="pt-2.5 first:pt-0 flex items-center justify-between gap-2">
+                <div>
+                  <h4 className="font-bold text-gray-900 text-xs">{t.nama}</h4>
+                  <p className="text-[10px] text-gray-500 mt-0.5">
+                    Selesai: <b className="text-emerald-700">{selesai}</b> / {total} {gagal > 0 ? `· (${gagal} gagal)` : ""}
+                  </p>
+                </div>
+                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 ${
+                  persen >= 90 ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                    : persen >= 70 ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
+                    : "bg-red-50 text-red-700 ring-1 ring-red-200"
+                }`}>
+                  {persen.toFixed(1)}%
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop Table */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50/80">
               <tr>

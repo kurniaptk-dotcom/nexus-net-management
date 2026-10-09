@@ -351,12 +351,12 @@ export default function Leads() {
                     <StatusBadge status={item.status} />
                   </div>
                 </div>
-                <div className="flex gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => handleEdit(item)} className="p-1.5 rounded-xl hover:bg-blue-50 text-gray-400 hover:text-blue-600 bg-gray-50 sm:bg-transparent" title="Edit Lead">
-                    <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <div className="flex gap-1.5 shrink-0">
+                  <button onClick={() => handleEdit(item)} className="min-w-[34px] min-h-[34px] p-2 rounded-xl hover:bg-blue-50 text-gray-400 hover:text-blue-600 bg-gray-50 flex items-center justify-center active:scale-95 transition-all" title="Edit Lead">
+                    <Edit2 className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleDelete(item)} className="p-1.5 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 bg-gray-50 sm:bg-transparent cursor-pointer" title="Hapus Lead">
-                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <button onClick={() => handleDelete(item)} className="min-w-[34px] min-h-[34px] p-2 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 bg-gray-50 flex items-center justify-center cursor-pointer active:scale-95 transition-all" title="Hapus Lead">
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -434,7 +434,7 @@ export default function Leads() {
                     const url = createWhatsAppUrl(item.telepon, getLeadSurveyWaTemplate(item));
                     if (url) window.open(url, "_blank");
                   }}
-                  className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+                  className="min-w-[36px] min-h-[36px] p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer shrink-0 flex items-center justify-center"
                   title="Kirim Pesan Survey WhatsApp"
                 >
                   <MessageCircle className="w-4 h-4" />
@@ -453,11 +453,13 @@ export default function Leads() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+            {/* Mobile Drag Indicator Handle */}
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 sm:hidden" />
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-base sm:text-lg font-bold text-gray-900">{editingItem ? "Edit Lead" : "Tambah Lead Baru"}</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg">✕</button>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 p-2 rounded-lg">✕</button>
             </div>
             <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
               <div>

@@ -980,36 +980,36 @@ export default function Pekerjaan() {
 
                     <div className="flex items-center justify-between text-xs text-gray-400 pt-1.5 border-t border-gray-50">
                       <span className="font-medium">{item.tanggal || "-"}</span>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => handleSendWaSpk(item)}
-                          className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
+                          className="min-w-[34px] min-h-[34px] p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-all flex items-center justify-center active:scale-95"
                           title="Kirim / Forward SPK WhatsApp ke Tim Teknisi"
                         >
-                          <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                          <MessageCircle className="w-4 h-4 text-emerald-600" />
                         </button>
                         {(item.status === "SELESAI" || item.evidence || item.foto_opm) && (
                           <button
                             onClick={() => setViewEvidenceTask(item)}
-                            className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
+                            className="min-w-[34px] min-h-[34px] p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-all flex items-center justify-center active:scale-95"
                             title="Lihat Bukti Foto Lapangan"
                           >
-                            <Camera className="w-3.5 h-3.5 text-emerald-600" />
+                            <Camera className="w-4 h-4 text-blue-600" />
                           </button>
                         )}
                         <button
                           onClick={() => handleEdit(item)}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#0D1B4A] transition-colors"
+                          className="min-w-[34px] min-h-[34px] p-2 rounded-xl bg-slate-50 hover:bg-gray-100 text-slate-600 hover:text-[#0D1B4A] border border-slate-200 transition-all flex items-center justify-center active:scale-95"
                           title="Edit"
                         >
-                          <Edit2 className="w-3.5 h-3.5" />
+                          <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(item.id)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors"
+                          className="min-w-[34px] min-h-[34px] p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-all flex items-center justify-center active:scale-95"
                           title="Hapus"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -1243,16 +1243,25 @@ export default function Pekerjaan() {
       {showModal && (
         <div
           onClick={() => setShowModal(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto"
+            className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95"
           >
-            <div className="px-6 py-4 border-b border-gray-100">
+            {/* Mobile Drag Indicator Handle */}
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 sm:hidden" />
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">
                 {editingItem ? "Edit Pekerjaan" : "Tambah Pekerjaan Baru"}
               </h3>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-xl"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {formData.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" ? (
@@ -1627,12 +1636,14 @@ export default function Pekerjaan() {
       {showAddPemutusanModal && (
         <div
           onClick={() => setShowAddPemutusanModal(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
+            className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95"
           >
+            {/* Mobile Drag Indicator Handle */}
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 sm:hidden" />
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <UserMinus className="w-5 h-5 text-red-500" />

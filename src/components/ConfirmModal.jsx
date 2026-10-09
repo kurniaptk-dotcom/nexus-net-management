@@ -69,46 +69,49 @@ export default function ConfirmModal({
   const IconComponent = style.icon;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
         onClick={() => !isLoading && onClose()}
       />
 
-      {/* Modal Dialog Box */}
-      <div className="relative w-full max-w-md bg-white rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-100 transform transition-all animate-in zoom-in-95 duration-200">
+      {/* Modal Dialog Box (Bottom Sheet on mobile, centered dialog on sm+) */}
+      <div className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-100 transform transition-all animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        {/* Mobile Drag Indicator Handle */}
+        <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-4 sm:hidden" />
+
         <button
           type="button"
           disabled={isLoading}
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
 
-        <div className="flex items-start gap-4">
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ring-4 ${style.iconBg}`}>
-            <IconComponent className="w-6 h-6 stroke-[2.2]" />
+        <div className="flex items-start gap-3.5 sm:gap-4">
+          <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0 ring-4 ${style.iconBg}`}>
+            <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
           </div>
 
-          <div className="flex-1 min-w-0 pr-4">
+          <div className="flex-1 min-w-0 pr-4 sm:pr-2">
             <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">
               {title}
             </h3>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 sm:mt-1.5 leading-relaxed">
               {message}
             </p>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+        {/* Action Buttons: Full width stacked on mobile, row on sm+ */}
+        <div className="mt-5 sm:mt-6 pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-2.5">
           <button
             type="button"
             disabled={isLoading}
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="w-full sm:w-auto px-4 py-3 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer text-center"
           >
             {cancelText}
           </button>
@@ -117,7 +120,7 @@ export default function ConfirmModal({
             type="button"
             disabled={isLoading}
             onClick={onConfirm}
-            className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md cursor-pointer flex items-center gap-2 active:scale-95 ${style.btnBg}`}
+            className={`w-full sm:w-auto px-5 py-3 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 active:scale-95 ${style.btnBg}`}
           >
             {isLoading && (
               <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
