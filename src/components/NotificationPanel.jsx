@@ -80,12 +80,23 @@ export default function NotificationPanel() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Expose addNotification globally for other components
+  // Expose addNotification globally for other components & listen to storage
   useEffect(() => {
     window.__addNotification = (notif) => {
       setNotifications((prev) => [notif, ...prev]);
     };
-    return () => { delete window.__addNotification; };
+    const handleStorage = (e) => {
+      if (e.key === "xnet_notifications" && e.newValue) {
+        try {
+          setNotifications(JSON.parse(e.newValue));
+        } catch {}
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      delete window.__addNotification;
+      window.removeEventListener("storage", handleStorage);
+    };
   }, []);
 
   const filteredNotifications = notifications.filter((n) => {

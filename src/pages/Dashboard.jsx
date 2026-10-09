@@ -197,7 +197,10 @@ export default function Dashboard() {
   // Time Filtering State (ALL | TODAY | WEEK | MONTH | CUSTOM)
   const [timeFilter, setTimeFilter] = useState("ALL");
   const [selectedDate, setSelectedDate] = useState(currentSystemDate);
-  const [customStartDate, setCustomStartDate] = useState("2026-09-01");
+  const [customStartDate, setCustomStartDate] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split("T")[0];
+  });
   const [customEndDate, setCustomEndDate] = useState(currentSystemDate);
   const [scheduleTab, setScheduleTab] = useState("ALL");
   const [showDetailPekerjaan, setShowDetailPekerjaan] = usePersistState(

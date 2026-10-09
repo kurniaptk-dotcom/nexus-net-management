@@ -112,6 +112,7 @@ export default function ODP() {
           return item;
         });
         localStorage.setItem("xnet_leads", JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key: "xnet_leads", value: updated } }));
         showToast("success", `Data ODP ${leadInfo.odpName} (~${leadInfo.estCable}m) berhasil disimpan ke Lead #${paramLeadId}!`);
         setTimeout(() => navigate("/leads"), 1200);
       } else {
@@ -130,7 +131,9 @@ export default function ODP() {
           jarak_odp: leadInfo.estCable,
           keterangan_coverage: `${leadInfo.tier === "IDEAL" ? "Sangat Layak" : leadInfo.tier === "SURVEY" ? "Perlu Survey" : "Di Luar Jangkauan"} (${leadInfo.straightDist}m)`,
         };
-        localStorage.setItem("xnet_leads", JSON.stringify([newLead, ...existingLeads]));
+        const updatedNew = [newLead, ...existingLeads];
+        localStorage.setItem("xnet_leads", JSON.stringify(updatedNew));
+        window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key: "xnet_leads", value: updatedNew } }));
         showToast("success", `Lead baru berhasil dibuat! Terhubung ke ${leadInfo.odpName} (~${leadInfo.estCable}m)`);
         setTimeout(() => navigate("/leads"), 1200);
       }

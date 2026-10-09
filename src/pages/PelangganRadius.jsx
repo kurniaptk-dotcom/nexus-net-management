@@ -23,10 +23,13 @@ import {
   Wifi,
   Network,
   Copy,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 import { initialPelangganRadius, initialTimData, odpOdcList } from "../data/mockData";
 import { usePersistState } from "../hooks/usePersistState";
 import Toast from "../components/Toast";
+import ConfirmModal from "../components/ConfirmModal";
 import DispatchTaskModal from "../components/DispatchTaskModal";
 import { formatPhoneWa as formatPhoneForWa } from "../lib/spkGenerator";
 import { createWhatsAppUrl, getCustomerWaTemplate } from "../lib/whatsapp";
@@ -49,7 +52,7 @@ export default function PelangganRadius() {
   const [apiConfig, setApiConfig] = usePersistState("xnet_radius_api_config", {
     endpoint: "https://billing.nexusnet.id/api/v1/customers",
     apiKey: "nx_live_sec_8849f2910a",
-    lastSync: "2026-09-27 12:00",
+    lastSync: new Date().toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
     autoSync: false,
   });
 
@@ -63,6 +66,17 @@ export default function PelangganRadius() {
   // Modals State
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [deleteTargetCustomer, setDeleteTargetCustomer] = useState(null);
+  const [editForm, setEditForm] = useState({
+    nama: "",
+    telepon: "",
+    alamat: "",
+    odp: "ODP 1.1",
+    paket: "Home Fiber 30 Mbps",
+    status: "AKTIF",
+    ip_address: "-",
+  });
   const [assignForm, setAssignForm] = useState({
     jenis: "PEMASANGAN",
     tim: "AZWAR - RIO",
@@ -226,6 +240,50 @@ export default function PelangganRadius() {
     });
 
     triggerToast(`Pelanggan baru "${newCust.nama}" berhasil ditambahkan ke database.`, "success");
+  };
+
+  // Buka Modal Edit Pelanggan
+  const handleOpenEdit = (cust) => {
+    setEditingCustomer(cust);
+    setEditForm({
+      nama: cust.nama || "",
+      telepon: cust.telepon || "",
+      alamat: cust.alamat || "",
+      odp: cust.odp || "ODP 1.1",
+      paket: cust.paket || "Home Fiber 30 Mbps",
+      status: cust.status || "AKTIF",
+      ip_address: cust.ip_address || "-",
+    });
+  };
+
+  // Simpan Perubahan Data Pelanggan
+  const handleEditCustomerSubmit = (e) => {
+    e.preventDefault();
+    if (!editingCustomer) return;
+    const cleanNama = (editForm.nama || "").trim();
+    if (!cleanNama) {
+      triggerToast("Nama pelanggan wajib diisi!", "error");
+      return;
+    }
+    const cleanTelepon = formatPhoneForWa(editForm.telepon || "");
+    const updatedCust = {
+      ...editingCustomer,
+      ...editForm,
+      nama: cleanNama,
+      telepon: cleanTelepon || (editForm.telepon || "").trim(),
+      alamat: (editForm.alamat || "").trim(),
+    };
+    setPelangganList((prev) => prev.map((c) => (c.id === editingCustomer.id ? updatedCust : c)));
+    setEditingCustomer(null);
+    triggerToast(`Data pelanggan "${cleanNama}" berhasil diperbarui.`, "success");
+  };
+
+  // Hapus Data Pelanggan
+  const executeDeleteCustomer = () => {
+    if (!deleteTargetCustomer) return;
+    setPelangganList((prev) => prev.filter((c) => c.id !== deleteTargetCustomer.id));
+    triggerToast(`Pelanggan "${deleteTargetCustomer.nama}" telah dihapus dari database.`, "info");
+    setDeleteTargetCustomer(null);
   };
 
   return (
@@ -513,15 +571,32 @@ export default function PelangganRadius() {
                           </span>
                         </td>
 
-                        {/* Tombol Buat Tugas */}
+                        {/* Tombol Aksi */}
                         <td className="py-3.5 px-4 text-center">
-                          <button
-                            onClick={() => handleOpenAssign(cust)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#0D1B4A] hover:bg-[#1a237e] text-amber-400 transition-all cursor-pointer shadow-2xs"
-                          >
-                            <Zap className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Tugaskan Teknisi</span>
-                          </button>
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleOpenAssign(cust)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#0D1B4A] hover:bg-[#1a237e] text-amber-400 transition-all cursor-pointer shadow-2xs"
+                              title="Tugaskan Teknisi (Buat SPK)"
+                            >
+                              <Zap className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Tugaskan</span>
+                            </button>
+                            <button
+                              onClick={() => handleOpenEdit(cust)}
+                              className="p-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                              title="Edit Data Pelanggan"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteTargetCustomer(cust)}
+                              className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Hapus Data Pelanggan"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -598,13 +673,29 @@ export default function PelangganRadius() {
                         </a>
                       </div>
 
-                      <button
-                        onClick={() => handleOpenAssign(cust)}
-                        className="flex-1 py-2 px-3 bg-[#0D1B4A] hover:bg-[#1a237e] text-amber-400 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                      >
-                        <Zap className="w-3.5 h-3.5" />
-                        <span>Tugaskan Teknisi</span>
-                      </button>
+                      <div className="flex items-center gap-1.5 flex-1">
+                        <button
+                          onClick={() => handleOpenAssign(cust)}
+                          className="flex-1 py-2 px-3 bg-[#0D1B4A] hover:bg-[#1a237e] text-amber-400 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                        >
+                          <Zap className="w-3.5 h-3.5" />
+                          <span>Tugaskan</span>
+                        </button>
+                        <button
+                          onClick={() => handleOpenEdit(cust)}
+                          className="p-2 rounded-xl text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTargetCustomer(cust)}
+                          className="p-2 rounded-xl text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors cursor-pointer"
+                          title="Hapus"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -855,6 +946,143 @@ export default function PelangganRadius() {
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 4: EDIT DATA PELANGGAN                                              */}
+      {/* ========================================================================= */}
+      {editingCustomer && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-5 sm:p-6 border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <Edit2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Edit Data Pelanggan</h3>
+                  <p className="text-xs text-slate-500 font-mono">{editingCustomer.id_pelanggan}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingCustomer(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditCustomerSubmit} className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Nama Lengkap <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.nama}
+                  onChange={(e) => setEditForm({ ...editForm, nama: e.target.value })}
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    No. WhatsApp
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.telepon}
+                    onChange={(e) => setEditForm({ ...editForm, telepon: e.target.value })}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    ODP Wilayah
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.odp}
+                    onChange={(e) => setEditForm({ ...editForm, odp: e.target.value })}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Alamat Lengkap
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={editForm.alamat}
+                  onChange={(e) => setEditForm({ ...editForm, alamat: e.target.value })}
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Paket
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.paket}
+                    onChange={(e) => setEditForm({ ...editForm, paket: e.target.value })}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white outline-none cursor-pointer"
+                  >
+                    <option value="AKTIF">AKTIF</option>
+                    <option value="BARU">BARU</option>
+                    <option value="ISOLIR">ISOLIR</option>
+                    <option value="PUTUS">PUTUS</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingCustomer(null)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-2 py-2.5 text-xs font-bold bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl shadow-md transition-all cursor-pointer"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Hapus Pelanggan */}
+      <ConfirmModal
+        isOpen={Boolean(deleteTargetCustomer)}
+        title="Hapus Data Pelanggan"
+        message={`Apakah Anda yakin ingin menghapus data pelanggan "${deleteTargetCustomer?.nama}" (${deleteTargetCustomer?.id_pelanggan})? Tindakan ini akan menghapus pelanggan dari daftar.`}
+        confirmText="Hapus Pelanggan"
+        confirmType="danger"
+        onConfirm={executeDeleteCustomer}
+        onCancel={() => setDeleteTargetCustomer(null)}
+      />
     </div>
   );
 }

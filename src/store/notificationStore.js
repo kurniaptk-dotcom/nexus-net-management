@@ -2,13 +2,18 @@ import { useState, useCallback, useRef } from "react";
 
 let notifId = 100;
 
-const initialNotifications = [
+export const getRecentTimeStr = (minutesAgo = 0) => {
+  const d = new Date(Date.now() - minutesAgo * 60 * 1000);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+
+export const initialNotifications = [
   {
     id: 1,
     type: "pekerjaan",
-    judul: "Pekerjaan baru ditambahkan",
-    deskripsi: "PEMASANGAN untuk Ahmad Fauzi (GATRA-AIS) - status SELESAI",
-    waktu: "2026-09-01 08:30",
+    judul: "Pekerjaan baru ditugaskan",
+    deskripsi: "PEMASANGAN untuk Ahmad Fauzi (Tim AZWAR - RIO)",
+    waktu: getRecentTimeStr(25),
     dibaca: true,
     icon: "wrench",
     kategori: "tambah",
@@ -17,19 +22,19 @@ const initialNotifications = [
     id: 2,
     type: "gangguan",
     judul: "Gangguan baru dilaporkan",
-    deskripsi: "Kabel Putus di Jl. Sudirman No. 25 - 4 user terdampak",
-    waktu: "2026-09-02 10:15",
-    dibaca: true,
+    deskripsi: "Kabel Putus / LOS di Jl. Sudirman - Perlu penanganan",
+    waktu: getRecentTimeStr(60),
+    dibaca: false,
     icon: "alert",
     kategori: "gangguan",
   },
   {
     id: 3,
     type: "leads",
-    judul: "Leads baru masuk",
-    deskripsi: "Rina Marlina dari IKLAN - Jl. Baru No. 1",
-    waktu: "2026-09-01 09:00",
-    dibaca: true,
+    judul: "Prospek leads baru masuk",
+    deskripsi: "Rina Marlina dari IKLAN - Jl. Perintis Kemerdekaan",
+    waktu: getRecentTimeStr(180),
+    dibaca: false,
     icon: "target",
     kategori: "leads",
   },
@@ -37,9 +42,9 @@ const initialNotifications = [
     id: 4,
     type: "status",
     judul: "Status pekerjaan diubah",
-    deskripsi: "PEMASANGAN Budi Santoso → SELESAI oleh GATRA-AIS",
-    waktu: "2026-09-02 14:20",
-    dibaca: false,
+    deskripsi: "PEMASANGAN Budi Santoso → SELESAI oleh GATRA - AIS",
+    waktu: getRecentTimeStr(300),
+    dibaca: true,
     icon: "check",
     kategori: "status",
   },
@@ -47,8 +52,8 @@ const initialNotifications = [
     id: 5,
     type: "gangguan",
     judul: "Gangguan redaman tinggi",
-    deskripsi: "Redaman 28dB di Jl. Gatot Subroto RT 01 - perlu pengecekan",
-    waktu: "2026-09-08 11:45",
+    deskripsi: "Redaman -27 dBm di Jl. Gatot Subroto - perlu pengecekan OPM",
+    waktu: getRecentTimeStr(420),
     dibaca: false,
     icon: "alert",
     kategori: "gangguan",
@@ -160,5 +165,3 @@ export function generateNotifikasi(judul, deskripsi, type = "info") {
     kategori: "info",
   };
 }
-
-export { initialNotifications };
