@@ -222,12 +222,51 @@ export default function Pekerjaan() {
   const [odpData] = usePersistState("xnet_odpodc", odpOdcList);
   const [pelangganList, setPelangganList] = usePersistState("xnet_pelanggan_radius", initialPelangganRadius);
   const [masterKomisi, setMasterKomisi] = usePersistState("xnet_master_komisi", KOMISI_PEKERJAAN_MASTER);
+  const [pengajuanData, setPengajuanData] = usePersistState("xnet_pengajuan_pemutusan", pengajuanPemutusanList);
+
   const [viewEvidenceTask, setViewEvidenceTask] = useState(null);
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
   const [dispatchInitialData, setDispatchInitialData] = useState({});
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [prevQuery, setPrevQuery] = useState(searchParams.get("search"));
+
+  const [filterJenis, setFilterJenis] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [filterTim, setFilterTim] = useState("ALL");
+  const [viewMode, setViewMode] = useState("kanban");
+  const [mobileKanbanCol, setMobileKanbanCol] = useState("ALL");
+  const [activeTab, setActiveTab] = useState("pekerjaan");
+  const [searchPemutusan, setSearchPemutusan] = useState("");
+  const [showAddPemutusanModal, setShowAddPemutusanModal] = useState(false);
+  const [pemutusanForm, setPemutusanForm] = useState({
+    nama: "",
+    kontak: "",
+    alasan: "",
+    tanggal: new Date().toISOString().split("T")[0],
+  });
+  const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [deleteTargetTask, setDeleteTargetTask] = useState(null);
+  const [deleteTargetPemutusan, setDeleteTargetPemutusan] = useState(null);
+  const [, setDraggedId] = useState(null);
+  const [dragOverCol, setDragOverCol] = useState(null);
+  const [formData, setFormData] = useState({
+    tim: "",
+    jenis: "PEMASANGAN",
+    pelanggan: "",
+    alamat: "",
+    odc: "",
+    odp: "",
+    userTerdampak: "",
+    tanggalSelesai: "",
+    status: "WAITING LIST",
+    tanggal: "",
+    keterangan: "",
+    komisi_items: [],
+    komisi_total: 0,
+  });
+
   if (searchParams.get("search") !== prevQuery) {
     setPrevQuery(searchParams.get("search"));
     setSearch(searchParams.get("search") || "");
@@ -276,42 +315,6 @@ export default function Pekerjaan() {
     notify(generatePekerjaanNotification(newTask, "ditambahkan"));
     setDispatchModalOpen(false);
   };
-  const [filterJenis, setFilterJenis] = useState("ALL");
-  const [filterStatus, setFilterStatus] = useState("ALL");
-  const [filterTim, setFilterTim] = useState("ALL");
-  const [viewMode, setViewMode] = useState("kanban");
-  const [mobileKanbanCol, setMobileKanbanCol] = useState("ALL");
-  const [activeTab, setActiveTab] = useState("pekerjaan");
-  const [pengajuanData, setPengajuanData] = usePersistState("xnet_pengajuan_pemutusan", pengajuanPemutusanList);
-  const [searchPemutusan, setSearchPemutusan] = useState("");
-  const [showAddPemutusanModal, setShowAddPemutusanModal] = useState(false);
-  const [pemutusanForm, setPemutusanForm] = useState({
-    nama: "",
-    kontak: "",
-    alasan: "",
-    tanggal: new Date().toISOString().split("T")[0],
-  });
-  const [showModal, setShowModal] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [deleteTargetTask, setDeleteTargetTask] = useState(null);
-  const [deleteTargetPemutusan, setDeleteTargetPemutusan] = useState(null);
-  const [, setDraggedId] = useState(null);
-  const [dragOverCol, setDragOverCol] = useState(null);
-  const [formData, setFormData] = useState({
-    tim: "",
-    jenis: "PEMASANGAN",
-    pelanggan: "",
-    alamat: "",
-    odc: "",
-    odp: "",
-    userTerdampak: "",
-    tanggalSelesai: "",
-    status: "WAITING LIST",
-    tanggal: "",
-    keterangan: "",
-    komisi_items: [],
-    komisi_total: 0,
-  });
 
   const handleJenisChange = (newJenis) => {
     const defaultItems = getDefaultWorkItemsForTask(newJenis, 100, masterKomisi);
