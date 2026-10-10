@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { LogIn, Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
+import { seedAllDemoData } from "../data/mockData";
 
 export default function Login() {
   const { signIn, resetPassword } = useAuth();
@@ -224,16 +225,16 @@ export default function Login() {
             <div className="pt-3 border-t border-gray-100">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[11px] font-semibold text-gray-500">Akses Cepat Demo / Presentasi:</span>
-                <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60">1-Klik Isi</span>
+                <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60">1-Klik Siap</span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2 mb-2">
                 <button
                   type="button"
                   onClick={() => {
                     setEmail("admin@nexus.net");
                     setPassword("password123");
                   }}
-                  className="px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-blue-400 flex items-center justify-center gap-1.5 text-center active:scale-95"
+                  className="px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-blue-400 flex items-center justify-center gap-1.5 text-center active:scale-95 cursor-pointer"
                 >
                   <span className="w-2 h-2 rounded-full bg-blue-600"></span>
                   👑 Admin Demo
@@ -244,12 +245,26 @@ export default function Login() {
                     setEmail("ais@nexus.net");
                     setPassword("gatra123");
                   }}
-                  className="px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-amber-400 flex items-center justify-center gap-1.5 text-center active:scale-95"
+                  className="px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-amber-400 flex items-center justify-center gap-1.5 text-center active:scale-95 cursor-pointer"
                 >
                   <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                   🛠️ Teknisi Demo
                 </button>
               </div>
+
+              {/* Tombol Isi / Reset Data Demo Lengkap */}
+              <button
+                type="button"
+                onClick={() => {
+                  seedAllDemoData();
+                  alert("✅ Data demo lengkap berhasil dimuat ke sistem (Pekerjaan, Leads, Gangguan, Tim, Pelanggan)!");
+                }}
+                className="w-full py-1.5 px-3 text-[11px] font-bold text-amber-800 bg-amber-50/80 hover:bg-amber-100 rounded-xl border border-amber-200/90 transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                title="Muat data dummy realistis untuk presentasi"
+              >
+                <span>✨</span>
+                <span>Muat / Reset Data Demo Lengkap</span>
+              </button>
             </div>
           </form>
         </div>

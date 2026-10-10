@@ -33,6 +33,7 @@ import RealtimeStatusBadge from "./RealtimeStatusBadge";
 import PwaUpdateToast from "./PwaUpdateToast";
 import { GlobalToastContainer } from "./Toast";
 import { getUserAllowedMenus, getRoleInfo } from "../lib/permissions";
+import { seedAllDemoData } from "../data/mockData";
 
 function Logo({ collapsed }) {
   return (
@@ -570,6 +571,29 @@ export default function Layout() {
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>Reset</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Presentation Demo Data */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>✨ Mode Presentasi & Demo</span>
+                </h4>
+                <div className="p-3.5 rounded-xl border border-amber-200/80 bg-amber-50/60 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Muat Data Demo Lengkap</p>
+                    <p className="text-[11px] text-slate-500">Pekerjaan, Leads, Gangguan, Tim & Komisi</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      seedAllDemoData();
+                      alert("✅ Data demo lengkap berhasil dimuat ke sistem!");
+                      setSettingsOpen(false);
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                  >
+                    <span>Isi Data Demo</span>
                   </button>
                 </div>
               </div>
