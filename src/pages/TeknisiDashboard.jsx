@@ -599,6 +599,48 @@ export default function TeknisiDashboard() {
   const handleCompleteSubmit = async (e) => {
     e.preventDefault();
     if (!selectedTask || isSubmittingCompletion) return;
+
+    // === VALIDASI SOP KETAT (WAJIB MUTLAK) ===
+    const isPemutusan = selectedTask.jenis === "PEMUTUSAN";
+    const isPemasangan = selectedTask.jenis === "PEMASANGAN";
+    const hasPhoto = Boolean(completionForm.fotoOpm || completionForm.fotoDropcore || completionForm.fotoModem);
+
+    if (isPemasangan) {
+      if (!completionForm.redaman || isNaN(parseFloat(completionForm.redaman))) {
+        triggerToast("SOP Wajib: Masukkan nilai redaman OPM yang valid (contoh: -19.5 dBm).", "error");
+        return;
+      }
+      if (!completionForm.serialNumber || !completionForm.serialNumber.trim()) {
+        triggerToast("SOP Wajib: Nomor Seri (SN) / MAC Modem ONT wajib diisi untuk pemasangan baru.", "error");
+        return;
+      }
+      if (!hasPhoto) {
+        triggerToast("SOP Wajib: Lampirkan minimal 1 foto bukti fisik (Foto OPM atau Foto ONT) sebelum menyelesaikan pemasangan.", "error");
+        return;
+      }
+    } else if (isPemutusan) {
+      if (!hasPhoto) {
+        triggerToast("SOP Wajib: Lampirkan foto bukti perangkat yang ditarik atau port ODP yang dicabut.", "error");
+        return;
+      }
+    } else {
+      // Perbaikan / Gangguan / Khusus
+      if (!completionForm.redaman || isNaN(parseFloat(completionForm.redaman))) {
+        triggerToast("SOP Wajib: Masukkan nilai redaman optik OPM akhir (contoh: -19.5 dBm).", "error");
+        return;
+      }
+      if (!hasPhoto) {
+        triggerToast("SOP Wajib: Lampirkan minimal 1 foto bukti fisik perbaikan sebelum menyelesaikan tiket.", "error");
+        return;
+      }
+    }
+
+    const hasValidWorkItem = (completionWorkItems || []).some((it) => (Number(it.qty) || 0) > 0);
+    if (!hasValidWorkItem) {
+      triggerToast("SOP Wajib: Rincian item pekerjaan fisik belum diisi (masukkan meteran kabel atau unit kerja untuk klaim komisi).", "error");
+      return;
+    }
+
     setIsSubmittingCompletion(true);
 
     try {
@@ -2698,6 +2740,17 @@ export default function TeknisiDashboard() {
             </div>
 
             <form onSubmit={handleCompleteSubmit} className="mt-4 space-y-4">
+              {/* SOP Compliance Banner */}
+              <div className="p-3 bg-blue-50/90 border border-blue-200/90 rounded-2xl text-xs text-blue-900 flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <p className="font-bold text-blue-950">Validasi SOP Teknisi Nexus Net</p>
+                  <p className="text-[11px] text-blue-800">
+                    Sesuai SOP, mohon pastikan <b>hasil ukur OPM</b>, <b>nomor seri modem ONT</b>, <b>meteran tarikan kabel riil</b>, dan <b>minimal 1 foto bukti fisik</b> terlampir sebelum menutup tiket. Komisi tugas akan dihitung otomatis sesuai data yang Anda masukkan.
+                  </p>
+                </div>
+              </div>
+
               {selectedTask.jenis === "PEMUTUSAN" ? (
                 <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-900 space-y-1.5">
                   <div className="flex items-center gap-1.5 font-extrabold text-rose-700">
@@ -2715,7 +2768,7 @@ export default function TeknisiDashboard() {
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                      Hasil Redaman Optik (dBm) <span className="text-rose-500">*</span>
+                      Hasil Redaman Optik (dBm) <span className="text-rose-500 font-extrabold">* (Wajib)</span>
                     </label>
                     {dbmQuality && (
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${dbmQuality.color}`}>
@@ -2744,11 +2797,17 @@ export default function TeknisiDashboard() {
               )}
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Nomor Seri (SN) / MAC Modem ONT
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between">
+                  <span>
+                    Nomor Seri (SN) / MAC Modem ONT{" "}
+                    {selectedTask.jenis === "PEMASANGAN" && (
+                      <span className="text-rose-500 font-extrabold">* (Wajib)</span>
+                    )}
+                  </span>
                 </label>
                 <input
                   type="text"
+                  required={selectedTask.jenis === "PEMASANGAN"}
                   autoCapitalize="characters"
                   value={completionForm.serialNumber}
                   onChange={(e) => setCompletionForm({ ...completionForm, serialNumber: e.target.value })}
@@ -2941,8 +3000,9 @@ export default function TeknisiDashboard() {
               {/* Upload 3 Bukti Dokumentasi Lapangan */}
               <div className="pt-2 border-t border-slate-100">
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Foto Bukti Lapangan (SOP QC)
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <span>Foto Bukti Lapangan (SOP QC)</span>
+                    <span className="text-rose-500 font-extrabold text-[11px]">* (Wajib Min. 1 Foto)</span>
                   </label>
                   <span className="text-[10px] text-slate-400 font-medium">
                     Kamera HP / Galeri

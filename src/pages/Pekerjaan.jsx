@@ -618,6 +618,18 @@ export default function Pekerjaan() {
               read: false,
             });
           }
+
+          const hasEvidence = Boolean(item.evidence || item.foto_opm || item.foto_modem);
+          if (!hasEvidence && window.__addNotification) {
+            notify({
+              id: Date.now() + 1,
+              type: "WARNING",
+              title: "Perhatian Bukti Lapangan",
+              message: `Pekerjaan "${item.pelanggan}" dipindahkan ke Selesai tanpa bukti foto teknisi.`,
+              timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+              read: false,
+            });
+          }
         }
       }
       return prev.map((item) =>
