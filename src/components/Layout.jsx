@@ -23,6 +23,7 @@ import {
   HardHat,
   UserCheck,
   Plus,
+  CreditCard,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -97,6 +98,8 @@ export default function Layout() {
       "xnet_radius_api_config",
       "xnet_incentive_config",
       "xnet_notifications",
+      "xnet_invoices",
+      "xnet_billing_cycle_config",
       "xnet_active_tech_team",
       "xnet_tech_duty_status",
     ];
@@ -114,6 +117,7 @@ export default function Layout() {
       { to: "/tim", icon: Users, label: "Tim" },
       { to: "/pekerjaan", icon: Wrench, label: "Pekerjaan" },
       { to: "/pelanggan", icon: UserCheck, label: "Pelanggan Radius" },
+      { to: "/billing", icon: CreditCard, label: "Billing & Tagihan" },
       { to: "/leads", icon: Target, label: "Leads" },
       { to: "/gangguan", icon: AlertTriangle, label: "Gangguan" },
       { to: "/odp", icon: Network, label: "ODP / ODC" },
@@ -131,6 +135,7 @@ export default function Layout() {
       { to: "/teknisi", icon: HardHat, label: "Teknisi" },
       { to: "/", icon: LayoutDashboard, label: "Dashboard" },
       { to: "/pekerjaan", icon: Wrench, label: "Pekerjaan" },
+      { to: "/billing", icon: CreditCard, label: "Billing" },
       { to: "/pelanggan", icon: UserCheck, label: "Pelanggan" },
       { to: "/gangguan", icon: AlertTriangle, label: "Gangguan" },
       { to: "/odp", icon: Network, label: "ODP" },

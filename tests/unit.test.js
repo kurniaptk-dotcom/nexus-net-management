@@ -204,3 +204,61 @@ test("Payroll Engine - calculates Take Home Pay with base salary, allowances, ta
   assert.ok(waMsg.includes("SLIP GAJI & KOMISI RESMI NEXUS NET"));
   assert.ok(waMsg.includes("3.010.000"));
 });
+
+test("Billing Tax Engine - calculates DPP, PPN 11%, BHP 0.5%, USO 1.25% in Exclude and Include modes", async () => {
+  const { calculateInvoiceBreakdown, formatRupiah, generateInvoiceNumber } = await import("../src/lib/billingTax.js");
+
+  // Mode Exclude (Pajak ditambahkan di atas harga paket 200.000)
+  const excludeBreakdown = calculateInvoiceBreakdown(200000, { includePajak: false });
+  assert.equal(excludeBreakdown.dpp, 200000);
+  assert.equal(excludeBreakdown.ppn, 22000); // 11% dari 200.000
+  assert.equal(excludeBreakdown.bhp, 1000);  // 0.5% dari 200.000
+  assert.equal(excludeBreakdown.uso, 2500);  // 1.25% dari 200.000
+  assert.equal(excludeBreakdown.total, 225500); // 200.000 + 22.000 + 1.000 + 2.500
+
+  // Mode Include (Harga 225.500 sudah termasuk pajak)
+  const includeBreakdown = calculateInvoiceBreakdown(225500, { includePajak: true });
+  assert.equal(includeBreakdown.total, 225500);
+  assert.ok(includeBreakdown.dpp <= 200000);
+
+  // Format Rupiah & Invoice Number
+  assert.ok(formatRupiah(225500).includes("225.500"));
+  const invNo = generateInvoiceNumber(15, new Date(2026, 9, 1));
+  assert.equal(invNo, "INV/202610/0015");
+});
+
+test("Billing WhatsApp - generates proper pre-filled WhatsApp billing and unisolir URLs", async () => {
+  const {
+    generateWaInvoiceNotice,
+    generateWaDueDateNotice,
+    generateWaIsolirNotice,
+    generateWaPaidReceipt,
+  } = await import("../src/lib/whatsappBilling.js");
+
+  const sampleInvoice = {
+    nomor_invoice: "INV/202610/0001",
+    id_pelanggan: "NX-2026-004",
+    pelanggan: "Toko Sinar Rejeki",
+    telepon: "085244332211",
+    paket: "Dedicated Fiber 100 Mbps",
+    periode: "Oktober 2026",
+    total: 850000,
+    jatuh_tempo: "2026-10-05",
+    tanggal_bayar: "2026-10-06 10:00:00",
+  };
+
+  const invUrl = generateWaInvoiceNotice(sampleInvoice);
+  assert.ok(invUrl.includes("wa.me/6285244332211"));
+  assert.ok(invUrl.includes("INV%2F202610%2F0001"));
+
+  const dueUrl = generateWaDueDateNotice(sampleInvoice);
+  assert.ok(dueUrl.includes("wa.me/6285244332211"));
+  assert.ok(dueUrl.includes("JATUH%20TEMPO"));
+
+  const isolirUrl = generateWaIsolirNotice(sampleInvoice);
+  assert.ok(isolirUrl.includes("ISOLASI%20LAYANAN"));
+
+  const paidUrl = generateWaPaidReceipt(sampleInvoice);
+  assert.ok(paidUrl.includes("BUKTI%20PEMBAYARAN%20LUNAS"));
+});
+

@@ -25,12 +25,16 @@ import {
   Copy,
   Edit2,
   Trash2,
+  Radio,
+  Flame,
 } from "lucide-react";
 import { initialPelangganRadius, initialTimData, odpOdcList } from "../data/mockData";
 import { usePersistState } from "../hooks/usePersistState";
 import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import DispatchTaskModal from "../components/DispatchTaskModal";
+import GenieAcsModal from "../components/GenieAcsModal";
+import SpeedOnDemandModal from "../components/SpeedOnDemandModal";
 import { formatPhoneWa as formatPhoneForWa } from "../lib/spkGenerator";
 import { createWhatsAppUrl, getCustomerWaTemplate } from "../lib/whatsapp";
 
@@ -47,6 +51,10 @@ export default function PelangganRadius() {
   const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", []);
   const [timList] = usePersistState("xnet_tim", initialTimData);
   const [odpList] = usePersistState("xnet_odpodc", odpOdcList);
+
+  // Modals GenieACS & SOD
+  const [acsCustomer, setAcsCustomer] = useState(null);
+  const [sodCustomer, setSodCustomer] = useState(null);
 
   // API Config State (disimpan di browser, siap saat API Radius aktif)
   const [apiConfig, setApiConfig] = usePersistState("xnet_radius_api_config", {
@@ -575,6 +583,20 @@ export default function PelangganRadius() {
                         <td className="py-3.5 px-4 text-center">
                           <div className="inline-flex items-center gap-1.5">
                             <button
+                              onClick={() => setAcsCustomer(cust)}
+                              className="p-1.5 rounded-xl bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 transition-colors cursor-pointer"
+                              title="GenieACS Remote ONT (Rx Power & Ganti WiFi)"
+                            >
+                              <Radio className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setSodCustomer(cust)}
+                              className="p-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition-colors cursor-pointer"
+                              title="Speed on Demand (SOD Booster)"
+                            >
+                              <Flame className="w-3.5 h-3.5" />
+                            </button>
+                            <button
                               onClick={() => handleOpenAssign(cust)}
                               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#0D1B4A] hover:bg-[#1a237e] text-amber-400 transition-all cursor-pointer shadow-2xs"
                               title="Tugaskan Teknisi (Buat SPK)"
@@ -671,6 +693,20 @@ export default function PelangganRadius() {
                         >
                           <Navigation className="w-4 h-4" />
                         </a>
+                        <button
+                          onClick={() => setAcsCustomer(cust)}
+                          className="p-2 rounded-xl bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100 transition-colors cursor-pointer"
+                          title="GenieACS Remote ONT"
+                        >
+                          <Radio className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setSodCustomer(cust)}
+                          className="p-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors cursor-pointer"
+                          title="SOD Booster"
+                        >
+                          <Flame className="w-4 h-4" />
+                        </button>
                       </div>
 
                       <div className="flex items-center gap-1.5 flex-1">
@@ -1088,6 +1124,27 @@ export default function PelangganRadius() {
         confirmType="danger"
         onConfirm={executeDeleteCustomer}
         onCancel={() => setDeleteTargetCustomer(null)}
+      />
+
+      {/* Modal GenieACS Remote ONT */}
+      <GenieAcsModal
+        isOpen={Boolean(acsCustomer)}
+        customer={acsCustomer}
+        onClose={() => setAcsCustomer(null)}
+      />
+
+      {/* Modal Speed on Demand Booster */}
+      <SpeedOnDemandModal
+        isOpen={Boolean(sodCustomer)}
+        customer={sodCustomer}
+        onClose={() => setSodCustomer(null)}
+        onActivateBooster={(c, pkg) => {
+          setPelangganList((prev) =>
+            prev.map((item) =>
+              item.id === c.id ? { ...item, paket: `${pkg.boostSpeed} (Booster Aktif)` } : item
+            )
+          );
+        }}
       />
     </div>
   );
