@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
-import { Download, BarChart3, Users, Wrench, AlertTriangle, Target, FileSpreadsheet, Coins, Calendar, Loader2, RefreshCw } from "lucide-react";
+import { Download, BarChart3, Users, Wrench, AlertTriangle, Target, FileSpreadsheet, Coins, Calendar, Loader2, RefreshCw, Receipt, ArrowUpRight } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import {
   initialTimData, fuPelangganList, redamanTinggiList, pengajuanPemutusanList,
   daftarGangguanList, odpOdcList,
 } from "../data/mockData";
+import { initialInvoices } from "../data/mockInvoices";
 import { usePersistState } from "../hooks/usePersistState";
 import { pekerjaanList } from "../data/mockData";
 import { leadsList } from "../data/mockData";
@@ -254,6 +255,7 @@ export default function Laporan() {
   const [timData] = usePersistState("xnet_tim", initialTimData);
   const [odpData] = usePersistState("xnet_odpodc", odpOdcList);
   const [masterKomisi] = usePersistState("xnet_master_komisi", MASTER_KOMISI_ITEMS);
+  const [invoices] = usePersistState("xnet_invoices", initialInvoices);
 
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
@@ -288,6 +290,60 @@ export default function Laporan() {
       return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
     });
   }, [gangguanDataState, selectedMonth, selectedYear]);
+
+  const filteredInvoices = useMemo(() => {
+    if (selectedMonth === -1) return invoices;
+    return (invoices || []).filter((inv) => {
+      const d = parseRecordDate(inv.tanggal_terbit);
+      if (!d) return true;
+      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+    });
+  }, [invoices, selectedMonth, selectedYear]);
+
+  const billingTaxSummary = useMemo(() => {
+    let totalOmzet = 0;
+    let totalPaid = 0;
+    let totalUnpaid = 0;
+    let totalDpp = 0;
+    let totalPpn = 0;
+    let totalBhp = 0;
+    let totalUso = 0;
+    let lunasCount = 0;
+    let unpaidCount = 0;
+    let isolirCount = 0;
+
+    (filteredInvoices || []).forEach((inv) => {
+      const tot = Number(inv.total) || 0;
+      totalOmzet += tot;
+      totalDpp += Number(inv.dpp) || 0;
+      totalPpn += Number(inv.ppn) || 0;
+      totalBhp += Number(inv.bhp) || 0;
+      totalUso += Number(inv.uso) || 0;
+
+      if (inv.status === "LUNAS") {
+        totalPaid += tot;
+        lunasCount++;
+      } else {
+        totalUnpaid += tot;
+        if (inv.status === "ISOLIR") isolirCount++;
+        else unpaidCount++;
+      }
+    });
+
+    return {
+      totalOmzet,
+      totalPaid,
+      totalUnpaid,
+      totalDpp,
+      totalPpn,
+      totalBhp,
+      totalUso,
+      lunasCount,
+      unpaidCount,
+      isolirCount,
+      totalCount: (filteredInvoices || []).length,
+    };
+  }, [filteredInvoices]);
 
   const periodLabel = selectedMonth === -1
     ? `Semua Periode (${selectedYear})`
@@ -347,6 +403,13 @@ export default function Laporan() {
     { Metrik: "Selesai", Nilai: totalSelesai },
     { Metrik: "Gagal", Nilai: totalGagal },
     { Metrik: "Beban Komisi Teknisi (Rp)", Nilai: totalBebanKomisi },
+    { Metrik: "Total Omzet Billing (Rp)", Nilai: billingTaxSummary.totalOmzet },
+    { Metrik: "Kas Billing Masuk / Lunas (Rp)", Nilai: billingTaxSummary.totalPaid },
+    { Metrik: "Piutang Tertunggak (Rp)", Nilai: billingTaxSummary.totalUnpaid },
+    { Metrik: "Dasar Pengenaan Pajak / DPP (Rp)", Nilai: billingTaxSummary.totalDpp },
+    { Metrik: "Pajak PPN 11% (Rp)", Nilai: billingTaxSummary.totalPpn },
+    { Metrik: "BHP Telekomunikasi 0.5% (Rp)", Nilai: billingTaxSummary.totalBhp },
+    { Metrik: "USO 1.25% (Rp)", Nilai: billingTaxSummary.totalUso },
     { Metrik: "Gangguan Total", Nilai: filteredGangguan.length },
     { Metrik: "User Terdampak", Nilai: filteredGangguan.reduce((a, b) => a + (b.userTerdampak || 0), 0) },
   ];
@@ -524,6 +587,115 @@ export default function Laporan() {
             <p className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider mt-0.5 truncate">{s.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Rekapitulasi Finansial Billing & Regulasi Pajak ISP */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
+              <Receipt className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-extrabold text-slate-900 text-base sm:text-lg">
+                  Rekapitulasi Finansial Billing & Pajak ISP
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200 uppercase tracking-wider">
+                  PPN 11% · BHP 0.5% · USO 1.25%
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Kompilasi tagihan internet pelanggan periode <b>{periodLabel}</b> yang tersinkronisasi dengan modul Billing Radius.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/billing"
+            className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+          >
+            <span>Buka Modul Billing</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </a>
+        </div>
+
+        {/* 4 Primary Financial KPI Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Tagihan Diterbitkan</span>
+            <p className="text-lg sm:text-xl font-black text-slate-900 mt-1 font-mono">
+              {formatRupiah(billingTaxSummary.totalOmzet)}
+            </p>
+            <span className="text-[11px] text-slate-500 font-medium mt-1 block">
+              {billingTaxSummary.totalCount} Faktur Invoice
+            </span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200">
+            <span className="text-[10px] uppercase font-bold text-emerald-700 block">Kas Masuk (Lunas)</span>
+            <p className="text-lg sm:text-xl font-black text-emerald-700 mt-1 font-mono">
+              {formatRupiah(billingTaxSummary.totalPaid)}
+            </p>
+            <span className="text-[11px] text-emerald-600 font-bold mt-1 block">
+              ✓ {billingTaxSummary.lunasCount} Pelanggan Lunas
+            </span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200">
+            <span className="text-[10px] uppercase font-bold text-amber-700 block">Piutang Berjalan</span>
+            <p className="text-lg sm:text-xl font-black text-amber-700 mt-1 font-mono">
+              {formatRupiah(billingTaxSummary.totalUnpaid)}
+            </p>
+            <span className="text-[11px] text-amber-600 font-semibold mt-1 block">
+              {billingTaxSummary.unpaidCount} Belum Bayar · {billingTaxSummary.isolirCount} Isolir
+            </span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200">
+            <span className="text-[10px] uppercase font-bold text-blue-700 block">Dasar Pengenaan Pajak (DPP)</span>
+            <p className="text-lg sm:text-xl font-black text-blue-800 mt-1 font-mono">
+              {formatRupiah(billingTaxSummary.totalDpp)}
+            </p>
+            <span className="text-[11px] text-blue-600 font-medium mt-1 block">
+              Pendapatan Bersih Sebelum Pajak
+            </span>
+          </div>
+        </div>
+
+        {/* Breakdown Beban Regulasi & Setoran Negara */}
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-[#0D1B4A] text-white p-4 sm:p-5 rounded-2xl shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+              Estimasi Kewajiban Pajak & Regulasi Kominfo
+            </span>
+            <span className="text-[11px] font-mono text-amber-300 font-bold">
+              Total Beban: {formatRupiah(billingTaxSummary.totalPpn + billingTaxSummary.totalBhp + billingTaxSummary.totalUso)}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">PPN 11% (DJP Kemenkeu)</span>
+              <p className="text-base font-extrabold text-white mt-0.5 font-mono">
+                {formatRupiah(billingTaxSummary.totalPpn)}
+              </p>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">Faktur Pajak Keluaran</span>
+            </div>
+            <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">BHP Telko 0.5% (Ditjen PPI)</span>
+              <p className="text-base font-extrabold text-amber-400 mt-0.5 font-mono">
+                {formatRupiah(billingTaxSummary.totalBhp)}
+              </p>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">Biaya Hak Penyelenggaraan</span>
+            </div>
+            <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">USO 1.25% (BAKTI Kominfo)</span>
+              <p className="text-base font-extrabold text-cyan-400 mt-0.5 font-mono">
+                {formatRupiah(billingTaxSummary.totalUso)}
+              </p>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">Universal Service Obligation</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Charts */}

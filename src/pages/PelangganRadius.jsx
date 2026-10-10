@@ -27,14 +27,19 @@ import {
   Trash2,
   Radio,
   Flame,
+  CreditCard,
+  QrCode,
 } from "lucide-react";
 import { initialPelangganRadius, initialTimData, odpOdcList } from "../data/mockData";
+import { initialInvoices } from "../data/mockInvoices";
+import { formatRupiah } from "../lib/billingTax";
 import { usePersistState } from "../hooks/usePersistState";
 import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import DispatchTaskModal from "../components/DispatchTaskModal";
 import GenieAcsModal from "../components/GenieAcsModal";
 import SpeedOnDemandModal from "../components/SpeedOnDemandModal";
+import PaymentQrisModal from "../components/PaymentQrisModal";
 import { formatPhoneWa as formatPhoneForWa } from "../lib/spkGenerator";
 import { createWhatsAppUrl, getCustomerWaTemplate } from "../lib/whatsapp";
 
@@ -47,6 +52,10 @@ export default function PelangganRadius() {
     initialPelangganRadius
   );
 
+  // State Invoices Billing (Tersinkronisasi 2 Arah)
+  const [invoices, setInvoices] = usePersistState("xnet_invoices", initialInvoices);
+  const [payQrisInvoice, setPayQrisInvoice] = useState(null);
+
   // State Pekerjaan Lapangan & Master Tim & ODP
   const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", []);
   const [timList] = usePersistState("xnet_tim", initialTimData);
@@ -55,6 +64,33 @@ export default function PelangganRadius() {
   // Modals GenieACS & SOD
   const [acsCustomer, setAcsCustomer] = useState(null);
   const [sodCustomer, setSodCustomer] = useState(null);
+
+  // Handler Pembayaran QRIS Lunas dari Halaman Pelanggan (Auto-Unisolir)
+  const handlePaymentSuccessFromRadius = (invoice, paymentMethod) => {
+    setInvoices((prev) =>
+      prev.map((inv) =>
+        inv.id === invoice.id
+          ? {
+              ...inv,
+              status: "LUNAS",
+              metode_bayar: paymentMethod,
+              tanggal_bayar: new Date().toLocaleString("id-ID"),
+            }
+          : inv
+      )
+    );
+
+    setPelangganList((prev) =>
+      prev.map((cust) =>
+        cust.id_pelanggan === invoice.id_pelanggan || cust.nama === invoice.pelanggan
+          ? { ...cust, status: "AKTIF" }
+          : cust
+      )
+    );
+
+    setPayQrisInvoice(null);
+    triggerToast(`Pembayaran QRIS ${invoice.nomor_invoice} berhasil! Status internet ${invoice.pelanggan} OTOMATIS AKTIF kembali.`, "success");
+  };
 
   // API Config State (disimpan di browser, siap saat API Radius aktif)
   const [apiConfig, setApiConfig] = usePersistState("xnet_radius_api_config", {
@@ -499,6 +535,7 @@ export default function PelangganRadius() {
                     <th className="py-3.5 px-4">Kontak (WhatsApp)</th>
                     <th className="py-3.5 px-4">Alamat & ODP</th>
                     <th className="py-3.5 px-4">Paket & IP</th>
+                    <th className="py-3.5 px-4">Tagihan (Billing)</th>
                     <th className="py-3.5 px-4">Status Radius</th>
                     <th className="py-3.5 px-4 text-center">Tindakan Lapangan</th>
                   </tr>
@@ -506,6 +543,10 @@ export default function PelangganRadius() {
                 <tbody className="divide-y divide-slate-100">
                   {filteredList.map((cust) => {
                     const cleanPhone = formatPhoneForWa(cust.telepon);
+                    const latestInv = invoices.find(
+                      (inv) => inv.id_pelanggan === cust.id_pelanggan || inv.pelanggan === cust.nama
+                    );
+
                     return (
                       <tr key={cust.id} className="hover:bg-slate-50/80 transition-colors">
                         {/* ID & Nama */}
@@ -562,7 +603,44 @@ export default function PelangganRadius() {
                           <p className="text-[11px] font-mono text-slate-400 mt-0.5">IP: {cust.ip_address || "-"}</p>
                         </td>
 
-                        {/* Status */}
+                        {/* Tagihan Billing (Tersinkronisasi) */}
+                        <td className="py-3.5 px-4">
+                          {latestInv ? (
+                            <div>
+                              {latestInv.status === "LUNAS" ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>Lunas</span>
+                                </span>
+                              ) : latestInv.status === "ISOLIR" ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setPayQrisInvoice(latestInv)}
+                                  className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                                  title="Klik untuk bayar QRIS & buka isolir otomatis"
+                                >
+                                  <Zap className="w-3 h-3 text-rose-600" />
+                                  <span>Isolir ({formatRupiah(latestInv.total)})</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setPayQrisInvoice(latestInv)}
+                                  className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors cursor-pointer"
+                                  title="Klik untuk bayar QRIS"
+                                >
+                                  <Clock className="w-3 h-3 text-amber-600" />
+                                  <span>Tagihan ({formatRupiah(latestInv.total)})</span>
+                                </button>
+                              )}
+                              <p className="text-[10px] text-slate-400 font-mono mt-0.5">{latestInv.nomor_invoice}</p>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-medium">-</span>
+                          )}
+                        </td>
+
+                        {/* Status Radius */}
                         <td className="py-3.5 px-4">
                           <span
                             className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
@@ -582,6 +660,15 @@ export default function PelangganRadius() {
                         {/* Tombol Aksi */}
                         <td className="py-3.5 px-4 text-center">
                           <div className="inline-flex items-center gap-1.5">
+                            {latestInv && latestInv.status !== "LUNAS" && (
+                              <button
+                                onClick={() => setPayQrisInvoice(latestInv)}
+                                className="p-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors cursor-pointer"
+                                title="Bayar Tagihan QRIS (Auto-Unisolir)"
+                              >
+                                <QrCode className="w-3.5 h-3.5 text-emerald-600" />
+                              </button>
+                            )}
                             <button
                               onClick={() => setAcsCustomer(cust)}
                               className="p-1.5 rounded-xl bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 transition-colors cursor-pointer"
@@ -631,6 +718,10 @@ export default function PelangganRadius() {
             <div className="lg:hidden p-3 sm:p-4 space-y-3">
               {filteredList.map((cust) => {
                 const cleanPhone = formatPhoneForWa(cust.telepon);
+                const latestInv = invoices.find(
+                  (inv) => inv.id_pelanggan === cust.id_pelanggan || inv.pelanggan === cust.nama
+                );
+
                 return (
                   <div
                     key={cust.id}
@@ -670,6 +761,37 @@ export default function PelangganRadius() {
                         <span className="font-semibold text-blue-700">{cust.odp}</span>
                       </div>
                     </div>
+
+                    {/* Tagihan Billing Info (Sinkronisasi 2 Arah) */}
+                    {latestInv && (
+                      <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <div>
+                          <span className="text-[10px] text-slate-400 uppercase font-bold block">Tagihan:</span>
+                          <span className="font-mono text-[11px] text-slate-500">{latestInv.nomor_invoice}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {latestInv.status === "LUNAS" ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Lunas
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setPayQrisInvoice(latestInv)}
+                              className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg transition-all cursor-pointer shadow-2xs ${
+                                latestInv.status === "ISOLIR"
+                                  ? "bg-rose-600 text-white hover:bg-rose-700"
+                                  : "bg-amber-500 text-white hover:bg-amber-600"
+                              }`}
+                              title="Bayar QRIS Cepat"
+                            >
+                              <QrCode className="w-3 h-3" />
+                              <span>Bayar {formatRupiah(latestInv.total)}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
@@ -1145,6 +1267,14 @@ export default function PelangganRadius() {
             )
           );
         }}
+      />
+
+      {/* Modal Pembayaran QRIS Cepat & Buka Isolir Otomatis */}
+      <PaymentQrisModal
+        isOpen={Boolean(payQrisInvoice)}
+        invoice={payQrisInvoice}
+        onClose={() => setPayQrisInvoice(null)}
+        onConfirmPayment={handlePaymentSuccessFromRadius}
       />
     </div>
   );

@@ -100,6 +100,7 @@ export function calculateNetworkPortStats(enrichedOdps = []) {
   let totalTerpakai = 0;
   let odpPenuhCount = 0;
   let odpKritisCount = 0; // sisa 1 port
+  let totalIsolirCount = 0;
 
   enrichedOdps.forEach((o) => {
     const kap = o.port_kapasitas || 8;
@@ -108,6 +109,12 @@ export function calculateNetworkPortStats(enrichedOdps = []) {
     totalTerpakai += terp;
     if (o.port_is_full) odpPenuhCount++;
     else if (o.port_is_near_full) odpKritisCount++;
+
+    if (Array.isArray(o.connected_customers)) {
+      o.connected_customers.forEach((c) => {
+        if (c.status === "ISOLIR") totalIsolirCount++;
+      });
+    }
   });
 
   const totalSisa = Math.max(0, totalKapasitas - totalTerpakai);
@@ -120,5 +127,6 @@ export function calculateNetworkPortStats(enrichedOdps = []) {
     percentTotal,
     odpPenuhCount,
     odpKritisCount,
+    totalIsolirCount,
   };
 }

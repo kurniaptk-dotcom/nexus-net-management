@@ -39,6 +39,8 @@ import {
   pengajuanPemutusanList,
   initialPelangganRadius,
 } from "../data/mockData";
+import { initialInvoices } from "../data/mockInvoices";
+import { calculateInvoiceBreakdown, generateInvoiceNumber } from "../lib/billingTax";
 import { generatePekerjaanNotification } from "../store/notificationStore";
 import { usePersistState } from "../hooks/usePersistState";
 import CalendarView from "../components/CalendarView";
@@ -248,6 +250,7 @@ export default function Pekerjaan() {
   const [pelangganList, setPelangganList] = usePersistState("xnet_pelanggan_radius", initialPelangganRadius);
   const [masterKomisi, setMasterKomisi] = usePersistState("xnet_master_komisi", KOMISI_PEKERJAAN_MASTER);
   const [pengajuanData, setPengajuanData] = usePersistState("xnet_pengajuan_pemutusan", pengajuanPemutusanList);
+  const [invoices, setInvoices] = usePersistState("xnet_invoices", initialInvoices);
 
   const [viewEvidenceTask, setViewEvidenceTask] = useState(null);
   const [completingTask, setCompletingTask] = useState(null);
@@ -330,12 +333,63 @@ export default function Pekerjaan() {
     window.open(waUrl, "_blank");
   };
 
+  // Otomatisasi Terbit Invoice Baru jika Pekerjaan adalah PEMASANGAN (PSB Baru)
+  const autoCreateInvoiceOnPsbCompletion = (completedTask) => {
+    if (completedTask.jenis !== "PEMASANGAN") return;
+    const custName = completedTask.pelanggan || "Pelanggan Baru";
+    const existing = invoices.find(
+      (inv) =>
+        inv.pelanggan?.toLowerCase() === custName.toLowerCase() ||
+        (completedTask.id_pelanggan && inv.id_pelanggan === completedTask.id_pelanggan)
+    );
+    if (!existing) {
+      const now = new Date();
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 7);
+      const basePrice = 250000;
+      const breakdown = calculateInvoiceBreakdown(basePrice, { includePajak: false });
+      const newInvoice = {
+        id: Date.now(),
+        nomor_invoice: generateInvoiceNumber(Math.floor(1000 + Math.random() * 9000), now),
+        id_pelanggan:
+          completedTask.id_pelanggan ||
+          `NX-${now.getFullYear()}-${String(Math.floor(100 + Math.random() * 900))}`,
+        pelanggan: custName,
+        telepon: completedTask.telepon || "",
+        alamat: completedTask.alamat || "",
+        paket: completedTask.paket || "Home Fiber 30 Mbps",
+        kecepatan: "30 Mbps",
+        periode: now.toLocaleString("id-ID", { month: "long", year: "numeric" }),
+        tanggal_terbit: now.toISOString().split("T")[0],
+        jatuh_tempo: dueDate.toISOString().split("T")[0],
+        status: "BELUM_BAYAR",
+        ...breakdown,
+        metode_bayar: "-",
+        tanggal_bayar: null,
+        catatan: "Tagihan PSB terbit otomatis dari validasi pekerjaan instalasi selesai.",
+      };
+
+      setInvoices((prev) => [newInvoice, ...(prev || [])]);
+      if (window.__addNotification) {
+        notify({
+          id: Date.now() + 2,
+          type: "INFO",
+          title: "Tagihan PSB Terbit Otomatis",
+          message: `Invoice awal ${newInvoice.nomor_invoice} untuk ${custName} otomatis dibuat di menu Billing & Tagihan.`,
+          timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+          read: false,
+        });
+      }
+    }
+  };
+
   // Simpan Penugasan Baru dari DispatchTaskModal
   const handleSaveDispatch = (newTask, shouldSendWa) => {
     setData((prev) => [newTask, ...prev]);
 
     if (newTask.status === "SELESAI") {
       syncCustomerOnTaskCompletion(newTask, pelangganList, setPelangganList);
+      autoCreateInvoiceOnPsbCompletion(newTask);
     }
 
     notify(generatePekerjaanNotification(newTask, "ditambahkan"));
@@ -522,6 +576,7 @@ export default function Pekerjaan() {
           read: false,
         });
       }
+      autoCreateInvoiceOnPsbCompletion(finalPayload);
     }
 
     setShowModal(false);
@@ -668,8 +723,11 @@ export default function Pekerjaan() {
       });
     }
 
+    // Otomatisasi Pembuatan Invoice Tagihan jika jenis pekerjaan adalah PEMASANGAN (PSB)
+    autoCreateInvoiceOnPsbCompletion(finalTask);
+
     notify(generatePekerjaanNotification(finalTask, "status"));
-    showToast(`Pekerjaan "${finalTask.pelanggan}" divalidasi selesai sesuai SOP lapangan!`, "success");
+    showToast(`Pekerjaan "${finalTask.pelanggan}" divalidasi selesai sesuai SOP lapangan! Tagihan awal otomatis terbit.`, "success");
     setCompletingTask(null);
   };
 

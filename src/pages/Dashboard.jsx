@@ -35,6 +35,7 @@ import {
   Eye,
   EyeOff,
   Coins,
+  Receipt,
 } from "lucide-react";
 import {
   BarChart,
@@ -61,6 +62,7 @@ import {
   odpOdcList,
   odcMasterList,
 } from "../data/mockData";
+import { initialInvoices } from "../data/mockInvoices";
 import { usePersistState } from "../hooks/usePersistState";
 import { calculateTaskIncentive, formatRupiah, MASTER_KOMISI_ITEMS } from "../lib/incentives";
 
@@ -180,6 +182,7 @@ export default function Dashboard() {
   const [odpData] = usePersistState("xnet_odpodc", odpOdcList);
   const [odcList] = usePersistState("xnet_odc_list", odcMasterList);
   const [masterKomisi] = usePersistState("xnet_master_komisi", MASTER_KOMISI_ITEMS);
+  const [invoices] = usePersistState("xnet_invoices", initialInvoices);
 
   const [, setRefreshKey] = useState(0);
 
@@ -367,6 +370,42 @@ export default function Dashboard() {
     return new Set([...fromOdcList, ...fromOdp]).size;
   }, [odcList, odpData]);
   const odpLinkedCount = useMemo(() => filteredPekerjaan.filter((p) => !!p.odp).length, [filteredPekerjaan]);
+
+  // Billing & Keuangan ISP Overview
+  const billingOverview = useMemo(() => {
+    let totalBilled = 0;
+    let totalPaid = 0;
+    let totalUnpaid = 0;
+    let lunasCount = 0;
+    let unpaidCount = 0;
+    let isolirCount = 0;
+
+    (invoices || []).forEach((inv) => {
+      const tot = Number(inv.total) || 0;
+      totalBilled += tot;
+      if (inv.status === "LUNAS") {
+        totalPaid += tot;
+        lunasCount++;
+      } else {
+        totalUnpaid += tot;
+        if (inv.status === "ISOLIR") isolirCount++;
+        else unpaidCount++;
+      }
+    });
+
+    const lunasRate = totalBilled > 0 ? Math.round((totalPaid / totalBilled) * 100) : 0;
+
+    return {
+      totalBilled,
+      totalPaid,
+      totalUnpaid,
+      lunasCount,
+      unpaidCount,
+      isolirCount,
+      totalInvoices: (invoices || []).length,
+      lunasRate,
+    };
+  }, [invoices]);
 
   // Tim Chart Data
   const timChartData = useMemo(() => {
@@ -994,6 +1033,89 @@ export default function Dashboard() {
           bgColor="bg-indigo-600"
           href="/odp"
         />
+      </div>
+
+      {/* Billing & Keuangan ISP Summary Banner Widget */}
+      <div className="bg-gradient-to-r from-slate-900 via-[#0D1B4A] to-slate-900 rounded-3xl p-5 sm:p-6 text-white border border-slate-800 shadow-md relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-amber-400/20 text-amber-300 flex items-center justify-center border border-amber-400/30 shrink-0">
+              <Receipt className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-black text-white text-base sm:text-lg tracking-tight">
+                  Status Billing & Tagihan ISP
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
+                  Realtime Billing
+                </span>
+                {billingOverview.isolirCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">
+                    ⚡ {billingOverview.isolirCount} Terisolir
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Kolektibilitas piutang, auto-isolir jatuh tempo, & pembayaran QRIS otomatis terintegrasi.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start md:self-auto">
+            <Link
+              to="/billing"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <span>Kelola Billing</span>
+              <ArrowUpRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+
+        {/* 4 Financial Metric Highlights */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pt-4 relative z-10">
+          <div className="p-3.5 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-xs">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Tagihan Beredar</span>
+            <p className="text-lg sm:text-xl font-black text-white mt-1 font-mono">
+              {formatRupiah(billingOverview.totalBilled)}
+            </p>
+            <span className="text-[10px] text-slate-400 mt-1 block">
+              {billingOverview.totalInvoices} invoice tercatat
+            </span>
+          </div>
+
+          <div className="p-3.5 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 backdrop-blur-xs">
+            <span className="text-[10px] uppercase font-bold text-emerald-300 block">Kas Masuk (Lunas)</span>
+            <p className="text-lg sm:text-xl font-black text-emerald-400 mt-1 font-mono">
+              {formatRupiah(billingOverview.totalPaid)}
+            </p>
+            <span className="text-[10px] text-emerald-300 mt-1 block font-semibold">
+              ✓ {billingOverview.lunasCount} invoice ({billingOverview.lunasRate}% tertagih)
+            </span>
+          </div>
+
+          <div className="p-3.5 bg-amber-500/10 rounded-2xl border border-amber-500/20 backdrop-blur-xs">
+            <span className="text-[10px] uppercase font-bold text-amber-300 block">Piutang Berjalan</span>
+            <p className="text-lg sm:text-xl font-black text-amber-400 mt-1 font-mono">
+              {formatRupiah(billingOverview.totalUnpaid)}
+            </p>
+            <span className="text-[10px] text-amber-300 mt-1 block">
+              {billingOverview.unpaidCount} belum bayar
+            </span>
+          </div>
+
+          <div className="p-3.5 bg-rose-500/10 rounded-2xl border border-rose-500/20 backdrop-blur-xs">
+            <span className="text-[10px] uppercase font-bold text-rose-300 block">Akun Terisolir</span>
+            <p className="text-lg sm:text-xl font-black text-rose-400 mt-1 font-mono">
+              {billingOverview.isolirCount} Pelanggan
+            </p>
+            <span className="text-[10px] text-rose-300 mt-1 block">
+              Port ODP terblokir otomatis
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* 2 Dedicated Cards Side-by-Side: Detail Pekerjaan & Jadwal Terdekat (Masing-masing Bisa di-Hide) */}

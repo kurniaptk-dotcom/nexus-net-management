@@ -545,6 +545,11 @@ export default function ODP() {
             </div>
             <div className="w-px h-8 bg-slate-700 hidden sm:block" />
             <div className="text-right sm:text-center">
+              <span className="text-[10px] uppercase font-bold text-rose-400 block">Isolir Billing</span>
+              <span className="text-lg font-black text-rose-400">{stats.totalIsolirCount || 0} Port</span>
+            </div>
+            <div className="w-px h-8 bg-slate-700 hidden sm:block" />
+            <div className="text-right sm:text-center">
               <span className="text-[10px] uppercase font-bold text-slate-400 block">Sisa Bebas</span>
               <span className="text-lg font-black text-emerald-400">{stats.totalSisa} Port</span>
             </div>
@@ -1463,13 +1468,20 @@ export default function ODP() {
                 selectedOdpCustomers.connected_customers.map((cust, idx) => (
                   <div key={cust.id || idx} className="pt-2 pb-2 flex items-start justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-sm text-slate-900">{cust.nama}</span>
-                        <span className={`px-2 py-0.2 rounded text-[10px] font-black uppercase ${
-                          cust.status === "AKTIF" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
-                        }`}>
-                          {cust.status}
-                        </span>
+                        {cust.status === "ISOLIR" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase bg-rose-100 text-rose-800 border border-rose-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                            ISOLIR BILLING (Port Terblokir Sistem)
+                          </span>
+                        ) : (
+                          <span className={`px-2 py-0.2 rounded text-[10px] font-black uppercase ${
+                            cust.status === "AKTIF" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                          }`}>
+                            {cust.status}
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-slate-600 mt-0.5 font-medium">{cust.paket}</p>
                       <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{cust.alamat}</p>
