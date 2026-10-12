@@ -401,12 +401,25 @@ export function calculateTaskIncentive(task, config = DEFAULT_INCENTIVE_CONFIG, 
   };
 }
 
-// Hitung rekapitulasi seluruh insentif tim
+// Hitung rekapitulasi seluruh insentif tim / teknisi personal
 export function calculateTeamIncentives(tasks = [], teamName = "ALL", config = DEFAULT_INCENTIVE_CONFIG, masterList = KOMISI_PEKERJAAN_MASTER) {
   const filteredTasks = tasks.filter((t) => {
     if (t.status !== "SELESAI") return false;
     if (teamName === "ALL") return true;
-    return (t.tim || "").toUpperCase() === teamName.toUpperCase();
+    const target = teamName.toUpperCase().trim();
+    const taskTeam = (t.tim || "").toUpperCase().trim();
+    if (taskTeam === target) return true;
+    if (taskTeam.includes(target) || target.includes(taskTeam)) return true;
+    if (Array.isArray(t.teknisi_list)) {
+      if (t.teknisi_list.some((tek) => tek.toUpperCase() === target || target.includes(tek.toUpperCase()))) {
+        return true;
+      }
+    }
+    // Alias kecocokan Tim
+    if ((target === "TIM A" && taskTeam.includes("GATRA - AIS")) || (target.includes("GATRA - AIS") && taskTeam === "TIM A")) return true;
+    if ((target === "TIM B" && taskTeam.includes("PUTRA - FAISAL")) || (target.includes("PUTRA - FAISAL") && taskTeam === "TIM B")) return true;
+    if ((target === "TIM C" && taskTeam.includes("AZWAR - RIO")) || (target.includes("AZWAR - RIO") && taskTeam === "TIM C")) return true;
+    return false;
   });
 
   let totalBaseFee = 0;
@@ -487,6 +500,7 @@ export function calculateTeamIncentives(tasks = [], teamName = "ALL", config = D
 
   return {
     totalCompleted,
+    taskCount: totalCompleted,
     totalBaseFee,
     totalQualityBonus,
     primaCount,

@@ -204,3 +204,67 @@ test("Payroll Engine - calculates Take Home Pay with base salary, allowances, ta
   assert.ok(waMsg.includes("SLIP GAJI & KOMISI RESMI NEXUS NET"));
   assert.ok(waMsg.includes("3.010.000"));
 });
+
+test("Personal Technician & Team Commission - full commission per person (not split 50-50)", async () => {
+  const { calculateTeamIncentives } = await import("../src/lib/incentives.js");
+
+  const sampleTasks = [
+    {
+      id: 201,
+      tim: "Tim A",
+      teknisi_list: ["AIS", "Gatra"],
+      status: "SELESAI",
+      komisi_total: 16500,
+      komisi_items: [
+        { id: "tarik_pelanggan_baru", qty: 85 },
+        { id: "pasang_modem", qty: 1 },
+        { id: "setting_modem", qty: 1 },
+      ],
+    },
+    {
+      id: 202,
+      tim: "Tim A",
+      teknisi_list: ["AIS", "Gatra"],
+      status: "SELESAI",
+      komisi_total: 20000,
+      komisi_items: [
+        { id: "tarik_pelanggan_baru", qty: 120 },
+        { id: "pasang_modem", qty: 1 },
+        { id: "setting_modem", qty: 1 },
+      ],
+    },
+  ];
+
+  // 1. Hitung untuk Tim A
+  const incTeamA = calculateTeamIncentives(sampleTasks, "Tim A");
+  assert.equal(incTeamA.taskCount, 2);
+  assert.equal(incTeamA.totalBaseFee, 36500);
+
+  // 2. Hitung untuk individu "AIS" - berhak atas komisi utuh per orang (36.500)
+  const incAis = calculateTeamIncentives(sampleTasks, "AIS");
+  assert.equal(incAis.taskCount, 2);
+  assert.equal(incAis.totalBaseFee, 36500);
+
+  // 3. Hitung untuk individu "Gatra" - juga berhak atas komisi utuh per orang (36.500)
+  const incGatra = calculateTeamIncentives(sampleTasks, "Gatra");
+  assert.equal(incGatra.taskCount, 2);
+  assert.equal(incGatra.totalBaseFee, 36500);
+
+  // 4. Teknisi luar tim (Jusman) tidak mendapat tugas Tim A
+  const incJusman = calculateTeamIncentives(sampleTasks, "Jusman");
+  assert.equal(incJusman.taskCount, 0);
+  assert.equal(incJusman.totalBaseFee, 0);
+});
+
+test("Task Workload - includes MENUNGGU VALIDASI in active queue", () => {
+  const taskList = [
+    { tim: "Tim A", status: "WAITING LIST" },
+    { tim: "Tim A", status: "MENUNGGU VALIDASI" },
+    { tim: "Tim A", status: "SELESAI" },
+    { tim: "Tim B", status: "MENUNGGU VALIDASI" },
+  ];
+
+  assert.equal(getTeamWorkload("Tim A", taskList), 2);
+  assert.equal(getTeamWorkload("Tim B", taskList), 1);
+});
+

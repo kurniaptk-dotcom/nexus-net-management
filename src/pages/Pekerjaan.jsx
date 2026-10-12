@@ -64,6 +64,7 @@ function notify(notif) {
 const KANBAN_COLUMNS = [
   { key: "WAITING LIST", label: "Waiting List", color: "#F59E0B", bg: "bg-amber-50", border: "border-amber-200", icon: Clock },
   { key: "DIJADWALKAN", label: "Dijadwalkan", color: "#3B82F6", bg: "bg-blue-50", border: "border-blue-200", icon: Calendar },
+  { key: "MENUNGGU VALIDASI", label: "Menunggu Validasi", color: "#8B5CF6", bg: "bg-purple-50", border: "border-purple-200", icon: Camera },
   { key: "SELESAI", label: "Selesai", color: "#10B981", bg: "bg-emerald-50", border: "border-emerald-200", icon: CheckCircle },
   { key: "GAGAL", label: "Gagal", color: "#EF4444", bg: "bg-red-50", border: "border-red-200", icon: XCircle },
 ];
@@ -78,6 +79,7 @@ const jenisColors = {
 function StatusBadge({ status }) {
   const styles = {
     SELESAI: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+    "MENUNGGU VALIDASI": "bg-purple-50 text-purple-700 ring-1 ring-purple-200",
     "WAITING LIST": "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
     DIJADWALKAN: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
     GAGAL: "bg-red-50 text-red-700 ring-1 ring-red-200",
@@ -154,6 +156,17 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvid
       </div>
       <h4 className="font-bold text-slate-900 text-sm mb-1">{item.pelanggan || "Tanpa Nama"}</h4>
       <p className="text-xs text-slate-500 mb-2 line-clamp-2">{item.alamat || "Alamat belum diatur"}</p>
+      {item.status === "MENUNGGU VALIDASI" && (
+        <div className="mb-2 p-2 bg-purple-50 border border-purple-200 rounded-xl flex items-center justify-between text-[11px] text-purple-900 font-bold">
+          <span className="flex items-center gap-1.5">
+            <Camera className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+            <span>Laporan 1 Foto Terlampir</span>
+          </span>
+          <span className="text-[10px] bg-purple-200/80 text-purple-800 px-1.5 py-0.5 rounded-md font-extrabold">
+            Perlu Validasi SPV
+          </span>
+        </div>
+      )}
       {item.odp && (
         <div className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-700 bg-blue-50/80 px-2 py-1 rounded-lg mb-2 border border-blue-100">
           <Network className="w-3.5 h-3.5 text-blue-500 shrink-0" />
@@ -174,15 +187,18 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvid
       <div className="flex items-center justify-between gap-1 flex-wrap">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#0D1B4A]/5 text-[#0D1B4A] font-bold">
-            {item.tim ? item.tim.split(" - ")[0] : "-"}
+            {item.tim || "-"}
+            {Array.isArray(item.teknisi_list) && item.teknisi_list.length > 0
+              ? ` (${item.teknisi_list.join(", ")})`
+              : ""}
           </span>
           {item.komisi_total ? (
             <span
               className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md"
-              title={`Komisi: ${formatRupiah(item.komisi_total)} (${item.komisi_items?.length || 0} item)`}
+              title={`Komisi Utuh Per Orang: ${formatRupiah(item.komisi_total)}`}
             >
               <Coins className="w-3 h-3 text-emerald-600" />
-              <span>{formatRupiah(item.komisi_total)}</span>
+              <span>{formatRupiah(item.komisi_total)}/org</span>
             </span>
           ) : null}
         </div>
@@ -194,11 +210,15 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvid
                 e.stopPropagation();
                 onCompleteTask(item);
               }}
-              className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs px-2 py-0.5 rounded-md transition-colors cursor-pointer"
-              title="Selesaikan & Validasi SOP Lapangan"
+              className={`inline-flex items-center gap-1 text-[10px] font-bold text-white shadow-xs px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+                item.status === "MENUNGGU VALIDASI"
+                  ? "bg-purple-600 hover:bg-purple-700"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              }`}
+              title={item.status === "MENUNGGU VALIDASI" ? "Validasi Selesai & Sahkan Komisi" : "Selesaikan Laporan 1 Foto"}
             >
               <Check className="w-3 h-3 text-white" />
-              <span>Selesai</span>
+              <span>{item.status === "MENUNGGU VALIDASI" ? "Validasi" : "Selesai"}</span>
             </button>
           )}
           {onSendWaSpk && (
@@ -403,6 +423,7 @@ export default function Pekerjaan() {
   const stats = {
     total: data.length,
     selesai: data.filter((d) => d.status === "SELESAI").length,
+    menungguValidasi: data.filter((d) => d.status === "MENUNGGU VALIDASI").length,
     waiting: data.filter((d) => d.status === "WAITING LIST").length,
     dijadwalkan: data.filter((d) => d.status === "DIJADWALKAN").length,
     gagal: data.filter((d) => d.status === "GAGAL").length,

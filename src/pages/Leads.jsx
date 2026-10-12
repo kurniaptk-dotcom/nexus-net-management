@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Edit2, Trash2, Target, Phone, MapPin, Calendar, Globe, Radio, ExternalLink, Zap, MessageCircle, Loader2, Share2, Check, HardHat } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Target, Phone, MapPin, Calendar, Globe, Radio, ExternalLink, Zap, MessageCircle, Loader2, Share2, Check, HardHat, Send } from "lucide-react";
 import { leadsList, sumberLeads, odpOdcList, initialPelangganRadius, initialTimData } from "../data/mockData";
 import { generateLeadsNotification } from "../store/notificationStore";
 import { usePersistState } from "../hooks/usePersistState";
@@ -19,6 +19,7 @@ function StatusBadge({ status }) {
   const styles = {
     BARU: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
     KONTAK: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+    "SIAP SPK (OP)": "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-300 font-extrabold",
     DIJADWALKAN: "bg-purple-50 text-purple-700 ring-1 ring-purple-200",
     SELESAI: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
     BATAL: "bg-red-50 text-red-700 ring-1 ring-red-200",
@@ -43,7 +44,7 @@ function SumberBadge({ sumber }) {
   );
 }
 
-const statusOptions = ["BARU", "KONTAK", "DIJADWALKAN", "SELESAI"];
+const statusOptions = ["BARU", "KONTAK", "SIAP SPK (OP)", "DIJADWALKAN", "SELESAI"];
 
 export default function Leads() {
   const navigate = useNavigate();
@@ -108,6 +109,31 @@ export default function Leads() {
     });
 
     setDispatchLead(null);
+  };
+
+  const handleKirimDataKeOp = (item) => {
+    setData((prev) =>
+      prev.map((lead) =>
+        lead.id === item.id
+          ? {
+              ...lead,
+              status: "SIAP SPK (OP)",
+              keterangan_survey: lead.keterangan_survey
+                ? `${lead.keterangan_survey} · Data diteruskan ke OP`
+                : "Hasil survey ODP valid, data dikirim ke OP untuk penugasan teknisi.",
+            }
+          : lead
+      )
+    );
+    showToast(`Data survey "${item.nama}" berhasil dikirim ke OP untuk penugasan SPK!`, "success");
+    notify({
+      id: Date.now(),
+      type: "SUCCESS",
+      title: "Data Lead Dikirim ke OP",
+      message: `Data calon pelanggan "${item.nama}" siap diterbitkan SPK ke Tim Teknisi Lapangan.`,
+      timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+      read: false,
+    });
   };
 
   const [formData, setFormData] = useState({
@@ -415,6 +441,23 @@ export default function Leads() {
                 <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span className="truncate">{item.odp_terdekat ? "Peta Earth" : "Cek ODP"}</span>
               </button>
+
+              {/* Tombol Kirim Data ke OP */}
+              {item.status !== "DIJADWALKAN" && item.status !== "SELESAI" && (
+                <button
+                  type="button"
+                  onClick={() => handleKirimDataKeOp(item)}
+                  className={`flex-1 min-w-[110px] flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                    item.status === "SIAP SPK (OP)"
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                      : "bg-amber-100/90 hover:bg-amber-200 text-amber-900 border border-amber-300"
+                  }`}
+                  title="Kirim data survey ke bagian Operasional (OP) untuk penerbitan SPK"
+                >
+                  <Send className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                  <span className="truncate">{item.status === "SIAP SPK (OP)" ? "Data di OP ✓" : "Kirim ke OP"}</span>
+                </button>
+              )}
 
               {/* Tombol One-Click Dispatch SPK Teknisi */}
               <button

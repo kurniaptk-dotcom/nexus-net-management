@@ -33,6 +33,7 @@ export default function TaskCompletionModal({
     serialNumber: "",
     odp: "",
     catatan: "",
+    fotoBuktiUtama: null,
     fotoOpm: null,
     fotoDropcore: null,
     fotoModem: null,
@@ -49,15 +50,18 @@ export default function TaskCompletionModal({
         ? task.komisi_items
         : getDefaultWorkItemsForTask(task.jenis, 100, masterKomisi);
 
+      const existingPhoto = task.foto_bukti_utama || task.foto_opm || task.evidence?.foto_bukti_utama || task.evidence?.foto_opm || null;
+
       setWorkItems(defaultItems);
       setForm({
         redaman: task.redaman || (task.jenis === "PEMUTUSAN" ? "N/A" : "-19.5"),
         serialNumber: task.sn_modem || "",
         odp: task.odp || (odpList[0]?.nama || "ODP 1.1"),
         catatan: task.keterangan || "",
-        fotoOpm: task.foto_opm || task.evidence?.foto_opm || null,
+        fotoBuktiUtama: existingPhoto,
+        fotoOpm: task.foto_opm || task.evidence?.foto_opm || existingPhoto,
         fotoDropcore: task.evidence?.foto_dropcore || null,
-        fotoModem: task.foto_modem || task.evidence?.foto_modem || null,
+        fotoModem: task.foto_modem || task.evidence?.foto_modem || existingPhoto,
       });
       setSelectedAddItem("");
       setIsSubmitting(false);
@@ -79,19 +83,20 @@ export default function TaskCompletionModal({
     }, 0);
   }, [workItems, masterKomisi]);
 
-  // Handle Photo Upload (Base64)
-  const handlePhotoUpload = (e, type) => {
+  // Handle Upload 1 Foto Bukti Utama (Base64)
+  const handlePhotoUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Baca sebagai base64
     const reader = new FileReader();
     reader.onload = () => {
       setForm((prev) => ({
         ...prev,
-        [type]: reader.result,
+        fotoBuktiUtama: reader.result,
+        fotoOpm: reader.result,
+        fotoModem: reader.result,
       }));
-      showToast("Foto berhasil dilampirkan!", "success");
+      showToast("1 Foto Bukti Utama berhasil dilampirkan!", "success");
     };
     reader.onerror = () => {
       showToast("Gagal membaca file foto", "error");
@@ -99,49 +104,48 @@ export default function TaskCompletionModal({
     reader.readAsDataURL(file);
   };
 
-  const handleRemovePhoto = (type) => {
+  const handleRemovePhoto = () => {
     setForm((prev) => ({
       ...prev,
-      [type]: null,
+      fotoBuktiUtama: null,
+      fotoOpm: null,
+      fotoModem: null,
+      fotoDropcore: null,
     }));
   };
 
-  // Submit Handler dengan Validasi SOP Ketat
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  // Submit Handler dengan Validasi Laporan 1 Foto & Alur Status
+  const handleSubmit = (e, targetStatus = "MENUNGGU VALIDASI") => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!task || isSubmitting) return;
 
     const isPemutusan = task.jenis === "PEMUTUSAN";
     const isPemasangan = task.jenis === "PEMASANGAN";
-    const hasPhoto = Boolean(form.fotoOpm || form.fotoDropcore || form.fotoModem);
+    const hasPhoto = Boolean(form.fotoBuktiUtama || form.fotoOpm || form.fotoModem);
 
-    // === VALIDASI SOP WAJIB MUTLAK ===
+    // === VALIDASI SOP WAJIB ===
     if (isPemasangan) {
       if (!form.redaman || isNaN(parseFloat(form.redaman))) {
         showToast("SOP Wajib: Masukkan hasil ukur redaman OPM yang valid (contoh: -19.5 dBm).", "error");
         return;
       }
       if (!form.serialNumber || !form.serialNumber.trim()) {
-        showToast("SOP Wajib: Nomor Seri (SN) / MAC modem ONT wajib diisi untuk pemasangan baru.", "error");
+        showToast("SOP Wajib: Nomor Seri (SN) modem ONT wajib diisi untuk pemasangan baru.", "error");
         return;
       }
       if (!hasPhoto) {
-        showToast("SOP Wajib: Lampirkan minimal 1 foto bukti fisik (Foto OPM atau Foto ONT) sebelum menyelesaikan pemasangan.", "error");
+        showToast("SOP Wajib: Lampirkan 1 Foto Bukti Utama (Foto OPM atau Foto ONT) sebelum menyelesaikan laporan.", "error");
         return;
       }
     } else if (isPemutusan) {
       if (!hasPhoto) {
-        showToast("SOP Wajib: Lampirkan foto bukti perangkat yang ditarik atau port ODP yang dicabut.", "error");
+        showToast("SOP Wajib: Lampirkan 1 foto bukti perangkat yang ditarik atau port ODP yang dicabut.", "error");
         return;
       }
     } else {
       // Perbaikan / Gangguan / Khusus
-      if (!form.redaman || isNaN(parseFloat(form.redaman))) {
-        showToast("SOP Wajib: Masukkan hasil ukur redaman OPM akhir (contoh: -19.5 dBm).", "error");
-        return;
-      }
       if (!hasPhoto) {
-        showToast("SOP Wajib: Lampirkan minimal 1 foto bukti fisik pengerjaan lapangan.", "error");
+        showToast("SOP Wajib: Lampirkan 1 foto bukti fisik pengerjaan lapangan.", "error");
         return;
       }
     }
@@ -149,7 +153,7 @@ export default function TaskCompletionModal({
     // Validasi Item Pekerjaan & Komisi
     const hasValidWorkItem = (workItems || []).some((it) => (Number(it.qty) || 0) > 0);
     if (!hasValidWorkItem) {
-      showToast("SOP Wajib: Masukkan minimal 1 rincian item pekerjaan fisik (panjang meter kabel atau unit kerja) untuk klaim komisi.", "error");
+      showToast("SOP Wajib: Masukkan minimal 1 rincian item pekerjaan fisik untuk perhitungan komisi.", "error");
       return;
     }
 
@@ -160,33 +164,34 @@ export default function TaskCompletionModal({
       .map((it) => `${KOMISI_MAP[it.id]?.nama || it.id}: ${it.qty} ${KOMISI_MAP[it.id]?.satuan || ""}`)
       .join(", ");
 
+    const finalPhoto = form.fotoBuktiUtama || form.fotoOpm || form.fotoModem;
     const finalPayload = {
       ...task,
-      status: "SELESAI",
+      status: targetStatus,
       redaman: form.redaman,
       sn_modem: form.serialNumber,
       odp: form.odp || task.odp,
-      foto_opm: form.fotoOpm,
-      foto_dropcore: form.fotoDropcore,
-      foto_modem: form.fotoModem,
+      foto_bukti_utama: finalPhoto,
+      foto_opm: finalPhoto,
+      foto_modem: finalPhoto,
       evidence: {
-        foto_opm: form.fotoOpm,
-        foto_dropcore: form.fotoDropcore,
-        foto_modem: form.fotoModem,
+        foto_bukti_utama: finalPhoto,
+        foto_opm: finalPhoto,
+        foto_modem: finalPhoto,
         redaman: form.redaman,
         sn_modem: form.serialNumber,
         odp: form.odp || task.odp,
         catatan: form.catatan,
-        waktu_selesai: new Date().toISOString(),
+        waktu_lapor: new Date().toISOString(),
       },
       komisi_items: workItems,
       komisi_total: totalKomisi,
-      waktu_selesai: new Date().toISOString(),
+      waktu_selesai: targetStatus === "SELESAI" ? new Date().toISOString() : task.waktu_selesai,
       keterangan: form.catatan
         ? `${form.catatan} ${itemsSummaryStr ? `| Rincian: ${itemsSummaryStr}` : ""}`
         : itemsSummaryStr
-        ? `Selesai · Rincian: ${itemsSummaryStr}`
-        : "Pekerjaan selesai dilaksanakan.",
+        ? `Laporan 1 Foto · Rincian: ${itemsSummaryStr}`
+        : "Laporan 1 foto pengerjaan lapangan.",
     };
 
     onComplete(finalPayload);
@@ -451,120 +456,55 @@ export default function TaskCompletionModal({
             </div>
           </div>
 
-          {/* Upload 3 Foto Bukti Lapangan */}
+          {/* Laporan 1 Foto Bukti Utama Lapangan */}
           <div className="pt-2 border-t border-slate-100">
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <span>Foto Bukti Lapangan (SOP QC)</span>
-                <span className="text-rose-500 font-extrabold text-[11px]">* (Wajib Min. 1 Foto)</span>
+                <Camera className="w-4 h-4 text-emerald-600" />
+                <span>Laporan 1 Foto Bukti Utama</span>
+                <span className="text-rose-500 font-extrabold text-[11px]">* (Wajib 1 Foto)</span>
               </label>
               <span className="text-[10px] text-slate-400 font-medium">
-                Kamera / File
+                Kamera / Galeri
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              {/* 1. Foto OPM */}
-              <div className="border border-slate-200 rounded-2xl p-1.5 bg-slate-50/80 flex flex-col items-center justify-center text-center relative min-h-[90px]">
-                {form.fotoOpm ? (
-                  <div className="relative w-full h-20 rounded-xl overflow-hidden shadow-xs">
-                    <img src={form.fotoOpm} alt="Foto OPM" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePhoto("fotoOpm")}
-                      className="absolute top-1 right-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg cursor-pointer"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                    <span className="absolute bottom-1 left-1 px-1.5 py-0.2 rounded bg-black/70 text-white text-[8px] font-bold">
-                      1. OPM
-                    </span>
+            <div className="border-2 border-dashed border-slate-300 rounded-2xl p-3 bg-slate-50/80 flex flex-col items-center justify-center text-center relative min-h-[140px]">
+              {form.fotoBuktiUtama ? (
+                <div className="relative w-full h-36 rounded-xl overflow-hidden shadow-xs">
+                  <img
+                    src={form.fotoBuktiUtama}
+                    alt="1 Foto Bukti Utama"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg cursor-pointer shadow-md"
+                    title="Hapus foto"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/75 text-white text-[10px] font-bold">
+                    ✓ 1 Foto Bukti Utama Terlampir
+                  </span>
+                </div>
+              ) : (
+                <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-4 hover:bg-slate-100/90 rounded-xl transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mb-2 shadow-xs">
+                    <Camera className="w-5 h-5" />
                   </div>
-                ) : (
-                  <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-1 hover:bg-slate-100 rounded-xl transition-colors">
-                    <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mb-1">
-                      <Camera className="w-3 h-3" />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-700">1. Foto OPM</span>
-                    <span className="text-[8px] text-slate-400">Bukti dBm</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={(e) => handlePhotoUpload(e, "fotoOpm")}
-                    />
-                  </label>
-                )}
-              </div>
-
-              {/* 2. Foto Dropcore */}
-              <div className="border border-slate-200 rounded-2xl p-1.5 bg-slate-50/80 flex flex-col items-center justify-center text-center relative min-h-[90px]">
-                {form.fotoDropcore ? (
-                  <div className="relative w-full h-20 rounded-xl overflow-hidden shadow-xs">
-                    <img src={form.fotoDropcore} alt="Foto Dropcore" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePhoto("fotoDropcore")}
-                      className="absolute top-1 right-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg cursor-pointer"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                    <span className="absolute bottom-1 left-1 px-1.5 py-0.2 rounded bg-black/70 text-white text-[8px] font-bold">
-                      2. Tiang ODP
-                    </span>
-                  </div>
-                ) : (
-                  <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-1 hover:bg-slate-100 rounded-xl transition-colors">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center mb-1">
-                      <Camera className="w-3 h-3" />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-700">2. Dropcore</span>
-                    <span className="text-[8px] text-slate-400">Jalur Tiang</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={(e) => handlePhotoUpload(e, "fotoDropcore")}
-                    />
-                  </label>
-                )}
-              </div>
-
-              {/* 3. Foto Modem */}
-              <div className="border border-slate-200 rounded-2xl p-1.5 bg-slate-50/80 flex flex-col items-center justify-center text-center relative min-h-[90px]">
-                {form.fotoModem ? (
-                  <div className="relative w-full h-20 rounded-xl overflow-hidden shadow-xs">
-                    <img src={form.fotoModem} alt="Foto Modem" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePhoto("fotoModem")}
-                      className="absolute top-1 right-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg cursor-pointer"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                    <span className="absolute bottom-1 left-1 px-1.5 py-0.2 rounded bg-black/70 text-white text-[8px] font-bold">
-                      3. Modem ONT
-                    </span>
-                  </div>
-                ) : (
-                  <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-1 hover:bg-slate-100 rounded-xl transition-colors">
-                    <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center mb-1">
-                      <Camera className="w-3 h-3" />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-700">3. Foto ONT</span>
-                    <span className="text-[8px] text-slate-400">Modem Nyala</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={(e) => handlePhotoUpload(e, "fotoModem")}
-                    />
-                  </label>
-                )}
-              </div>
+                  <span className="text-xs font-bold text-slate-800">Ambil / Unggah 1 Foto Bukti Utama</span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">Foto OPM / Modem ONT menyala / Penanganan Fisik</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                </label>
+              )}
             </div>
           </div>
 
@@ -577,27 +517,37 @@ export default function TaskCompletionModal({
               rows={2}
               value={form.catatan}
               onChange={(e) => setForm({ ...form, catatan: e.target.value })}
-              placeholder="Contoh: Kabel ditarik rapi 110 meter, modem menyala normal."
+              placeholder="Contoh: Kabel ditarik rapi 90 meter, modem menyala prima, sinyal stabil."
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
             />
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2.5 pt-3 border-t border-slate-100">
+          {/* Action Buttons: Teknisi kirim laporan atau Admin langsung validasi */}
+          <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              className="py-2.5 px-4 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
             >
               Batal
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={(e) => handleSubmit(e, "MENUNGGU VALIDASI")}
               disabled={isSubmitting}
-              className="flex-2 py-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 px-3 text-xs font-bold bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <Camera className="w-4 h-4" />
+              <span>Kirim Laporan 1 Foto (Menunggu Validasi)</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSubmit(e, "SELESAI")}
+              disabled={isSubmitting}
+              className="flex-1 py-2.5 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Check className="w-4 h-4" />
-              <span>Sahkan & Simpan Selesai</span>
+              <span>Validasi Selesai & Setujui Komisi</span>
             </button>
           </div>
         </form>

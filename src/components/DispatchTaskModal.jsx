@@ -191,9 +191,14 @@ export default function DispatchTaskModal({
     }
 
     const cleanPhone = formatPhoneWa(form.telepon);
+    const assignedTeam = availableTeams.find((t) => t.nama === form.tim);
+    const assignedMembers = Array.isArray(assignedTeam?.anggota) && assignedTeam.anggota.length > 0
+      ? assignedTeam.anggota
+      : [form.tim];
 
     const payload = {
       ...form,
+      teknisi_list: assignedMembers,
       pelanggan: trimmedPelanggan,
       telepon: cleanPhone || (form.telepon || "").trim(),
       alamat: (form.alamat || "").trim(),
@@ -507,9 +512,10 @@ export default function DispatchTaskModal({
               >
                 {availableTeams.map((t) => {
                   const workload = getTeamWorkload(t.nama, taskList);
+                  const membersStr = Array.isArray(t.anggota) && t.anggota.length > 0 ? ` (${t.anggota.join(", ")})` : "";
                   return (
                     <option key={t.id || t.nama} value={t.nama}>
-                      {t.nama} {workload > 0 ? `(${workload} Tugas Aktif)` : "(Siap / Bebas)"}
+                      {t.nama}{membersStr} {workload > 0 ? `(${workload} Tugas Aktif)` : "(Siap / Bebas)"}
                     </option>
                   );
                 })}

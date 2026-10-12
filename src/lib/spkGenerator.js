@@ -130,7 +130,13 @@ export function getTeamWorkload(teamName, taskList = []) {
   return taskList.filter((t) => {
     if (!t || t.tim !== teamName) return false;
     const st = (t.status || "").toUpperCase();
-    return st === "WAITING LIST" || st === "DIJADWALKAN" || st === "PROSES" || st === "MENUNGGU";
+    return (
+      st === "WAITING LIST" ||
+      st === "DIJADWALKAN" ||
+      st === "PROSES" ||
+      st === "MENUNGGU" ||
+      st === "MENUNGGU VALIDASI"
+    );
   }).length;
 }
 
@@ -173,7 +179,7 @@ export function formatSpkWaText(task, spkNo = "") {
     `⚠️ *SOP TEKNISI NEXUS:*`,
     task.jenis === "PEMUTUSAN"
       ? `1. Tarik modem ONT dan adaptor secara lengkap.\n2. Lepaskan konektor patchcord dari port ODP.\n3. Foto nomor seri modem & port ODP yang dibebaskan.`
-      : `1. Pastikan redaman OPM berada di range prima (-15 s/d -22 dBm).\n2. Upload 3 foto bukti lapangan: OPM, Tiang ODP, & Barcode Modem.\n3. Pasang konektor SC/UPC dengan rapi dan terlindung.`,
+      : `1. Pastikan redaman OPM berada di range prima (-15 s/d -22 dBm).\n2. Upload 1 Foto Bukti Utama pengerjaan lapangan (modem aktif / OPM).\n3. Pasang konektor SC/UPC dengan rapi dan terlindung.`,
     ``,
     `_Pesan otomatis dari Sistem Manajemen Operasional XNET._`,
   ];
