@@ -37,8 +37,8 @@ export const SYSTEM_MENUS = [
   {
     id: "pelanggan",
     path: "/pelanggan",
-    label: "Pelanggan Radius",
-    description: "Data pelanggan tersinkron dari Billing Radius untuk penugasan cepat",
+    label: "Data Pelanggan",
+    description: "Database pelanggan WiFi, status sambungan, pemetaan ODP, dan riwayat teknisi",
     iconName: "Users",
     category: "Operasional",
   },

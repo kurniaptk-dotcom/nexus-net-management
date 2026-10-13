@@ -231,7 +231,7 @@ export default function GlobalOmniSearch({
                 Pencarian Cepat Seluruh Modul Sistem
               </p>
               <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
-                Ketik minimal 2 karakter untuk mencari otomatis di Pekerjaan, Pelanggan Radius, Leads, Gangguan, dan ODP.
+                Ketik minimal 2 karakter untuk mencari otomatis di Pekerjaan, Data Pelanggan, Leads, Gangguan, dan ODP.
               </p>
             </div>
           ) : searchResults?.totalCount === 0 ? (
@@ -288,13 +288,13 @@ export default function GlobalOmniSearch({
                 </div>
               )}
 
-              {/* 2. Kategori: Pelanggan Radius */}
+              {/* 2. Kategori: Data Pelanggan */}
               {searchResults?.pelanggan.length > 0 && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-slate-400 px-2">
                     <span className="flex items-center gap-1.5">
                       <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                      Pelanggan Radius ({searchResults.pelanggan.length})
+                      Data Pelanggan ({searchResults.pelanggan.length})
                     </span>
                     <button
                       onClick={() => handleSelect(`/pelanggan?search=${encodeURIComponent(query)}`)}

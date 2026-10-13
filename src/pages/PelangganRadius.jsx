@@ -48,14 +48,6 @@ export default function PelangganRadius() {
   const [timList] = usePersistState("xnet_tim", initialTimData);
   const [odpList] = usePersistState("xnet_odpodc", odpOdcList);
 
-  // API Config State (disimpan di browser, siap saat API Radius aktif)
-  const [apiConfig, setApiConfig] = usePersistState("xnet_radius_api_config", {
-    endpoint: "https://billing.nexusnet.id/api/v1/customers",
-    apiKey: "nx_live_sec_8849f2910a",
-    lastSync: new Date().toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
-    autoSync: false,
-  });
-
   // Filter & Search State
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -83,9 +75,6 @@ export default function PelangganRadius() {
     tanggal: new Date().toISOString().split("T")[0],
     keterangan: "",
   });
-
-  const [showApiModal, setShowApiModal] = useState(false);
-  const [apiForm, setApiForm] = useState(apiConfig);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [addForm, setAddForm] = useState({
@@ -135,25 +124,16 @@ export default function PelangganRadius() {
     });
   }, [pelangganList, statusFilter, search]);
 
-  // Trigger Sinkronisasi Billing Radius
+  // Muat Ulang Data Pelanggan Lapangan
   const handleSyncBilling = () => {
     setIsSyncing(true);
-    // Simulasi penarikan data dari API Billing Radius
     setTimeout(() => {
-      const nowStr = new Date().toLocaleString("id-ID", {
-        day: "numeric",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
-      setApiConfig((prev) => ({ ...prev, lastSync: nowStr }));
       setIsSyncing(false);
       triggerToast(
-        `Sinkronisasi selesai! Total ${pelangganList.length} data pelanggan berhasil diperbarui dari Billing Radius.`,
+        `Data pelanggan berhasil dimuat ulang (${pelangganList.length} pelanggan terdaftar).`,
         "success"
       );
-    }, 1200);
+    }, 600);
   };
 
   // Buka Modal Buat Tugas Teknisi untuk pelanggan terpilih (Unified SPK Dispatch)
@@ -198,14 +178,6 @@ export default function PelangganRadius() {
     );
 
     setSelectedCustomer(null);
-  };
-
-  // Simpan API Config
-  const handleSaveApiConfig = (e) => {
-    e.preventDefault();
-    setApiConfig(apiForm);
-    setShowApiModal(false);
-    triggerToast("Pengaturan endpoint API Billing Radius berhasil disimpan.", "success");
   };
 
   // Tambah Pelanggan Baru Manual
@@ -301,12 +273,12 @@ export default function PelangganRadius() {
       <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-blue-800 bg-blue-100 px-3 py-0.5 rounded-full border border-blue-200">
-              Integrasi Billing Radius
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 bg-slate-100 px-3 py-0.5 rounded-full border border-slate-200">
+              Database Lapangan
             </span>
             <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Tersambung (Siap Eksekusi)
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Siap Penugasan Teknisi
             </span>
           </div>
 
@@ -316,10 +288,10 @@ export default function PelangganRadius() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
-                Data Pelanggan <span className="text-[#F59E0B]">Radius</span>
+                Data <span className="text-[#F59E0B]">Pelanggan</span>
               </h1>
               <p className="text-xs sm:text-sm text-slate-500">
-                Pilih pelanggan dari database billing untuk langsung membuat tugas teknisi lapangan tanpa ketik manual.
+                Kelola data pelanggan WiFi lapangan, pemetaan ODP, dan terbitkan Surat Perintah Kerja (SPK) langsung ke teknisi.
               </p>
             </div>
           </div>
@@ -333,18 +305,7 @@ export default function PelangganRadius() {
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-800 border border-slate-300 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 text-blue-600 ${isSyncing ? "animate-spin" : ""}`} />
-            <span>{isSyncing ? "Menyinkronkan..." : "Sync Billing Radius"}</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setApiForm(apiConfig);
-              setShowApiModal(true);
-            }}
-            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
-            title="Pengaturan API Endpoint"
-          >
-            <Settings className="w-4 h-4" />
+            <span>{isSyncing ? "Memuat..." : "Muat Ulang Data"}</span>
           </button>
 
           <button
@@ -352,7 +313,7 @@ export default function PelangganRadius() {
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#0D1B4A] hover:bg-[#1a237e] text-white shadow-sm transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 text-amber-400" />
-            <span>Tambah Data</span>
+            <span>Tambah Pelanggan</span>
           </button>
         </div>
       </div>
@@ -367,7 +328,7 @@ export default function PelangganRadius() {
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Pelanggan</p>
             <h3 className="text-2xl font-black text-slate-900 mt-0.5">{stats.total}</h3>
-            <p className="text-[10px] text-slate-500">Database Billing</p>
+            <p className="text-[10px] text-slate-500">Database Lapangan</p>
           </div>
         </div>
 
@@ -491,7 +452,7 @@ export default function PelangganRadius() {
                     <th className="py-3.5 px-4">Kontak (WhatsApp)</th>
                     <th className="py-3.5 px-4">Alamat & ODP</th>
                     <th className="py-3.5 px-4">Paket & IP</th>
-                    <th className="py-3.5 px-4">Status Radius</th>
+                    <th className="py-3.5 px-4">Status Layanan</th>
                     <th className="py-3.5 px-4 text-center">Tindakan Lapangan</th>
                   </tr>
                 </thead>
@@ -720,94 +681,7 @@ export default function PelangganRadius() {
       />
 
       {/* ========================================================================= */}
-      {/* MODAL 2: KONFIGURASI API BILLING RADIUS                                   */}
-      {/* ========================================================================= */}
-      {showApiModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 animate-in fade-in">
-          <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-7 border border-slate-200 max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95">
-            {/* Mobile Drag Indicator Handle */}
-            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden" />
-            <div className="flex items-center justify-between pb-3 border-slate-100 border-b">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
-                  <Settings className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Pengaturan API Billing Radius</h3>
-                  <p className="text-xs text-slate-500">Konfigurasi endpoint untuk sinkronisasi data pelanggan</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowApiModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveApiConfig} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  URL Endpoint API Pelanggan Radius
-                </label>
-                <input
-                  type="url"
-                  required
-                  value={apiForm.endpoint}
-                  onChange={(e) => setApiForm({ ...apiForm, endpoint: e.target.value })}
-                  placeholder="https://billing.nexusnet.id/api/v1/customers"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Format respons API harus menyertakan array data: <code>id_pelanggan, nama, telepon, alamat, odp, status</code>.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  API Key / Bearer Token
-                </label>
-                <input
-                  type="password"
-                  value={apiForm.apiKey}
-                  onChange={(e) => setApiForm({ ...apiForm, apiKey: e.target.value })}
-                  placeholder="Bearer token atau authorization key..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs text-amber-900 space-y-1">
-                <p className="font-bold flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-amber-600" />
-                  Koneksi Siap Pakai:
-                </p>
-                <p className="text-[11px] text-amber-800 leading-relaxed">
-                  Fitur ini sudah siap menerima data API nyata kapan saja. Anda cukup masukkan URL endpoint dan token dari aplikasi Billing Radius Anda.
-                </p>
-              </div>
-
-              <div className="flex gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowApiModal(false)}
-                  className="flex-1 py-3 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="flex-2 py-3 text-xs font-bold bg-[#0D1B4A] hover:bg-[#1a237e] text-white rounded-xl shadow-md transition-all cursor-pointer"
-                >
-                  Simpan Konfigurasi
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL 3: TAMBAH DATA PELANGGAN MANUAL                                     */}
+      {/* MODAL 2: TAMBAH DATA PELANGGAN MANUAL                                     */}
       {/* ========================================================================= */}
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 animate-in fade-in">
@@ -952,7 +826,7 @@ export default function PelangganRadius() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 4: EDIT DATA PELANGGAN                                              */}
+      {/* MODAL 3: EDIT DATA PELANGGAN                                              */}
       {/* ========================================================================= */}
       {editingCustomer && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 animate-in fade-in">

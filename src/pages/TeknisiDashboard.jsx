@@ -85,7 +85,11 @@ import { formatPhoneWa as formatPhoneForWa } from "../lib/spkGenerator";
 import { createWhatsAppUrl } from "../lib/whatsapp";
 import { calculateTeamPayroll } from "../lib/payroll";
 import SlipGajiModal from "../components/SlipGajiModal";
-import { getRemainingTimeToCutoff, getWibTimeParts } from "../lib/reportCutoff";
+import {
+  getRemainingTimeToCutoff,
+  getWibTimeParts,
+  evaluateReportSubmissionTime,
+} from "../lib/reportCutoff";
 
 function parseRecordDate(dStr) {
   if (!dStr) return null;
@@ -246,7 +250,7 @@ export default function TeknisiDashboard() {
   const [viewEvidenceTask, setViewEvidenceTask] = useState(null);
   const [isSubmittingCompletion, setIsSubmittingCompletion] = useState(false);
 
-  // Completion Modal State
+  // Completion Modal State (SOP Laporan 1 Foto Bukti Lapangan)
   const [selectedTask, setSelectedTask] = useState(null);
   const [selectedOdpForTask, setSelectedOdpForTask] = useState("");
   const [completionForm, setCompletionForm] = useState({
@@ -254,6 +258,7 @@ export default function TeknisiDashboard() {
     serialNumber: "",
     odp: "",
     catatan: "",
+    fotoBuktiUtama: null,
     fotoOpm: null,
     fotoDropcore: null,
     fotoModem: null,
@@ -261,8 +266,8 @@ export default function TeknisiDashboard() {
   const [completionWorkItems, setCompletionWorkItems] = useState([]);
   const [selectedAddItem, setSelectedAddItem] = useState("");
 
-  // Handler Upload Foto Bukti Lapangan dengan Kompresi Client-Side Otomatis & Watermark GPS
-  const handlePhotoUpload = async (e, type) => {
+  // Handler Upload 1 Foto Bukti Lapangan dengan Kompresi Otomatis & Watermark GPS
+  const handlePhotoUpload = async (e, type = "fotoBuktiUtama") => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
@@ -270,6 +275,7 @@ export default function TeknisiDashboard() {
       const location = await getCurrentLocation();
 
       const typeLabels = {
+        fotoBuktiUtama: "Dokumentasi Lapangan",
         fotoOpm: "Hasil Redaman OPM",
         fotoDropcore: "Tiang Dropcore ODP",
         fotoModem: "Barcode Modem ONT",
@@ -286,17 +292,36 @@ export default function TeknisiDashboard() {
       const base64 = await compressAndWatermarkImage(file, watermarkOptions, 800, 800, 0.65);
       setCompletionForm((prev) => ({
         ...prev,
+        fotoBuktiUtama: base64,
+        fotoOpm: base64,
+        fotoModem: base64,
         [type]: base64,
       }));
-      triggerToast(`Foto ${typeLabels[type]} berhasil distempel GPS & dikompres!`, "success");
+      triggerToast("1 Foto Bukti Utama berhasil distempel GPS & dilampirkan!", "success");
     } catch (err) {
-      triggerToast("Gagal memproses foto: " + err.message, "error");
+      console.warn("Watermark error, fallback direct base64:", err);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCompletionForm((prev) => ({
+          ...prev,
+          fotoBuktiUtama: reader.result,
+          fotoOpm: reader.result,
+          fotoModem: reader.result,
+          [type]: reader.result,
+        }));
+        triggerToast("1 Foto Bukti Utama berhasil dilampirkan!", "success");
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const handleRemovePhoto = (type) => {
+  const handleRemovePhoto = (type = "fotoBuktiUtama") => {
     setCompletionForm((prev) => ({
       ...prev,
+      fotoBuktiUtama: null,
+      fotoOpm: null,
+      fotoDropcore: null,
+      fotoModem: null,
       [type]: null,
     }));
   };
@@ -490,7 +515,7 @@ export default function TeknisiDashboard() {
   // Metrik Statistik Dashboard Berdasarkan Periode Pilihan
   const dashboardStats = useMemo(() => {
     const total = dashboardTasksForPeriod.length;
-    const selesai = dashboardTasksForPeriod.filter((t) => t.status === "SELESAI").length;
+    const selesai = dashboardTasksForPeriod.filter((t) => t.status === "SELESAI" || t.status === "MENUNGGU VALIDASI").length;
     const waiting = dashboardTasksForPeriod.filter((t) => t.status === "WAITING LIST").length;
     const dijadwalkan = dashboardTasksForPeriod.filter((t) => t.status === "DIJADWALKAN").length;
     const gagal = dashboardTasksForPeriod.filter((t) => t.status === "GAGAL").length;
@@ -601,10 +626,11 @@ export default function TeknisiDashboard() {
     e.preventDefault();
     if (!selectedTask || isSubmittingCompletion) return;
 
-    // === VALIDASI SOP KETAT (WAJIB MUTLAK) ===
+    // === VALIDASI SOP KETAT (WAJIB MUTLAK: 1 FOTO BUKTI LAPANGAN) ===
     const isPemutusan = selectedTask.jenis === "PEMUTUSAN";
     const isPemasangan = selectedTask.jenis === "PEMASANGAN";
-    const hasPhoto = Boolean(completionForm.fotoOpm || completionForm.fotoDropcore || completionForm.fotoModem);
+    const finalPhoto = completionForm.fotoBuktiUtama || completionForm.fotoOpm || completionForm.fotoModem || completionForm.fotoDropcore;
+    const hasPhoto = Boolean(finalPhoto);
 
     if (isPemasangan) {
       if (!completionForm.redaman || isNaN(parseFloat(completionForm.redaman))) {
@@ -616,12 +642,12 @@ export default function TeknisiDashboard() {
         return;
       }
       if (!hasPhoto) {
-        triggerToast("SOP Wajib: Lampirkan minimal 1 foto bukti fisik (Foto OPM atau Foto ONT) sebelum menyelesaikan pemasangan.", "error");
+        triggerToast("SOP Wajib: Lampirkan 1 Foto Bukti Utama fisik sebelum mengirim laporan.", "error");
         return;
       }
     } else if (isPemutusan) {
       if (!hasPhoto) {
-        triggerToast("SOP Wajib: Lampirkan foto bukti perangkat yang ditarik atau port ODP yang dicabut.", "error");
+        triggerToast("SOP Wajib: Lampirkan 1 foto bukti fisik perangkat yang ditarik atau port ODP yang dicabut.", "error");
         return;
       }
     } else {
@@ -631,7 +657,7 @@ export default function TeknisiDashboard() {
         return;
       }
       if (!hasPhoto) {
-        triggerToast("SOP Wajib: Lampirkan minimal 1 foto bukti fisik perbaikan sebelum menyelesaikan tiket.", "error");
+        triggerToast("SOP Wajib: Lampirkan 1 foto bukti fisik perbaikan sebelum mengirim laporan.", "error");
         return;
       }
     }
@@ -645,22 +671,27 @@ export default function TeknisiDashboard() {
     setIsSubmittingCompletion(true);
 
     try {
+      const nowIso = new Date().toISOString();
+      const cutoffEval = evaluateReportSubmissionTime(nowIso);
+
       const redamanStr = completionForm.redaman ? `Redaman: ${completionForm.redaman} dBm` : "";
       const snStr = completionForm.serialNumber ? `SN ONT: ${completionForm.serialNumber}` : "";
       const odpStr = selectedOdpForTask ? `ODP: ${selectedOdpForTask}` : "";
-      const photoCountStr = [completionForm.fotoOpm, completionForm.fotoDropcore, completionForm.fotoModem].filter(Boolean).length;
-      const photoStr = photoCountStr > 0 ? `📷 ${photoCountStr} Foto Bukti Lapangan` : "";
-      const extraDetails = [redamanStr, snStr, odpStr, photoStr, completionForm.catatan].filter(Boolean).join(" | ");
+      const extraDetails = [redamanStr, snStr, odpStr, "📷 1 Foto Bukti Lapangan", completionForm.catatan].filter(Boolean).join(" | ");
 
       const rawEvidence = {
-        foto_opm: completionForm.fotoOpm,
-        foto_dropcore: completionForm.fotoDropcore,
-        foto_modem: completionForm.fotoModem,
+        foto_bukti_utama: finalPhoto,
+        foto_opm: finalPhoto,
+        foto_dropcore: finalPhoto,
+        foto_modem: finalPhoto,
         redaman: completionForm.redaman,
         sn_modem: completionForm.serialNumber,
         odp: selectedOdpForTask || selectedTask.odp,
         catatan: completionForm.catatan,
-        waktu_selesai: new Date().toISOString(),
+        waktu_lapor: nowIso,
+        waktu_selesai: nowIso,
+        cutoff_status: cutoffEval.status,
+        cutoff_label: cutoffEval.label,
       };
 
       // 1. Upload foto bukti ke Supabase Storage (dengan graceful offline/local fallback)
@@ -684,19 +715,32 @@ export default function TeknisiDashboard() {
         .map((it) => `${KOMISI_MAP[it.id]?.nama || it.id}: ${it.qty} ${KOMISI_MAP[it.id]?.satuan || ""}`)
         .join(", ");
 
+      const targetStatus = isSupervisor ? "SELESAI" : "MENUNGGU VALIDASI";
+
       const finalTask = {
         ...selectedTask,
-        status: "SELESAI",
+        status: targetStatus,
         redaman: completionForm.redaman,
         sn_modem: completionForm.serialNumber,
         odp: selectedOdpForTask || selectedTask.odp,
-        foto_opm: finalEvidence.foto_opm,
-        foto_dropcore: finalEvidence.foto_dropcore,
-        foto_modem: finalEvidence.foto_modem,
-        evidence: finalEvidence,
+        foto_bukti_utama: finalPhoto,
+        foto_opm: finalPhoto,
+        foto_dropcore: finalPhoto,
+        foto_modem: finalPhoto,
+        waktu_lapor: nowIso,
+        waktu_selesai: targetStatus === "SELESAI" ? nowIso : selectedTask.waktu_selesai,
+        cutoff_status: cutoffEval.status,
+        cutoff_label: cutoffEval.label,
+        evidence: {
+          ...finalEvidence,
+          foto_bukti_utama: finalPhoto,
+          waktu_lapor: nowIso,
+          cutoff_status: cutoffEval.status,
+          cutoff_label: cutoffEval.label,
+        },
         komisi_items: completionWorkItems,
         komisi_total: totalKomisi,
-        keterangan: [extraDetails, itemsSummaryStr ? `Rincian: ${itemsSummaryStr}` : ""].filter(Boolean).join(" | ") || "Pekerjaan selesai dilaksanakan tim teknisi.",
+        keterangan: [extraDetails, itemsSummaryStr ? `Rincian: ${itemsSummaryStr}` : ""].filter(Boolean).join(" | ") || "Laporan 1 foto pengerjaan lapangan.",
       };
 
       // 2. Simpan status pekerjaan
@@ -704,12 +748,14 @@ export default function TeknisiDashboard() {
         prev.map((t) => (t.id === selectedTask.id ? finalTask : t))
       );
 
-      // 3. Otomatisasi Sinkronisasi Port Pelanggan (Pemasangan -> isi port, Pemutusan -> lepas port)
-      const lifecycleResult = syncCustomerOnTaskCompletion(finalTask, pelangganList, setPelangganList);
+      // 3. Otomatisasi Sinkronisasi Port Pelanggan (jika status langsung SELESAI)
+      if (targetStatus === "SELESAI") {
+        syncCustomerOnTaskCompletion(finalTask, pelangganList, setPelangganList);
+      }
 
-      const toastMessage = lifecycleResult?.message
-        ? `Laporan selesai! ${lifecycleResult.message}`
-        : `Laporan & bukti foto pekerjaan "${selectedTask.pelanggan}" berhasil disimpan. Komisi: ${formatRupiah(totalKomisi)}`;
+      const toastMessage = targetStatus === "MENUNGGU VALIDASI"
+        ? `Laporan 1 foto berhasil dikirim (${cutoffEval.label}). Menunggu validasi SPV.`
+        : `Laporan & bukti foto pekerjaan "${selectedTask.pelanggan}" berhasil disetujui. Komisi: ${formatRupiah(totalKomisi)}`;
       triggerToast(toastMessage, "success");
 
       setSelectedTask(null);
@@ -719,6 +765,7 @@ export default function TeknisiDashboard() {
         serialNumber: "",
         odp: "",
         catatan: "",
+        fotoBuktiUtama: null,
         fotoOpm: null,
         fotoDropcore: null,
         fotoModem: null,
@@ -787,6 +834,7 @@ export default function TeknisiDashboard() {
         serialNumber: "",
         odpPort: task.odp || "",
         catatan: "",
+        fotoBuktiUtama: null,
         fotoOpm: null,
         fotoDropcore: null,
         fotoModem: null,
@@ -873,7 +921,7 @@ export default function TeknisiDashboard() {
 
   // Render Kanban / List Card yang Informatif & Lengkap untuk Teknisi
   const renderCard = (task, runSheetIndex = null) => {
-    const isCompleted = task.status === "SELESAI";
+    const isCompleted = task.status === "SELESAI" || task.status === "MENUNGGU VALIDASI";
     const isScheduled = task.status === "DIJADWALKAN";
     const cleanWaPhone = task.telepon ? formatPhoneForWa(task.telepon) : null;
     const waMessage = `Halo Bpk/Ibu ${task.pelanggan}, kami dari Tim Teknisi Nexus Net (${activeTeam}). Kami sedang memproses pekerjaan ${task.jenis} di lokasi Anda: ${task.alamat}.`;
@@ -889,7 +937,7 @@ export default function TeknisiDashboard() {
     const rawDbm = task.redaman ? parseFloat(task.redaman) : extractDbmFromKeterangan(task.keterangan);
     const dbmEval = getDbmQuality(rawDbm);
     const taskIncentive = isCompleted ? calculateTaskIncentive(task, incentiveConfig, masterKomisi) : null;
-    const hasEvidence = Boolean(task.foto_opm || task.foto_dropcore || task.foto_modem || task.evidence);
+    const hasEvidence = Boolean(task.foto_bukti_utama || task.foto_opm || task.foto_dropcore || task.foto_modem || task.evidence);
 
     return (
       <div
@@ -925,6 +973,26 @@ export default function TeknisiDashboard() {
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80" title="Target ODP">
                 <Wifi className="w-3 h-3 text-blue-600" />
                 <span>{task.odp}</span>
+              </span>
+            )}
+
+            {/* Menunggu Validasi Badge */}
+            {task.status === "MENUNGGU VALIDASI" && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                Menunggu Validasi SPV
+              </span>
+            )}
+
+            {/* Cut-Off Status Badge */}
+            {task.cutoff_status && (
+              <span
+                className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                  task.cutoff_status === "TEPAT_WAKTU"
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                    : "bg-amber-50 text-amber-900 border-amber-300"
+                }`}
+              >
+                {task.cutoff_status === "TEPAT_WAKTU" ? "Tepat Waktu (<= 21:00)" : "Terlambat (> 21:00)"}
               </span>
             )}
           </div>
@@ -2004,7 +2072,12 @@ export default function TeknisiDashboard() {
               Semua ({searchedTasks.length})
             </button>
             {KANBAN_COLS.map((col) => {
-              const count = searchedTasks.filter((t) => t.status === col.key).length;
+              const count = searchedTasks.filter((t) => {
+                if (col.key === "SELESAI") {
+                  return t.status === "SELESAI" || t.status === "MENUNGGU VALIDASI";
+                }
+                return t.status === col.key;
+              }).length;
               const isSelected = mobileKanbanCol === col.key;
               return (
                 <button
@@ -2033,7 +2106,12 @@ export default function TeknisiDashboard() {
           {/* 4 Kolom Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
             {KANBAN_COLS.filter((col) => mobileKanbanCol === "ALL" || mobileKanbanCol === col.key).map((col) => {
-              const colTasks = searchedTasks.filter((t) => t.status === col.key);
+              const colTasks = searchedTasks.filter((t) => {
+                if (col.key === "SELESAI") {
+                  return t.status === "SELESAI" || t.status === "MENUNGGU VALIDASI";
+                }
+                return t.status === col.key;
+              });
               const ColIcon = col.icon;
               const isOver = dragOverCol === col.key;
 
@@ -2112,10 +2190,10 @@ export default function TeknisiDashboard() {
 
             <div className="flex items-center gap-2 text-xs font-bold">
               <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200">
-                {searchedTasks.filter((t) => t.status !== "SELESAI").length} Belum Selesai
+                {searchedTasks.filter((t) => t.status !== "SELESAI" && t.status !== "MENUNGGU VALIDASI").length} Belum Selesai
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
-                {searchedTasks.filter((t) => t.status === "SELESAI").length} Selesai
+                {searchedTasks.filter((t) => t.status === "SELESAI" || t.status === "MENUNGGU VALIDASI").length} Selesai / Validasi
               </span>
             </div>
           </div>
@@ -2130,7 +2208,7 @@ export default function TeknisiDashboard() {
             <div className="space-y-3">
               {[...searchedTasks]
                 .sort((a, b) => {
-                  const priority = { DIJADWALKAN: 1, "WAITING LIST": 2, GAGAL: 3, SELESAI: 4 };
+                  const priority = { DIJADWALKAN: 1, "WAITING LIST": 2, GAGAL: 3, "MENUNGGU VALIDASI": 4, SELESAI: 5 };
                   return (priority[a.status] || 99) - (priority[b.status] || 99);
                 })
                 .map((task, idx) => renderCard(task, idx + 1))}
@@ -3040,123 +3118,73 @@ export default function TeknisiDashboard() {
                 </div>
               </div>
 
-              {/* Upload 3 Bukti Dokumentasi Lapangan */}
-              <div className="pt-2 border-t border-slate-100">
-                <div className="flex items-center justify-between mb-2">
+              {/* Upload 1 Foto Bukti Dokumentasi Lapangan (SOP Lapangan) */}
+              <div className="pt-2 border-t border-slate-100 space-y-2">
+                <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                    <span>Foto Bukti Lapangan (SOP QC)</span>
-                    <span className="text-rose-500 font-extrabold text-[11px]">* (Wajib Min. 1 Foto)</span>
+                    <span>1 Foto Bukti Lapangan</span>
+                    <span className="text-rose-500 font-extrabold text-[11px]">* (Wajib SOP)</span>
                   </label>
                   <span className="text-[10px] text-slate-400 font-medium">
-                    Kamera HP / Galeri
+                    Foto OPM / Modem ONT / Tiang
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2.5">
-                  {/* 1. Foto Redaman OPM */}
-                  <div className="border border-slate-200 rounded-2xl p-2 bg-slate-50/80 flex flex-col items-center justify-center text-center relative group min-h-[105px]">
-                    {completionForm.fotoOpm ? (
-                      <div className="relative w-full h-22 rounded-xl overflow-hidden shadow-xs">
-                        <img src={completionForm.fotoOpm} alt="Foto OPM" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePhoto("fotoOpm")}
-                          className="absolute top-1 right-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm transition-colors cursor-pointer"
-                          title="Hapus Foto"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                        <span className="absolute bottom-1 left-1 px-1.5 py-0.2 rounded bg-black/70 text-white text-[8px] font-bold">
-                          1. OPM
-                        </span>
-                      </div>
-                    ) : (
-                      <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-1.5 hover:bg-slate-100/90 rounded-xl transition-colors">
-                        <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mb-1">
-                          <Camera className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-700">1. Foto OPM</span>
-                        <span className="text-[8px] text-slate-400">Bukti dBm</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={(e) => handlePhotoUpload(e, "fotoOpm")}
-                        />
-                      </label>
-                    )}
+                {/* Indikator Cut-Off Jam 9 Malam */}
+                <div className="px-3 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs flex items-center justify-between text-slate-700">
+                  <div className="flex items-center gap-1.5 font-medium text-[11px]">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Cut-off Laporan: <b>Maks. Pk 21:00 WIB</b></span>
                   </div>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600 font-mono">
+                    WIB: {getWibTimeParts().formattedTime}
+                  </span>
+                </div>
 
-                  {/* 2. Foto Dropcore & Tiang */}
-                  <div className="border border-slate-200 rounded-2xl p-2 bg-slate-50/80 flex flex-col items-center justify-center text-center relative group min-h-[105px]">
-                    {completionForm.fotoDropcore ? (
-                      <div className="relative w-full h-22 rounded-xl overflow-hidden shadow-xs">
-                        <img src={completionForm.fotoDropcore} alt="Foto Dropcore" className="w-full h-full object-cover" />
+                {/* Box Upload 1 Foto Utama */}
+                <div className="border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl p-3 bg-slate-50/70 transition-all text-center">
+                  {completionForm.fotoBuktiUtama || completionForm.fotoOpm || completionForm.fotoModem ? (
+                    <div className="relative w-full h-44 rounded-xl overflow-hidden shadow-xs border border-slate-200">
+                      <img
+                        src={completionForm.fotoBuktiUtama || completionForm.fotoOpm || completionForm.fotoModem}
+                        alt="Bukti Lapangan"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute top-2 right-2 flex items-center gap-1.5">
                         <button
                           type="button"
-                          onClick={() => handleRemovePhoto("fotoDropcore")}
-                          className="absolute top-1 right-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm transition-colors cursor-pointer"
+                          onClick={() => handleRemovePhoto("fotoBuktiUtama")}
+                          className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-md transition-colors cursor-pointer"
                           title="Hapus Foto"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
-                        <span className="absolute bottom-1 left-1 px-1.5 py-0.2 rounded bg-black/70 text-white text-[8px] font-bold">
-                          2. Tiang
-                        </span>
                       </div>
-                    ) : (
-                      <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-1.5 hover:bg-slate-100/90 rounded-xl transition-colors">
-                        <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center mb-1">
-                          <Camera className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-700">2. Foto Tiang</span>
-                        <span className="text-[8px] text-slate-400">Dropcore</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={(e) => handlePhotoUpload(e, "fotoDropcore")}
-                        />
-                      </label>
-                    )}
-                  </div>
-
-                  {/* 3. Foto Barcode Modem ONT */}
-                  <div className="border border-slate-200 rounded-2xl p-2 bg-slate-50/80 flex flex-col items-center justify-center text-center relative group min-h-[105px]">
-                    {completionForm.fotoModem ? (
-                      <div className="relative w-full h-22 rounded-xl overflow-hidden shadow-xs">
-                        <img src={completionForm.fotoModem} alt="Foto Barcode ONT" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePhoto("fotoModem")}
-                          className="absolute top-1 right-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm transition-colors cursor-pointer"
-                          title="Hapus Foto"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                        <span className="absolute bottom-1 left-1 px-1.5 py-0.2 rounded bg-black/70 text-white text-[8px] font-bold">
-                          3. Barcode
-                        </span>
+                      <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-black/75 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1.5">
+                        <Camera className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>1 Foto Bukti Fisik Terunggah</span>
                       </div>
-                    ) : (
-                      <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-1.5 hover:bg-slate-100/90 rounded-xl transition-colors">
-                        <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center mb-1">
-                          <Camera className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-700">3. Foto ONT</span>
-                        <span className="text-[8px] text-slate-400">Barcode/MAC</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={(e) => handlePhotoUpload(e, "fotoModem")}
-                        />
-                      </label>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <label className="w-full h-36 flex flex-col items-center justify-center cursor-pointer p-4 hover:bg-slate-100/80 rounded-xl transition-all">
+                      <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-2 shadow-xs">
+                        <Camera className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-bold text-slate-800">
+                        Ambil / Unggah 1 Foto Bukti Lapangan
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        Bisa foto hasil ukur OPM atau foto unit modem ONT terpasang
+                      </p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={(e) => handlePhotoUpload(e, "fotoBuktiUtama")}
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
 
