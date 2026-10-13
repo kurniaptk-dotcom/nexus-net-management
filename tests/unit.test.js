@@ -268,3 +268,73 @@ test("Task Workload - includes MENUNGGU VALIDASI in active queue", () => {
   assert.equal(getTeamWorkload("Tim B", taskList), 1);
 });
 
+test("Daily Report Cut-Off Jam 9 Malam (21:00 WIB) - evaluates on-time vs late submissions", async () => {
+  const {
+    evaluateReportSubmissionTime,
+    getWibTimeParts,
+    calculateTechnicianCutoffStats,
+  } = await import("../src/lib/reportCutoff.js");
+
+  // 1. Tepat waktu: 18:30 WIB (11:30 UTC)
+  const onTime1 = evaluateReportSubmissionTime("2026-10-10T11:30:00Z");
+  assert.equal(onTime1.status, "TEPAT_WAKTU");
+  assert.equal(onTime1.isLate, false);
+
+  // 2. Tepat waktu pas batas: 21:00 WIB (14:00 UTC)
+  const onTimeCutoff = evaluateReportSubmissionTime("2026-10-10T14:00:00Z");
+  assert.equal(onTimeCutoff.status, "TEPAT_WAKTU");
+  assert.equal(onTimeCutoff.isLate, false);
+
+  // 3. Terlambat: 21:15 WIB (14:15 UTC)
+  const late1 = evaluateReportSubmissionTime("2026-10-10T14:15:00Z");
+  assert.equal(late1.status, "TERLAMBAT");
+  assert.equal(late1.isLate, true);
+
+  // 4. Terlambat: 22:30 WIB (15:30 UTC)
+  const late2 = evaluateReportSubmissionTime("2026-10-10T15:30:00Z");
+  assert.equal(late2.status, "TERLAMBAT");
+  assert.equal(late2.isLate, true);
+
+  // 5. Belum lapor / null timestamp
+  const noReport = evaluateReportSubmissionTime(null);
+  assert.equal(noReport.status, "BELUM_LAPOR");
+
+  // 6. Evaluasi Akumulasi Statistik Teknisi
+  const mockPersonil = {
+    id: 1,
+    nama: "Ais Maulana",
+    panggilan: "AIS",
+    timNama: "Tim A",
+  };
+
+  const mockTasks = [
+    {
+      id: 301,
+      tim: "Tim A",
+      teknisi_list: ["AIS", "Gatra"],
+      status: "SELESAI",
+      waktu_lapor: "2026-10-09T11:15:00Z", // 18:15 WIB -> Tepat waktu
+    },
+    {
+      id: 302,
+      tim: "Tim A",
+      teknisi_list: ["AIS", "Gatra"],
+      status: "SELESAI",
+      waktu_lapor: "2026-10-09T14:30:00Z", // 21:30 WIB -> Terlambat
+    },
+    {
+      id: 303,
+      tim: "Tim A",
+      teknisi_list: ["AIS", "Gatra"],
+      status: "SELESAI",
+      waktu_lapor: "2026-10-08T10:00:00Z", // 17:00 WIB -> Tepat waktu
+    },
+  ];
+
+  const stats = calculateTechnicianCutoffStats(mockPersonil, mockTasks, [{ id: 1, nama: "Tim A" }]);
+  assert.equal(stats.totalDilaporkan, 3);
+  assert.equal(stats.totalTepatWaktu, 2);
+  assert.equal(stats.totalTerlambat, 1);
+  assert.equal(stats.onTimeRate, 67); // Math.round(2/3 * 100) = 67%
+});
+

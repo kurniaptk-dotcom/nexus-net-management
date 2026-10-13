@@ -16,6 +16,8 @@ import {
   Tag,
   Briefcase,
   Layers,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
 import {
   initialTimData,
@@ -28,6 +30,11 @@ import {
   formatRupiah,
   MASTER_KOMISI_ITEMS,
 } from "../lib/incentives";
+import {
+  calculateTechnicianCutoffStats,
+  getRemainingTimeToCutoff,
+  getWibTimeParts,
+} from "../lib/reportCutoff";
 import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import PayrollManagementTab from "../components/PayrollManagementTab";
@@ -302,6 +309,9 @@ function PersonilCard({ personil, pekerjaanData, masterKomisi, timData, onEdit, 
   const totalSelesai =
     pemasanganSelesai + perbaikanSelesai + perbaikanKhususSelesai + pemutusanSelesai;
 
+  // Evaluasi Kepatuhan Pelaporan Harian Maksimal Jam 9 Malam (Cut-Off 21:00 WIB)
+  const cutoffStats = calculateTechnicianCutoffStats(personil, pekerjaanData, timData);
+
   // Komisi personal utuh per 1 orang
   const totalKomisiPersonal = personilPekerjaan
     .filter((p) => p.status === "SELESAI")
@@ -330,6 +340,36 @@ function PersonilCard({ personil, pekerjaanData, masterKomisi, timData, onEdit, 
                 </h4>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200">
                   {personil.panggilan}
+                </span>
+
+                {/* Status Lapor Hari Ini (Cut-Off 21:00 WIB) */}
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
+                    cutoffStats.statusHariIni === "TEPAT_WAKTU"
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                      : cutoffStats.statusHariIni === "TERLAMBAT"
+                      ? "bg-amber-50 text-amber-900 border-amber-300"
+                      : cutoffStats.statusHariIni === "BELUM_LAPOR"
+                      ? "bg-rose-50 text-rose-800 border-rose-300"
+                      : cutoffStats.statusHariIni === "SEDANG_BERTUGAS"
+                      ? "bg-blue-50 text-blue-800 border-blue-300"
+                      : "bg-slate-50 text-slate-700 border-slate-200"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      cutoffStats.statusHariIni === "TEPAT_WAKTU"
+                        ? "bg-emerald-500"
+                        : cutoffStats.statusHariIni === "TERLAMBAT"
+                        ? "bg-amber-500"
+                        : cutoffStats.statusHariIni === "BELUM_LAPOR"
+                        ? "bg-rose-500"
+                        : cutoffStats.statusHariIni === "SEDANG_BERTUGAS"
+                        ? "bg-blue-500 animate-pulse"
+                        : "bg-slate-400"
+                    }`}
+                  />
+                  {cutoffStats.statusLabel}
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-0.5">{personil.peran || "Field Technician"}</p>
@@ -386,7 +426,36 @@ function PersonilCard({ personil, pekerjaanData, masterKomisi, timData, onEdit, 
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs">
+          {/* Kepatuhan Cut-Off Jam 9 Malam (21:00 WIB) */}
+          <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 text-xs">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-slate-600 font-semibold flex items-center gap-1.5 text-[11px]">
+                <Clock className="w-3.5 h-3.5 text-slate-500" />
+                <span>Kepatuhan Laporan (Maks Pk 21:00)</span>
+              </span>
+              <span
+                className={`font-black text-xs ${
+                  cutoffStats.onTimeRate >= 80 ? "text-emerald-700" : "text-amber-700"
+                }`}
+              >
+                {cutoffStats.onTimeRate}% Tepat Waktu
+              </span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  cutoffStats.onTimeRate >= 80 ? "bg-emerald-500" : "bg-amber-500"
+                }`}
+                style={{ width: `${cutoffStats.onTimeRate}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500">
+              <span>Tepat waktu: {cutoffStats.totalTepatWaktu} SPK</span>
+              <span>Terlambat: {cutoffStats.totalTerlambat} SPK</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1 border-t border-gray-100 text-xs">
             <span className="text-gray-500 font-medium">Total Pekerjaan Diselesaikan:</span>
             <span className="font-extrabold text-gray-900 text-sm">{totalSelesai} Tugas</span>
           </div>
@@ -458,6 +527,9 @@ export default function Tim() {
           : calculateTaskIncentive(p, undefined, masterKomisi).total),
       0
     );
+
+  const remainingCutoff = getRemainingTimeToCutoff();
+  const currentWib = getWibTimeParts();
 
   // === HANDLER REGULASI TIM ===
   const handleAddTim = () => {
@@ -763,6 +835,45 @@ export default function Tim() {
         />
       ) : activeTab === "PERSONAL" ? (
         <>
+          {/* Banner Batas Cut-Off Jam 9 Malam (Pk 21:00 WIB) */}
+          <div className="bg-gradient-to-r from-[#0D1B4A] via-slate-900 to-blue-950 text-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-800">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 font-bold shadow-md">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-extrabold text-sm sm:text-base text-white">
+                      Batas Laporan Pekerjaan: Maksimal Jam 9 Malam (21:00 WIB)
+                    </h3>
+                    <span className="text-[10px] font-extrabold bg-amber-400/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-full">
+                      Cut-Off Harian
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                    Setiap teknisi wajib melaporkan minimal 1 foto bukti fisik sebelum jam 21:00 WIB. Laporan tepat waktu otomatis masuk perhitungan validasi harian dan penilaian kinerja personal.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 self-stretch md:self-auto justify-between md:justify-end bg-white/10 px-3.5 py-2.5 rounded-xl border border-white/10 text-xs shrink-0">
+                <div>
+                  <span className="text-[10px] text-slate-300 block font-medium">Batas Waktu Hari Ini:</span>
+                  <span className="font-bold text-amber-300 font-mono text-sm">
+                    {remainingCutoff.text}
+                  </span>
+                </div>
+                <div className="text-right border-l border-white/20 pl-2.5">
+                  <span className="text-[10px] text-slate-400 block font-medium">Waktu Server</span>
+                  <span className="text-xs font-bold text-white font-mono">
+                    {currentWib.formattedTime}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* KPI Ringkasan Teknisi Perorangan */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs flex items-center gap-3">

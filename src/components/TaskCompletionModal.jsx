@@ -19,6 +19,7 @@ import {
   getDefaultWorkItemsForTask,
 } from "../lib/incentives";
 import { showToast } from "../lib/toast";
+import { evaluateReportSubmissionTime, getWibTimeParts } from "../lib/reportCutoff";
 
 export default function TaskCompletionModal({
   isOpen,
@@ -159,6 +160,9 @@ export default function TaskCompletionModal({
 
     setIsSubmitting(true);
 
+    const nowIso = new Date().toISOString();
+    const cutoffEval = evaluateReportSubmissionTime(nowIso);
+
     const itemsSummaryStr = (workItems || [])
       .filter((it) => (Number(it.qty) || 0) > 0)
       .map((it) => `${KOMISI_MAP[it.id]?.nama || it.id}: ${it.qty} ${KOMISI_MAP[it.id]?.satuan || ""}`)
@@ -174,6 +178,9 @@ export default function TaskCompletionModal({
       foto_bukti_utama: finalPhoto,
       foto_opm: finalPhoto,
       foto_modem: finalPhoto,
+      waktu_lapor: nowIso,
+      cutoff_status: cutoffEval.status,
+      cutoff_label: cutoffEval.label,
       evidence: {
         foto_bukti_utama: finalPhoto,
         foto_opm: finalPhoto,
@@ -182,11 +189,13 @@ export default function TaskCompletionModal({
         sn_modem: form.serialNumber,
         odp: form.odp || task.odp,
         catatan: form.catatan,
-        waktu_lapor: new Date().toISOString(),
+        waktu_lapor: nowIso,
+        cutoff_status: cutoffEval.status,
+        cutoff_label: cutoffEval.label,
       },
       komisi_items: workItems,
       komisi_total: totalKomisi,
-      waktu_selesai: targetStatus === "SELESAI" ? new Date().toISOString() : task.waktu_selesai,
+      waktu_selesai: targetStatus === "SELESAI" ? nowIso : task.waktu_selesai,
       keterangan: form.catatan
         ? `${form.catatan} ${itemsSummaryStr ? `| Rincian: ${itemsSummaryStr}` : ""}`
         : itemsSummaryStr
@@ -245,6 +254,17 @@ export default function TaskCompletionModal({
                 Sebelum tiket dipindahkan ke status <b>SELESAI</b>, mohon lengkapi <b>hasil ukur OPM</b>, <b>nomor seri modem</b>, <b>meteran tarikan kabel riil</b>, dan <b>foto bukti fisik</b>. Port ODP dan komisi tim akan tersinkronisasi otomatis.
               </p>
             </div>
+          </div>
+
+          {/* Batas Cut-Off Laporan Harian Jam 9 Malam (21:00 WIB) */}
+          <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs flex items-center justify-between text-slate-700">
+            <div className="flex items-center gap-1.5 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Batas Laporan Harian: <b>Maksimal Jam 21:00 WIB</b> (Jam 9 Malam)</span>
+            </div>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600">
+              WIB: {getWibTimeParts(new Date()).formattedTime}
+            </span>
           </div>
 
           {task.jenis === "PEMUTUSAN" ? (

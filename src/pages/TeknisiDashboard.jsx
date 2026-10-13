@@ -85,6 +85,7 @@ import { formatPhoneWa as formatPhoneForWa } from "../lib/spkGenerator";
 import { createWhatsAppUrl } from "../lib/whatsapp";
 import { calculateTeamPayroll } from "../lib/payroll";
 import SlipGajiModal from "../components/SlipGajiModal";
+import { getRemainingTimeToCutoff, getWibTimeParts } from "../lib/reportCutoff";
 
 function parseRecordDate(dStr) {
   if (!dStr) return null;
@@ -1343,7 +1344,49 @@ export default function TeknisiDashboard() {
                     <span className="text-xs font-black text-slate-800">08:00 – 17:00 WIB</span>
                   </div>
                 </div>
+
+                {/* Batas Cut-Off Laporan Harian */}
+                <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-amber-800 font-bold block leading-tight">Batas Laporan Harian</span>
+                      <span className="text-xs font-black text-slate-900">Maks. Pk 21:00 WIB</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                    Jam 9 Malam
+                  </span>
+                </div>
               </div>
+            </div>
+          </div>
+
+          {/* Reminder Alert Batas Cut-Off Jam 9 Malam */}
+          <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border border-amber-300/80 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 font-bold shadow-xs">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-extrabold text-xs sm:text-sm text-slate-900">
+                    Batas Laporan Pekerjaan: Maksimal Jam 9 Malam (21:00 WIB)
+                  </h4>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                    SOP Wajib
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  Pastikan seluruh SPK yang dikerjakan hari ini telah dilampirkan minimal 1 foto bukti fisik sebelum jam 9 malam agar komisi divalidasi dan performa tercatat tepat waktu.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto text-xs bg-white/95 border border-amber-200 px-3 py-1.5 rounded-xl font-mono text-amber-900 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className="font-bold">{getRemainingTimeToCutoff().text}</span>
             </div>
           </div>
 
