@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   ZoomIn,
   Coins,
+  Clock,
+  Camera,
 } from "lucide-react";
 import { getDbmQuality, calculateTaskIncentive, formatRupiah, KOMISI_PEKERJAAN_MASTER } from "../lib/incentives";
 import OpticalPowerGauge from "./OpticalPowerGauge";
@@ -95,16 +97,27 @@ export default function BuktiLapanganModal({ task, onClose, masterKomisi }) {
   if (!task) return null;
 
   // Ekstrak foto dari task (mendukung format evidence object atau field langsung)
+  const fotoBuktiUtama = task.evidence?.foto_bukti_utama || task.foto_bukti_utama || null;
   const fotoOpm = task.evidence?.foto_opm || task.foto_opm || null;
   const fotoDropcore = task.evidence?.foto_dropcore || task.foto_dropcore || null;
   const fotoModem = task.evidence?.foto_modem || task.foto_modem || null;
+
+  const waktuLapor = task.evidence?.waktu_lapor || task.waktu_lapor || null;
+  const cutoffStatus = task.evidence?.cutoff_status || task.cutoff_status || null;
+  const cutoffLabel = task.evidence?.cutoff_label || task.cutoff_label || null;
 
   const redaman = task.evidence?.redaman || task.redaman || null;
   const snModem = task.evidence?.sn_modem || task.sn_modem || task.serial_number || null;
   const odpPort = task.evidence?.odp_port || task.odp_port || task.odp || null;
 
   const dbmQuality = redaman ? getDbmQuality(redaman) : null;
-  const totalPhotos = [fotoOpm, fotoDropcore, fotoModem].filter(Boolean).length;
+  
+  // Deteksi mode foto tunggal (SOP 1 Foto) vs 3 foto terpisah
+  const isSinglePhotoSop = Boolean(fotoBuktiUtama) || (Boolean(fotoOpm) && (fotoOpm === fotoModem || (!fotoDropcore && !fotoModem)));
+  const singlePhoto = fotoBuktiUtama || fotoOpm || fotoModem;
+  const hasPhotos = isSinglePhotoSop ? Boolean(singlePhoto) : [fotoOpm, fotoDropcore, fotoModem].some(Boolean);
+  const totalPhotos = isSinglePhotoSop ? (singlePhoto ? 1 : 0) : [fotoOpm, fotoDropcore, fotoModem].filter(Boolean).length;
+
   const taskIncentive = task.status === "SELESAI" ? calculateTaskIncentive(task, undefined, activeMasterKomisi) : null;
 
   return (
@@ -133,7 +146,7 @@ export default function BuktiLapanganModal({ task, onClose, masterKomisi }) {
                   Bukti Dokumentasi Lapangan
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">
-                  {totalPhotos} Foto Tersimpan
+                  {totalPhotos} Foto SOP Lapangan
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
@@ -150,7 +163,55 @@ export default function BuktiLapanganModal({ task, onClose, masterKomisi }) {
         </div>
 
         {/* Modal Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1">
+        <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
+          {/* Status Cut-Off Laporan Jam 21:00 WIB */}
+          {(cutoffStatus || waktuLapor) && (
+            <div
+              className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${
+                cutoffStatus === "TEPAT_WAKTU"
+                  ? "bg-emerald-50/80 border-emerald-200 text-emerald-900"
+                  : cutoffStatus === "TERLAMBAT"
+                  ? "bg-amber-50/80 border-amber-200 text-amber-900"
+                  : "bg-slate-50 border-slate-200 text-slate-800"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Clock
+                  className={`w-4 h-4 shrink-0 ${
+                    cutoffStatus === "TEPAT_WAKTU"
+                      ? "text-emerald-600"
+                      : cutoffStatus === "TERLAMBAT"
+                      ? "text-amber-600"
+                      : "text-slate-500"
+                  }`}
+                />
+                <div>
+                  <span className="font-extrabold text-xs block">
+                    {cutoffStatus === "TEPAT_WAKTU"
+                      ? "Laporan Tepat Waktu (SOP <= Pk 21:00 WIB)"
+                      : cutoffStatus === "TERLAMBAT"
+                      ? "Laporan Terlambat (Lewat Cut-Off Pk 21:00 WIB)"
+                      : "Waktu Pengiriman Laporan Lapangan"}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    {cutoffLabel ||
+                      (cutoffStatus === "TEPAT_WAKTU"
+                        ? "Sah perhitungan komisi hari ini"
+                        : "Melewati cut-off pelaporan malam")}
+                  </span>
+                </div>
+              </div>
+              {waktuLapor && (
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Jam Lapor</span>
+                  <span className="text-xs font-mono font-bold px-2 py-0.5 bg-white rounded-lg border border-slate-200 text-slate-800">
+                    {new Date(waktuLapor).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Parameter Kualitas & Redaman Optik */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70 flex flex-col justify-between">
@@ -193,19 +254,37 @@ export default function BuktiLapanganModal({ task, onClose, masterKomisi }) {
             </div>
           </div>
 
-          {/* Galeri 3 Foto Lapangan */}
+          {/* Galeri Dokumentasi Foto Lapangan */}
           <div>
-            <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-              <span>Dokumentasi Visual Hasil Pekerjaan</span>
-            </h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5 text-blue-600" />
+                <span>
+                  {isSinglePhotoSop ? "1 Foto Bukti Utama Lapangan (SOP Fisik)" : "Dokumentasi Visual Hasil Pekerjaan"}
+                </span>
+              </h4>
+              <span className="text-[10px] font-bold text-slate-500">
+                {isSinglePhotoSop ? "Standar SOP 1 Foto" : "3 Sudut Foto"}
+              </span>
+            </div>
 
-            {totalPhotos === 0 ? (
+            {!hasPhotos ? (
               <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                 <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto mb-2" />
                 <p className="text-xs font-bold text-slate-700">Belum ada foto dokumentasi diunggah</p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  Pekerjaan ini diselesaikan sebelum fitur upload bukti lapangan diaktifkan.
+                  Pekerjaan ini belum melampirkan foto bukti fisik pengerjaan lapangan.
                 </p>
+              </div>
+            ) : isSinglePhotoSop ? (
+              <div className="max-w-md mx-auto">
+                <PhotoItem
+                  photo={singlePhoto}
+                  title="Foto Bukti Fisik Lapangan (GPS & Timestamp)"
+                  emptyLabel="Tanpa Foto Bukti"
+                  icon={Camera}
+                  onZoom={(p) => setActivePhoto(p)}
+                />
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">

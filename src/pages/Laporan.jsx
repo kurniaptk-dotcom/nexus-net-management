@@ -155,6 +155,8 @@ async function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timDat
         "ODP / Jalur": p.odp || "-",
         "Item Dikerjakan": itemsStr,
         "Redaman (dBm)": p.redaman || "-",
+        "Waktu Lapor": p.waktu_lapor ? new Date(p.waktu_lapor).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB" : "-",
+        "Status Cut-Off": p.cutoff_label || (p.cutoff_status === "TEPAT_WAKTU" ? "Tepat Waktu (<= 21:00)" : p.cutoff_status === "TERLAMBAT" ? "Terlambat (> 21:00)" : "-"),
         "Total Komisi (Rp)": p.komisi_total !== undefined ? Number(p.komisi_total) : inc.total,
       };
     });

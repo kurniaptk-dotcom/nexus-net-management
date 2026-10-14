@@ -1607,7 +1607,7 @@ export default function Pekerjaan() {
                           }}
                           className="w-full px-3.5 py-2 bg-blue-50/70 hover:bg-blue-50 border border-blue-200 rounded-xl text-xs font-semibold text-blue-900 focus:bg-white focus:ring-2 focus:ring-blue-400 outline-none cursor-pointer"
                         >
-                          <option value="">⚡ Pilih Cepat dari Data Pelanggan Radius...</option>
+                          <option value="">⚡ Pilih Cepat dari Data Pelanggan Lapangan...</option>
                           {pelangganList.map((p) => (
                             <option key={p.id_pelanggan} value={p.id_pelanggan}>
                               [{p.status}] {p.nama} - {p.id_pelanggan} ({p.odp || "No ODP"})

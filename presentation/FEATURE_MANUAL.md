@@ -111,14 +111,14 @@ Nexus Net menyatukan **GIS Jaringan Optik**, **Dispatching WhatsApp**, **Mobile 
 
 ---
 
-### 2.7 Sinkronisasi Data Pelanggan Radius (Mikrotik PPPoE Sync)
-![Pelanggan Radius](./screenshots/06_pelanggan_radius.png)
+### 2.7 Manajemen Data Pelanggan Lapangan & Pemetaan ODP
+![Data Pelanggan](./screenshots/06_pelanggan_radius.png)
 
-- **Fungsi Utama**: Manajemen master data pelanggan yang tersinkronisasi langsung dengan server BRAS / Mikrotik Radius.
+- **Fungsi Utama**: Database terpadu pelanggan WiFi lapangan, riwayat sambungan, dan pemetaan port ODP untuk penerbitan SPK penugasan instan.
 - **Fitur Kunci**:
-  - **PPPoE Auto Provisioning**: Akun dibuat otomatis dengan username & password aman begitu teknisi menyelesaikan pasang baru.
-  - **Sinkronisasi Port ODP**: Mengunci port ODP yang terpakai sehingga tidak terjadi perebutan port antar teknisi.
-  - **Pencarian Cepat & Filter Status**: Filter instan berdasarkan status (Aktif, Isolir, Gangguan) dan wilayah ODC/ODP.
+  - **Penerbitan SPK Cepat 1-Klik**: Pilih pelanggan dari database langsung buka modal SPK terpadu lengkap dengan alamat dan target ODP.
+  - **Sinkronisasi Port ODP Otomatis**: Menghitung utilisasi port fisik terpakai saat pasang baru dan pelepasan port saat pemutusan.
+  - **Pencarian Cepat & Filter Status**: Filter instan berdasarkan status (Aktif, Baru/PSB, Isolir, Putus) dan wilayah ODC/ODP.
 
 ---
 
@@ -150,15 +150,19 @@ Inilah poin penjualan terkuat yang membedakan Nexus Net dari aplikasi pencatatan
              │
              ▼
 [4. Teknisi Terima Notifikasi di HP & Buka PWA Portal]
-  ↳ Centang SOP K3 ➔ Pasang Kabel ➔ Ukur OPM (-19.2 dBm) ➔ Foto Ber-Watermark GPS
+  ↳ Centang SOP K3 ➔ Pasang Kabel ➔ Ukur OPM (-19.2 dBm) ➔ 1 Foto Bukti Ber-Watermark GPS
              │
              ▼
-[5. Teknisi Klik "Selesaikan Pekerjaan"]
+[5. Teknisi Kirim Laporan Selesai]
+  ↳ Dievaluasi Sistem Cut-Off Pk 21:00 WIB ➔ Status: MENUNGGU VALIDASI SPV
+             │
+             ▼
+[6. Supervisor Validasi Hasil Bukti Fisik Lapangan]
   ↳ ⚡ SISTEM SECARA OTOMATIS:
-     1. Mengaktifkan akun PPPoE di tabel Radius Pelanggan (Status: AKTIF).
+     1. Mengesahkan status tugas menjadi SELESAI.
      2. Menambah kuota port terpakai di ODP terkait (misal 5/8 menjadi 6/8).
-     3. Mengubah status tiket Leads dan SPK menjadi SELESAI.
-     4. Mengkreditkan insentif komisi Rp 50.000 ke saldo regu teknisi.
+     3. Mengupdate status pelanggan di database lapangan.
+     4. Mengkreditkan insentif komisi utuh 100% per orang ke setiap teknisi.
 ```
 
 ---
@@ -168,7 +172,7 @@ Inilah poin penjualan terkuat yang membedakan Nexus Net dari aplikasi pencatatan
 ### 🎙️ Menit 0 - 2: Pembukaan (Slide 1 & 2)
 > *"Bapak dan Ibu pimpinan serta rekan-rekan sekalian, selamat pagi/siang. Hari ini saya bangga mempersembahkan Nexus Net — solusi manajemen operasional ISP FTTH modern yang dirancang untuk mengakhiri masalah klasik di industri kita: data port ODP yang bocor, koordinasi teknisi yang lambat via grup WhatsApp, dan komplain internet putus-nyambung karena redaman optik yang tidak terkontrol.*
 >
-> *Dengan Nexus Net, seluruh siklus dari pendaftaran pelanggan baru hingga aktivasi akun billing Mikrotik terjadi secara otomatis dalam satu ekosistem terpadu."*
+> *Dengan Nexus Net, seluruh siklus dari pendaftaran pelanggan baru hingga penugasan SPK dan verifikasi bukti fisik lapangan terjadi secara otomatis dalam satu ekosistem terpadu."*
 
 ### 🎙️ Menit 3 - 5: GIS Jaringan Optik & Leads (Slide 4, 5, 6)
 > *"Mari kita lihat tampilan Dashboard dan Peta GIS Jaringan kami. Di sini, kita memiliki Digital Twin dari seluruh aset kabel optik kita di atas citra satelit Google Earth. Anda bisa melihat denyut sinyal optik yang mengalir dari Kantor Pusat OLT, melewati ODC, hingga ke ODP tiang dan rumah pelanggan.*
@@ -178,9 +182,9 @@ Inilah poin penjualan terkuat yang membedakan Nexus Net dari aplikasi pencatatan
 ### 🎙️ Menit 6 - 9: Portal Teknisi & Kualitas Lapangan (Slide 7 & 8)
 > *"Sekarang mari kita pindah ke sudut pandang rekan-rekan teknisi di lapangan. Teknisi tidak perlu mengunduh aplikasi berat dari Play Store. Mereka cukup membuka Portal PWA Nexus Net dari browser ponsel mereka.*
 >
-> *Aplikasi ini menerapkan standar industri: teknisi harus mencentang helm K3, memasukkan hasil ukur Optical Power Meter pada barometer interaktif kami — di mana sistem akan menolak jika redaman lebih buruk dari -24 dBm — dan mengambil foto bukti yang langsung dicap dengan koordinat GPS presisi dan jam pengerjaan.*
+> *Aplikasi ini menerapkan standar industri: teknisi harus mencentang helm K3, memasukkan hasil ukur Optical Power Meter pada barometer interaktif kami — di mana sistem akan menolak jika redaman lebih buruk dari -24 dBm — dan mengambil 1 foto bukti fisik yang langsung dicap dengan koordinat GPS presisi dan jam pengerjaan.*
 >
-> *Dan inilah keajaibannya: begitu teknisi menekan tombol 'Selesai', sistem secara instan membuat akun Radius PPPoE aktif, port ODP terkunci, dan komisi teknisi langsung tercatat tanpa admin harus mengetik ulang satu data pun."*
+> *Dan inilah keajaibannya: begitu teknisi mengirim laporan, sistem mengevaluasi batas cut-off Pk 21:00 WIB, supervisor memvalidasi bukti, port ODP terkunci, dan komisi teknisi langsung tercatat utuh tanpa admin harus mengetik ulang satu data pun."*
 
 ### 🎙️ Menit 10: Penutup & Finansial (Slide 10 & 12)
 > *"Di akhir pekan atau bulan, bagian finance cukup membuka menu Laporan dan menekan tombol 'Export Excel' untuk mencairkan komisi tim. Transparan, adil, dan memotivasi teknisi untuk bekerja rapi.*

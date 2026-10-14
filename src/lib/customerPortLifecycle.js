@@ -205,7 +205,7 @@ export function syncCustomerOnTaskCompletion(task, pelangganList = [], setPelang
       setPelangganList(newList);
       return {
         type: "CREATED",
-        message: `Pelanggan baru "${namaTarget}" otomatis terdaftar di Pelanggan Radius (${newCust.odp}, user: ${newCust.pppoe_user}) dan mengisi 1 port.`,
+        message: `Pelanggan baru "${namaTarget}" otomatis terdaftar di Data Pelanggan (${newCust.odp}) dan mengisi 1 port.`,
         customer: newCust,
       };
     }

@@ -533,7 +533,7 @@ export default function ODP() {
                 )}
               </div>
               <p className="text-xs text-slate-300 mt-0.5">
-                Kalkulasi otomatis dari <b>{pelangganList.length} pelanggan Radius</b> yang tersambung ke titik ODP.
+                Kalkulasi otomatis dari <b>{pelangganList.length} pelanggan</b> yang tersambung ke titik ODP.
               </p>
             </div>
           </div>
