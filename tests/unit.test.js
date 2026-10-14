@@ -338,3 +338,26 @@ test("Daily Report Cut-Off Jam 9 Malam (21:00 WIB) - evaluates on-time vs late s
   assert.equal(stats.onTimeRate, 67); // Math.round(2/3 * 100) = 67%
 });
 
+test("Evidence Modal & Reporting - handles Single Photo SOP and Cut-Off timestamp extraction", async () => {
+  const { evaluateReportSubmissionTime } = await import("../src/lib/reportCutoff.js");
+
+  const taskSinglePhoto = {
+    id: 501,
+    spk_no: "SPK/PSB/20261014/0501",
+    status: "MENUNGGU VALIDASI",
+    foto_bukti_utama: "data:image/jpeg;base64,mockSinglePhotoBase64",
+    waktu_lapor: "2026-10-14T13:45:00Z", // 20:45 WIB
+    cutoff_status: "TEPAT_WAKTU",
+    cutoff_label: "Tepat Waktu (<= 21:00 WIB)",
+  };
+
+  // 1. Single photo detection
+  const hasSinglePhoto = Boolean(taskSinglePhoto.foto_bukti_utama);
+  assert.equal(hasSinglePhoto, true);
+
+  // 2. Cut-off evaluation matches
+  const evalResult = evaluateReportSubmissionTime(taskSinglePhoto.waktu_lapor);
+  assert.equal(evalResult.status, "TEPAT_WAKTU");
+  assert.equal(evalResult.isLate, false);
+});
+

@@ -2945,7 +2945,7 @@ export default function TeknisiDashboard() {
                     <span>ODP / Tiang Distribusi</span>
                   </span>
                   <span className="text-[10px] text-slate-400 font-normal">
-                    (Sinkron Radius / MikroTik)
+                    (Sinkron Port ODP & Pelanggan)
                   </span>
                 </label>
                 <select
@@ -3845,27 +3845,27 @@ export default function TeknisiDashboard() {
                 </div>
               </div>
 
-              {/* Billing & Radius Provisioning */}
+              {/* Admin Layanan & Pelanggan */}
               <div className="p-3.5 rounded-2xl border border-slate-200 hover:border-slate-300 bg-slate-50/60 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black text-slate-900">Billing & Radius PPPoE</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Aktivasi akun PPPoE pelanggan baru & reset auth</p>
+                  <p className="text-xs font-black text-slate-900">Admin Layanan & Pelanggan</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Aktivasi akun internet pelanggan baru & reset auth</p>
                   <p className="text-xs font-bold text-blue-700 mt-1 font-mono">0811-5566-3322</p>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <a
                     href="tel:081155663322"
                     className="p-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
-                    title="Telepon Billing"
+                    title="Telepon Admin"
                   >
                     <Phone className="w-4 h-4" />
                   </a>
                   <a
-                    href="https://wa.me/6281155663322?text=Halo%20Admin%20Radius%2C%20mohon%20bantuan%20aktivasi%20user%20PPPoE."
+                    href="https://wa.me/6281155663322?text=Halo%20Admin%2C%20mohon%20bantuan%20aktivasi%20layanan%20internet%20pelanggan."
                     target="_blank"
                     rel="noreferrer"
                     className="p-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
-                    title="WhatsApp Radius"
+                    title="WhatsApp Admin"
                   >
                     <MessageCircle className="w-4 h-4" />
                   </a>

@@ -6,7 +6,7 @@ Berikut adalah panduan komprehensif penggunaan fitur **Sistem Penugasan Teknisi 
 
 ## 📹 Video Rekaman Interaktif (Screen Recording)
 
-Tonton demonstrasi visual alur kerja penugasan teknisi berikut ini (mulai dari penerbitan SPK di Leads, Gangguan, Pelanggan Radius, pemantauan Kanban Pekerjaan, hingga penyelesaian di Dashboard Teknisi):
+Tonton demonstrasi visual alur kerja penugasan teknisi berikut ini (mulai dari penerbitan SPK di Leads, Gangguan, Data Pelanggan Lapangan, pemantauan Kanban Pekerjaan, hingga penyelesaian di Dashboard Teknisi):
 
 ![Video Rekaman Tutorial Penugasan Teknisi & SPK](C:/Users/user/.gemini/antigravity-ide/brain/471f54b6-ba50-4bc9-80b1-c229e89a7a15/tutorial_penugasan_spk_1790839165142.webp)
 
@@ -19,7 +19,7 @@ flowchart TD
     subgraph Input_Dispatch["1. Sumber Penugasan (Admin / CS / Dispatcher)"]
         A1["Leads Prospektif"] -->|"Klik 'Tugaskan SPK'"| M["Modal Penugasan Universal"]
         A2["Tiket Gangguan Lapangan"] -->|"Klik 'Tugaskan SPK'"| M
-        A3["Pelanggan Radius (Billing)"] -->|"Klik 'Tugaskan SPK'"| M
+        A3["Data Pelanggan Lapangan"] -->|"Klik 'Tugaskan SPK'"| M
         A4["Menu Pekerjaan"] -->|"Klik '+ Terbitkan SPK'"| M
     end
 
@@ -88,7 +88,7 @@ Gunakan alur ini ketika ada laporan insiden jaringan atau tiket kendala teknis (
 
 ---
 
-## 3. Cara Menerbitkan SPK dari Pelanggan Radius (Pemutusan & Relokasi)
+## 3. Cara Menerbitkan SPK dari Menu Data Pelanggan (Pemutusan & Relokasi)
 
 Gunakan alur ini untuk pelanggan yang berhenti berlangganan (Dismantle perangkat/kabel) atau pindah alamat (Relokasi).
 

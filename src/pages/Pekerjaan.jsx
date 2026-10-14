@@ -1583,7 +1583,7 @@ export default function Pekerjaan() {
                       {pelangganList.length > 0 && !editingItem && (
                         <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 flex items-center gap-1">
                           <Zap className="w-3 h-3 text-blue-600" />
-                          Tersinkron Radius
+                          Database Pelanggan
                         </span>
                       )}
                     </div>

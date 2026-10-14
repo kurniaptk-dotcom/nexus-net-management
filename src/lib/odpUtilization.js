@@ -1,6 +1,6 @@
 /**
  * Utilitas Perhitungan Kapasitas & Penggunaan Port ODP Real-Time
- * Menghubungkan Master ODP/ODC dengan Data Pelanggan Radius Aktif
+ * Menghubungkan Master ODP/ODC dengan Data Pelanggan Lapangan Aktif
  */
 
 /**
@@ -34,7 +34,7 @@ export function parseTotalPort(val) {
 }
 
 /**
- * Hitung utilisasi port secara real-time berdasarkan data Pelanggan Radius
+ * Hitung utilisasi port secara real-time berdasarkan data Pelanggan Lapangan
  * @param {Array} odpList - Daftar ODP dari xnet_odpodc / mockData
  * @param {Array} pelangganList - Daftar Pelanggan dari xnet_pelanggan_radius
  * @returns {Array} odpList yang sudah diperkaya metrik port terpakai, sisa, dan status

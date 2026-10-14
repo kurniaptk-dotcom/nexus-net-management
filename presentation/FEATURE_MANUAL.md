@@ -13,7 +13,7 @@ Dokumen ini merupakan panduan komprehensif bagi presenter untuk membedah seluruh
    - [2.4 Manajemen Leads & Feasibility Survey 3D](#24-manajemen-leads--feasibility-survey-3d)
    - [2.5 Kanban Pekerjaan & Dispatching SPK WhatsApp](#25-kanban-pekerjaan--dispatching-spk-whatsapp)
    - [2.6 Portal Lapangan PWA Mobile Teknisi (OPM Barometer & K3)](#26-portal-lapangan-pwa-mobile-teknisi-opm-barometer--k3)
-   - [2.7 Sinkronisasi Data Pelanggan Radius (Mikrotik PPPoE Sync)](#27-sinkronisasi-data-pelanggan-radius-mikrotik-pppoe-sync)
+   - [2.7 Manajemen Data Pelanggan Lapangan & Pemetaan ODP](#27-manajemen-data-pelanggan-lapangan--pemetaan-odp)
    - [2.8 Laporan Kinerja & Payroll Komisi Teknisi](#28-laporan-kinerja--payroll-komisi-teknisi)
 3. [Alur Closed-Loop Otomasi (The Magic Flow)](#3-alur-closed-loop-otomasi-the-magic-flow)
 4. [Skrip Narasi Presenter (Word-by-Word Pitching Guide)](#4-skrip-narasi-presenter-word-by-word-pitching-guide)
@@ -27,11 +27,11 @@ Dokumen ini merupakan panduan komprehensif bagi presenter untuk membedah seluruh
 Sebelum ada Nexus Net, operasional penyedia jasa internet (ISP) berbasis fiber optik kerap menghadapi 4 penyakit kronis:
 1. **Port ODP Liar / Overcapacity**: Data port tiang di lembar Excel tidak sesuai dengan colokan fisik di tiang.
 2. **Tingginya Komplain Redaman Drop**: Teknisi buru-buru serah terima tanpa bukti pengukuran optik (OPM), mengakibatkan internet pelanggan putus-nyambung.
-3. **Pencatatan Ganda (Double Entry)**: Admin harus menginput ulang data dari chat grup WhatsApp teknisi ke sistem billing Mikrotik di malam hari.
+3. **Pencatatan Ganda (Double Entry)**: Admin harus menginput ulang data dari chat grup WhatsApp teknisi ke sistem pencatatan secara manual di malam hari.
 4. **Ketidaktransparanan Komisi**: Perhitungan insentif pasang baru dan perbaikan gangguan sering menimbulkan perselisihan antar regu lapangan.
 
 ### 💡 Solusi Nexus Net:
-Nexus Net menyatukan **GIS Jaringan Optik**, **Dispatching WhatsApp**, **Mobile App Teknisi PWA**, dan **Mikrotik Radius Billing** ke dalam **satu ekosistem tertutup (Closed-Loop Automation)**.
+Nexus Net menyatukan **GIS Jaringan Optik**, **Dispatching WhatsApp**, **Mobile App Teknisi PWA**, dan **Manajemen Port & Komisi Lapangan** ke dalam **satu ekosistem tertutup (Closed-Loop Automation)**.
 
 ---
 

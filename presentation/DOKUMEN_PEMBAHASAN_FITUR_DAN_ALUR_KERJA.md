@@ -6,7 +6,7 @@
 ## 1. EXECUTIVE SUMMARY & LATAR BELAKANG PRODUK
 
 ### 1.1 Visi Produk
-**Nexus Net Management** adalah platform terintegrasi generasi baru yang dirancang khusus untuk operator penyedia jasa internet (ISP) berbasis kabel fiber optik (*Fiber-To-The-Home / FTTH*). Sistem ini mengintegrasikan seluruh rantai operasional—mulai dari autentikasi peran, akuisisi calon pelanggan, pemetaan topologi jaringan kabel optik (GIS Digital Twin), penerbitan Surat Perintah Kerja (SPK), aplikasi mobile teknisi di lapangan, validasi kualitas optik (OPM), hingga administrasi penagihan dan slip gaji komisi teknisi dalam **satu ekosistem tertutup (Closed-Loop Automation)**.
+**Nexus Net Management** adalah platform terintegrasi generasi baru yang dirancang khusus untuk operator penyedia jasa internet (ISP) berbasis kabel fiber optik (*Fiber-To-The-Home / FTTH*). Sistem ini mengintegrasikan seluruh rantai operasional—mulai dari autentikasi peran, akuisisi calon pelanggan, pemetaan topologi jaringan kabel optik (GIS Digital Twin), penerbitan Surat Perintah Kerja (SPK), aplikasi mobile teknisi di lapangan, validasi kualitas optik (OPM), hingga verifikasi bukti fisik dan slip gaji komisi teknisi dalam **satu ekosistem tertutup (Closed-Loop Automation)**.
 
 ![Pintu Masuk & Autentikasi Multi-Role](./screenshots/01_login.png)
 *Gambar 1.0: Pintu masuk terproteksi dengan Role-Based Access Control (Admin, Dispatcher NOC, Teknisi Lapangan) serta tombol pintas Demo Switcher.*
@@ -15,11 +15,11 @@
 Sebelum implementasi Nexus Net, perusahaan ISP umumnya menghadapi 4 inefisiensi operasional kritis:
 1. **Kebocoran Port ODP (Overcapacity & Ghost Ports)**: Data port tiang pada lembar Excel kantor sering berbeda dengan kondisi fisik colokan di tiang lapangan. Port penuh tanpa izin atau port kosong yang tercatat penuh, menyebabkan hilangnya potensi penjualan.
 2. **Tingginya Komplain Redaman Drop**: Teknisi di lapangan sering terburu-buru melakukan serah terima tanpa bukti hasil ukur redaman OPM (*Optical Power Meter*), sehingga modem pelanggan sering mengalami gangguan *LOS (Loss of Signal)* atau internet lambat.
-3. **Pekerjaan Ganda & Rekap Manual (Double Entry)**: Admin kantor harus memindahkan laporan serah terima dari pesan WhatsApp teknisi ke sistem billing/Radius secara manual setiap malam.
+3. **Pekerjaan Ganda & Rekap Manual (Double Entry)**: Admin kantor harus memindahkan laporan serah terima dari pesan WhatsApp teknisi ke sistem master data secara manual setiap malam.
 4. **Perselisihan Komisi Teknisi**: Tidak adanya transparansi perhitungan meteran kabel dropcore dan unit kerja fisik yang dipasang menimbulkan kecurigaan dan ketidakpuasan antar regu teknisi.
 
 ### 1.3 Solusi Terobosan Nexus Net
-Nexus Net mengeliminasi seluruh inefisiensi tersebut melalui otomatisasi: **sekali teknisi menyelesaikan pekerjaan dengan bukti autentik di lapangan, port tiang terkunci, pelanggan aktif di billing, dan komisi terhitung otomatis.**
+Nexus Net mengeliminasi seluruh inefisiensi tersebut melalui otomatisasi: **sekali teknisi menyelesaikan pekerjaan dengan 1 bukti autentik di lapangan dan divalidasi supervisor, port tiang terkunci, data pelanggan aktif diperbarui, dan komisi terhitung utuh per orang secara otomatis.**
 
 ---
 
@@ -106,22 +106,23 @@ Aplikasi berbasis *Progressive Web App (PWA)* yang dapat diakses langsung oleh t
   - **Validasi Wajib Mutlak Kepatuhan SOP (Mandatory Completion SOP)**:
     - Teknisi **tidak bisa** menyelesaikan tugas tanpa mengisi angka ukur OPM yang valid.
     - Nomor seri (SN/MAC) modem ONT wajib diisi untuk pemasangan baru.
-    - **Wajib melampirkan minimal foto bukti fisik** (Foto layar OPM dan Foto unit modem menyala normal).
+    - **Wajib melampirkan 1 foto bukti fisik utama** dengan watermark koordinat GPS dan tanggal/jam WIB riil.
+    - Evaluasi batas cut-off Pk 21:00 WIB secara otomatis menentukan kepatuhan pelaporan.
   - **Input Meteran Kabel Riil**: Teknisi memasukkan panjang meter kabel dropcore yang ditarik di lapangan untuk menentukan nilai komisi riil tugas secara adil dan transparan.
   - **Ketahanan Luar Jaringan (Offline Sync Queue)**: Saat teknisi berada di area tanpa sinyal seluler, laporan pekerjaan tetap tersimpan di penyimpanan lokal HP dan otomatis terkirim saat sinyal kembali normal.
 
 ---
 
-### MODUL 6: OTOMASI TERTUTUP (CLOSED-LOOP RADIUS & PORT SYNC)
-Fitur unggulan yang menghubungkan hasil pengerjaan fisik di lapangan dengan sistem database pusat dan MikroTik billing secara instan.
+### MODUL 6: MANAJEMEN DATA PELANGGAN & PEMETAAN PORT ODP
+Pusat database pelanggan terpadu yang menghubungkan instalasi fisik di tiang ODP dengan data pelanggan lapangan secara instan.
 
-![Sinkronisasi Data Pelanggan Radius & MikroTik](./screenshots/06_pelanggan_radius.png)
-*Gambar 2.6: Daftar pelanggan aktif tersinkronisasi otomatis dengan port tiang ODP dan profil paket internet MikroTik PPPoE.*
+![Data Pelanggan Lapangan & Pemetaan Port ODP](./screenshots/06_pelanggan_radius.png)
+*Gambar 2.6: Daftar pelanggan lapangan tersinkronisasi otomatis dengan port tiang ODP, riwayat SPK, dan nomor kontak WhatsApp.*
 
 - **Poin-Poin Penting**:
-  - **Aktivasi Port ODP Seketika**: Begitu teknisi menekan tombol simpan laporan selesai, nomor port ODP yang ditancapkan otomatis berubah status dari *Tersedia* menjadi *Terpakai*.
-  - **Sinkronisasi Pelanggan Radius**: Data pelanggan otomatis berpindah ke daftar pelanggan aktif dengan status terverifikasi, nomor seri ONT tercatat, dan tanggal pemasangan terarsip.
-  - **Otomatisasi Pelepasan Port pada Pemutusan (Dismantle)**: Saat pekerjaan pemutusan diselesaikan, port tiang ODP seketika dibebaskan kembali menjadi *Tersedia* untuk dijual ke pelanggan baru berikutnya.
+  - **Aktivasi Port ODP Seketika**: Begitu tugas divalidasi supervisor, nomor port ODP yang ditancapkan otomatis berubah status dari *Tersedia* menjadi *Terpakai*.
+  - **Sinkronisasi Data Pelanggan Lapangan**: Data pelanggan otomatis berpindah ke daftar pelanggan aktif dengan status terverifikasi, nomor seri ONT tercatat, dan tanggal pemasangan terarsip.
+  - **Otomatisasi Pelepasan Port pada Pemutusan (Dismantle)**: Saat pekerjaan pemutusan diselesaikan, port tiang ODP seketika dibebaskan kembali menjadi *Tersedia* untuk dialokasikan ke pelanggan baru.
   - **Zero Human Error**: Mengeliminasi 100% kesalahan lupa mencatat atau dobel input port tiang.
 
 ---
@@ -165,7 +166,7 @@ sequenceDiagram
     actor A as Admin / Helpdesk
     actor T as Teknisi Lapangan
     participant S as Sistem Nexus Net
-    participant M as Mikrotik / Radius
+    actor SPV as Supervisor NOC
 
     C->>A: Registrasi & Kirim Shareloc Lokasi
     A->>S: Input Data Calon Pelanggan (Leads)
@@ -174,11 +175,13 @@ sequenceDiagram
     S-->>T: Notifikasi & Kirim Rincian SPK via WhatsApp
     T->>S: Buka Portal Mobile PWA, Klik 'Mulai'
     T->>T: Penarikan Kabel Dropcore & Pasang ONT di Rumah
-    T->>S: Input Meter Kabel Riil, Nilai OPM dBm & Upload Foto Bukti
-    S->>S: Validasi SOP Kepatuhan (Data & Foto Lengkap)
-    S->>S: Hitung Komisi Tugas Otomatis (Rp 100/m + Unit)
-    S->>M: Kunci Port ODP 'Terpakai' & Aktifkan Pelanggan Radius
-    S-->>A: Status Tiket Berubah Menjadi 'SELESAI'
+    T->>S: Input Meter Kabel Riil, Nilai OPM dBm & Upload 1 Foto Bukti GPS
+    S->>S: Evaluasi Batas Cut-Off Pk 21:00 WIB
+    S->>S: Status Menjadi 'MENUNGGU VALIDASI'
+    SPV->>S: Verifikasi Bukti Fisik & Mutu Redaman OPM
+    SPV->>S: Validasi & Setujui 'SELESAI'
+    S->>S: Kunci Port ODP 'Terpakai' & Update Data Pelanggan
+    S->>S: Hitung Komisi Utuh 100% per Orang
     A->>S: Buka Tab Payroll di Akhir Periode
     S->>S: Agregasi THP: Gaji Pokok + Tunjangan + Total Komisi
     A-->>T: Kirim Slip Gaji Rinci PDF & WhatsApp

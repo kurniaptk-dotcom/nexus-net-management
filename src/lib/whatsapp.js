@@ -13,7 +13,7 @@ export function createWhatsAppUrl(phone, text = "") {
 }
 
 /**
- * Template WhatsApp untuk Pelanggan Radius / Billing
+ * Template WhatsApp untuk Pelanggan / Layanan Lapangan
  */
 export function getCustomerWaTemplate(customer) {
   if (!customer) return "";
