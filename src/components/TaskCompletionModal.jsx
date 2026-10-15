@@ -10,6 +10,7 @@ import {
   Camera,
   ShieldCheck,
   Check,
+  AlertTriangle,
 } from "lucide-react";
 import OpticalPowerGauge, { evaluateDbm } from "./OpticalPowerGauge";
 import {
@@ -43,6 +44,10 @@ export default function TaskCompletionModal({
   const [workItems, setWorkItems] = useState([]);
   const [selectedAddItem, setSelectedAddItem] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+
+  const isValidationMode = task?.status === "MENUNGGU VALIDASI";
 
   // Inisialisasi data form ketika modal dibuka
   useEffect(() => {
@@ -66,6 +71,8 @@ export default function TaskCompletionModal({
       });
       setSelectedAddItem("");
       setIsSubmitting(false);
+      setShowRejectInput(false);
+      setRejectReason("");
     }
   }, [isOpen, task, masterKomisi, odpList]);
 
@@ -113,6 +120,28 @@ export default function TaskCompletionModal({
       fotoModem: null,
       fotoDropcore: null,
     }));
+  };
+
+  // Handler SPV Tolak / Minta Revisi ke Teknisi
+  const handleRejectSubmit = () => {
+    if (!rejectReason.trim()) {
+      showToast("Mohon isi alasan penolakan/revisi agar teknisi tahu apa yang perlu diperbaiki.", "error");
+      return;
+    }
+
+    const finalPayload = {
+      ...task,
+      status: "DIJADWALKAN",
+      revisi_catatan: rejectReason.trim(),
+      revisi_at: new Date().toISOString(),
+      revisi_by: "Supervisor",
+      revisi_count: (task.revisi_count || 0) + 1,
+    };
+
+    onComplete(finalPayload);
+    showToast(`Pekerjaan "${task.pelanggan}" dikembalikan ke teknisi untuk revisi!`, "warning");
+    setShowRejectInput(false);
+    onClose();
   };
 
   // Submit Handler dengan Validasi Laporan 1 Foto & Alur Status
@@ -542,7 +571,40 @@ export default function TaskCompletionModal({
             />
           </div>
 
-          {/* Action Buttons: Teknisi kirim laporan atau Admin langsung validasi */}
+          {/* Area Input Alasan Revisi SPV */}
+          {showRejectInput && (
+            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl space-y-2 animate-in fade-in">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-900">
+                <AlertTriangle className="w-4 h-4 text-rose-600" />
+                <span>Alasan Penolakan / Permintaan Revisi:</span>
+              </div>
+              <textarea
+                rows={2}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Contoh: Foto OPM buram/tidak terbaca, atau redaman drop -28 dBm melebihi batas standar -23 dBm."
+                className="w-full px-3 py-2 bg-white border border-rose-300 rounded-xl text-xs text-rose-900 placeholder:text-rose-300 focus:ring-2 focus:ring-rose-500 outline-none"
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRejectInput(false)}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/60 rounded-xl transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRejectSubmit}
+                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 rounded-xl transition-all shadow-xs"
+                >
+                  Konfirmasi Kembalikan ke Teknisi
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons: Teknisi kirim laporan atau Admin/SPV langsung validasi / tolak */}
           <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
@@ -551,24 +613,49 @@ export default function TaskCompletionModal({
             >
               Batal
             </button>
-            <button
-              type="button"
-              onClick={(e) => handleSubmit(e, "MENUNGGU VALIDASI")}
-              disabled={isSubmitting}
-              className="flex-1 py-2.5 px-3 text-xs font-bold bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <Camera className="w-4 h-4" />
-              <span>Kirim Laporan 1 Foto (Menunggu Validasi)</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => handleSubmit(e, "SELESAI")}
-              disabled={isSubmitting}
-              className="flex-1 py-2.5 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <Check className="w-4 h-4" />
-              <span>Validasi Selesai & Setujui Komisi</span>
-            </button>
+
+            {isValidationMode ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowRejectInput(!showRejectInput)}
+                  className="py-2.5 px-3.5 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <XCircle className="w-4 h-4 text-rose-600" />
+                  <span>Tolak / Minta Revisi</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleSubmit(e, "SELESAI")}
+                  disabled={isSubmitting}
+                  className="flex-1 py-2.5 px-4 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Validasi Selesai & Sahkan Komisi</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => handleSubmit(e, "MENUNGGU VALIDASI")}
+                  disabled={isSubmitting}
+                  className="flex-1 py-2.5 px-3 text-xs font-bold bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Kirim Laporan 1 Foto (Menunggu Validasi)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleSubmit(e, "SELESAI")}
+                  disabled={isSubmitting}
+                  className="py-2.5 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Selesai Langsung</span>
+                </button>
+              </>
+            )}
           </div>
         </form>
       </div>

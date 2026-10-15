@@ -28,6 +28,7 @@ import {
   MessageCircle,
   Send,
   Coins,
+  AlertTriangle,
   Check,
 } from "lucide-react";
 import {
@@ -165,6 +166,15 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvid
           <span className="text-[10px] bg-purple-200/80 text-purple-800 px-1.5 py-0.5 rounded-md font-extrabold">
             Perlu Validasi SPV
           </span>
+        </div>
+      )}
+      {item.revisi_catatan && item.status !== "SELESAI" && (
+        <div className="mb-2 p-2 bg-rose-50 border border-rose-200 rounded-xl text-[11px] text-rose-900 font-semibold">
+          <div className="flex items-center gap-1 font-bold text-rose-700">
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+            <span>Perlu Revisi Teknisi:</span>
+          </div>
+          <p className="text-[10px] text-rose-800 mt-0.5 line-clamp-2">{item.revisi_catatan}</p>
         </div>
       )}
       {item.odp && (
@@ -676,21 +686,36 @@ export default function Pekerjaan() {
       prev.map((item) => (item.id === finalTask.id ? finalTask : item))
     );
 
-    // Otomatisasi Sinkronisasi Port & Pelanggan jika dipindah ke SELESAI
-    const syncResult = syncCustomerOnTaskCompletion(finalTask, pelangganList, setPelangganList);
-    if (syncResult && window.__addNotification) {
+    if (finalTask.status === "SELESAI") {
+      // Otomatisasi Sinkronisasi Port & Pelanggan jika dipindah ke SELESAI
+      const syncResult = syncCustomerOnTaskCompletion(finalTask, pelangganList, setPelangganList);
+      if (syncResult && window.__addNotification) {
+        notify({
+          id: Date.now(),
+          type: "INFO",
+          title: "Sinkronisasi Port & Pelanggan",
+          message: syncResult.message,
+          timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+          read: false,
+        });
+      }
+      notify(generatePekerjaanNotification(finalTask, "status"));
+      showToast(`Pekerjaan "${finalTask.pelanggan}" divalidasi selesai & komisi disahkan!`, "success");
+    } else if (finalTask.status === "DIJADWALKAN" && finalTask.revisi_catatan) {
       notify({
         id: Date.now(),
-        type: "INFO",
-        title: "Sinkronisasi Port & Pelanggan",
-        message: syncResult.message,
+        type: "WARNING",
+        title: "Permintaan Revisi Pekerjaan",
+        message: `Pekerjaan "${finalTask.pelanggan}" dikembalikan ke teknisi: ${finalTask.revisi_catatan}`,
         timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
         read: false,
       });
+      showToast(`Pekerjaan "${finalTask.pelanggan}" dikembalikan ke teknisi untuk revisi.`, "warning");
+    } else {
+      notify(generatePekerjaanNotification(finalTask, "status"));
+      showToast(`Laporan pekerjaan "${finalTask.pelanggan}" berhasil diperbarui.`, "info");
     }
 
-    notify(generatePekerjaanNotification(finalTask, "status"));
-    showToast(`Pekerjaan "${finalTask.pelanggan}" divalidasi selesai sesuai SOP lapangan!`, "success");
     setCompletingTask(null);
   };
 

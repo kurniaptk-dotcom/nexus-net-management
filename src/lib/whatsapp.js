@@ -1,4 +1,4 @@
-import { formatPhoneWa } from "./spkGenerator";
+import { formatPhoneWa } from "./spkGenerator.js";
 
 export { formatPhoneWa };
 
@@ -44,3 +44,49 @@ export function getTroubleWaTemplate(trouble) {
   const keluhan = trouble.keterangan || trouble.keluhan || "layanan internet";
   return `Halo Kak ${nama}, kami dari Tim Support Operasional Nexus Net ingin menindaklanjuti kendala WiFi (${keluhan}). Apakah koneksi saat ini sudah berjalan aman dan normal kembali? Terima kasih 🙏`;
 }
+
+/**
+ * Template WhatsApp Rekapitulasi Kepatuhan Laporan Cut-Off Jam 21:00 WIB
+ */
+export function createCutoffRecapWaMessage(personilList = [], tasksList = [], dateStr = "") {
+  const tgl = dateStr || new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+
+  const onTimeList = [];
+  const lateList = [];
+  const unreportedList = [];
+
+  (personilList || []).forEach((p) => {
+    const pName = p.panggilan || p.nama;
+    const assignedTasks = (tasksList || []).filter((t) => {
+      if (Array.isArray(t.teknisi_list) && t.teknisi_list.includes(pName)) return true;
+      if (t.tim && t.tim.includes(pName)) return true;
+      return false;
+    });
+
+    if (assignedTasks.length === 0) return;
+
+    assignedTasks.forEach((t) => {
+      const spkDesc = `${t.spk_no || t.jenis} (${t.pelanggan || "Pelanggan"})`;
+      if (t.cutoff_status === "TEPAT_WAKTU") {
+        onTimeList.push(`• *${pName}*: ${spkDesc} - Pk ${t.waktu_lapor ? new Date(t.waktu_lapor).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'} WIB (Tepat Waktu)`);
+      } else if (t.cutoff_status === "TERLAMBAT") {
+        onTimeList.push(`• *${pName}*: ${spkDesc} - Pk ${t.waktu_lapor ? new Date(t.waktu_lapor).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'} WIB (Terlambat)`);
+      } else if (t.status !== "SELESAI") {
+        unreportedList.push(`• *${pName}*: ${spkDesc} [Status: ${t.status}]`);
+      }
+    });
+  });
+
+  return (
+    `📋 *REKAPITULASI LAPORAN OPERASIONAL (CUT-OFF 21:00 WIB)*\n` +
+    `🗓 Tanggal: *${tgl}*\n\n` +
+    `🟢 *Tepat Waktu (<= 21:00 WIB):* ${onTimeList.length} tugas\n` +
+    (onTimeList.length > 0 ? onTimeList.join("\n") + "\n\n" : "- Belum ada -\n\n") +
+    `🟡 *Terlambat (> 21:00 WIB):* ${lateList.length} tugas\n` +
+    (lateList.length > 0 ? lateList.join("\n") + "\n\n" : "") +
+    `🔴 *Belum Melaporkan 1 Foto:* ${unreportedList.length} tugas\n` +
+    (unreportedList.length > 0 ? unreportedList.join("\n") + "\n\n" : "Semua tugas telah dilaporkan! ✅\n\n") +
+    `_Sistem Otomatisasi Lapangan Nexus Net Management_`
+  );
+}
+

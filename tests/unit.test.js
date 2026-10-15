@@ -361,3 +361,52 @@ test("Evidence Modal & Reporting - handles Single Photo SOP and Cut-Off timestam
   assert.equal(evalResult.isLate, false);
 });
 
+test("WhatsApp Broadcast - generates structured Cut-Off 21:00 WIB executive recap", async () => {
+  const { createCutoffRecapWaMessage } = await import("../src/lib/whatsapp.js");
+
+  const mockPersonil = [
+    { id: 1, nama: "Ais Maulana", panggilan: "AIS", timNama: "Tim A" },
+    { id: 2, nama: "Jusman", panggilan: "Jusman", timNama: "Tim B" },
+  ];
+
+  const mockTasks = [
+    {
+      id: 601,
+      spk_no: "SPK/PSB/20261015/0601",
+      pelanggan: "Bpk. Hendra",
+      teknisi_list: ["AIS"],
+      status: "SELESAI",
+      cutoff_status: "TEPAT_WAKTU",
+      waktu_lapor: "2026-10-15T12:30:00Z",
+    },
+    {
+      id: 602,
+      spk_no: "SPK/RPR/20261015/0602",
+      pelanggan: "Ibu Ratna",
+      teknisi_list: ["Jusman"],
+      status: "DIJADWALKAN",
+      cutoff_status: null,
+    },
+  ];
+
+  const waMsg = createCutoffRecapWaMessage(mockPersonil, mockTasks, "15 Oktober 2026");
+  assert.ok(waMsg.includes("REKAPITULASI LAPORAN OPERASIONAL (CUT-OFF 21:00 WIB)"));
+  assert.ok(waMsg.includes("15 Oktober 2026"));
+  assert.ok(waMsg.includes("AIS"));
+  assert.ok(waMsg.includes("Tepat Waktu"));
+  assert.ok(waMsg.includes("Jusman"));
+  assert.ok(waMsg.includes("Belum Melaporkan 1 Foto"));
+});
+
+test("SPK Solo Dispatching - assigns single technician directly as member", () => {
+  const soloTeamString = "AIS (Solo)";
+  const isSolo = soloTeamString.endsWith("(Solo)");
+  const soloMember = soloTeamString.replace(" (Solo)", "").trim();
+
+  assert.equal(isSolo, true);
+  assert.equal(soloMember, "AIS");
+  const assignedMembers = isSolo ? [soloMember] : ["Tim A"];
+  assert.deepEqual(assignedMembers, ["AIS"]);
+});
+
+

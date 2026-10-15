@@ -18,6 +18,7 @@ import {
   Layers,
   Clock,
   AlertTriangle,
+  MessageCircle,
 } from "lucide-react";
 import {
   initialTimData,
@@ -35,6 +36,7 @@ import {
   getRemainingTimeToCutoff,
   getWibTimeParts,
 } from "../lib/reportCutoff";
+import { createCutoffRecapWaMessage } from "../lib/whatsapp";
 import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import PayrollManagementTab from "../components/PayrollManagementTab";
@@ -531,6 +533,12 @@ export default function Tim() {
   const remainingCutoff = getRemainingTimeToCutoff();
   const currentWib = getWibTimeParts();
 
+  const handleSendCutoffWaRecap = () => {
+    const waText = createCutoffRecapWaMessage(personilData, pekerjaanData);
+    const encoded = encodeURIComponent(waText);
+    window.open(`https://wa.me/?text=${encoded}`, "_blank");
+  };
+
   // === HANDLER REGULASI TIM ===
   const handleAddTim = () => {
     setEditingTim(null);
@@ -857,19 +865,28 @@ export default function Tim() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 self-stretch md:self-auto justify-between md:justify-end bg-white/10 px-3.5 py-2.5 rounded-xl border border-white/10 text-xs shrink-0">
+              <div className="flex items-center gap-2.5 self-stretch md:self-auto justify-between md:justify-end bg-white/10 p-2 sm:p-2.5 rounded-xl border border-white/10 text-xs shrink-0 flex-wrap">
                 <div>
                   <span className="text-[10px] text-slate-300 block font-medium">Batas Waktu Hari Ini:</span>
                   <span className="font-bold text-amber-300 font-mono text-sm">
                     {remainingCutoff.text}
                   </span>
                 </div>
-                <div className="text-right border-l border-white/20 pl-2.5">
+                <div className="text-right border-l border-white/20 pl-2.5 pr-1">
                   <span className="text-[10px] text-slate-400 block font-medium">Waktu Server</span>
                   <span className="text-xs font-bold text-white font-mono">
                     {currentWib.formattedTime}
                   </span>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleSendCutoffWaRecap}
+                  className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0"
+                  title="Kirim Ringkasan Laporan Cut-Off Pk 21:00 ke WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Kirim Rekap WA</span>
+                </button>
               </div>
             </div>
           </div>

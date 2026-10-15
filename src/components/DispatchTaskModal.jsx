@@ -43,6 +43,7 @@ import {
   getDefaultWorkItemsForTask,
   calculateKomisiItemsTotal,
 } from "../lib/incentives";
+import { initialPersonilList } from "../data/mockData";
 
 export default function DispatchTaskModal({
   isOpen,
@@ -71,6 +72,7 @@ export default function DispatchTaskModal({
   const [spkNo, setSpkNo] = useState("");
 
   const [masterKomisi] = usePersistState("xnet_master_komisi", KOMISI_PEKERJAAN_MASTER);
+  const [personilList] = usePersistState("xnet_personil", initialPersonilList);
 
   // Form State
   const [form, setForm] = useState({
@@ -167,10 +169,17 @@ export default function DispatchTaskModal({
     return checkPortCollision(form.odp, form.port, enrichedOdps, pelangganList);
   }, [form.odp, form.port, enrichedOdps, pelangganList]);
 
-  // Dapatkan nomor telepon tim terpilih
+  // Dapatkan nomor telepon tim / teknisi terpilih
   const selectedTeamObj = useMemo(() => {
-    return availableTeams.find((t) => t.nama === form.tim) || null;
-  }, [form.tim, availableTeams]);
+    const t = availableTeams.find((item) => item.nama === form.tim);
+    if (t) return t;
+    if (form.tim && form.tim.endsWith("(Solo)")) {
+      const soloName = form.tim.replace(" (Solo)", "").trim();
+      const p = (personilList || []).find((item) => (item.panggilan || item.nama) === soloName);
+      if (p) return { nama: form.tim, telepon: p.telepon, area: p.peran || "Teknisi Solo" };
+    }
+    return null;
+  }, [form.tim, availableTeams, personilList]);
 
   // Naskah teks WhatsApp live preview
   const waPreviewText = useMemo(() => {
@@ -192,9 +201,15 @@ export default function DispatchTaskModal({
 
     const cleanPhone = formatPhoneWa(form.telepon);
     const assignedTeam = availableTeams.find((t) => t.nama === form.tim);
-    const assignedMembers = Array.isArray(assignedTeam?.anggota) && assignedTeam.anggota.length > 0
-      ? assignedTeam.anggota
-      : [form.tim];
+    let assignedMembers = [];
+    if (assignedTeam && Array.isArray(assignedTeam.anggota) && assignedTeam.anggota.length > 0) {
+      assignedMembers = assignedTeam.anggota;
+    } else if (form.tim && form.tim.endsWith("(Solo)")) {
+      const soloName = form.tim.replace(" (Solo)", "").trim();
+      assignedMembers = [soloName];
+    } else {
+      assignedMembers = [form.tim];
+    }
 
     const payload = {
       ...form,
@@ -510,15 +525,28 @@ export default function DispatchTaskModal({
                 onChange={(e) => setForm({ ...form, tim: e.target.value })}
                 className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-[#0D1B4A] outline-none"
               >
-                {availableTeams.map((t) => {
-                  const workload = getTeamWorkload(t.nama, taskList);
-                  const membersStr = Array.isArray(t.anggota) && t.anggota.length > 0 ? ` (${t.anggota.join(", ")})` : "";
-                  return (
-                    <option key={t.id || t.nama} value={t.nama}>
-                      {t.nama}{membersStr} {workload > 0 ? `(${workload} Tugas Aktif)` : "(Siap / Bebas)"}
-                    </option>
-                  );
-                })}
+                <optgroup label="Regu Kerja (Tim)">
+                  {availableTeams.map((t) => {
+                    const workload = getTeamWorkload(t.nama, taskList);
+                    const membersStr = Array.isArray(t.anggota) && t.anggota.length > 0 ? ` (${t.anggota.join(", ")})` : "";
+                    return (
+                      <option key={t.id || t.nama} value={t.nama}>
+                        {t.nama}{membersStr} {workload > 0 ? `(${workload} Tugas Aktif)` : "(Siap / Bebas)"}
+                      </option>
+                    );
+                  })}
+                </optgroup>
+                <optgroup label="Teknisi Personal (Solo)">
+                  {(personilList || []).map((p) => {
+                    const pName = p.panggilan || p.nama;
+                    const workload = getTeamWorkload(pName, taskList);
+                    return (
+                      <option key={`solo_${p.id}`} value={`${pName} (Solo)`}>
+                        {p.nama} ({pName}) - Solo {workload > 0 ? `(${workload} Tugas)` : "(Siap)"}
+                      </option>
+                    );
+                  })}
+                </optgroup>
               </select>
               {selectedTeamObj && (
                 <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">

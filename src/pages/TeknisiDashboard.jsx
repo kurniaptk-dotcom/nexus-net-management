@@ -1034,6 +1034,22 @@ export default function TeknisiDashboard() {
           </p>
         )}
 
+        {/* Catatan Revisi dari SPV jika ada */}
+        {task.revisi_catatan && task.status !== "SELESAI" && (
+          <div className="p-3 bg-rose-50 border border-rose-200/90 rounded-2xl space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-900">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>Perlu Revisi Dari Supervisor:</span>
+            </div>
+            <p className="text-xs text-rose-700 leading-relaxed font-medium">
+              {task.revisi_catatan}
+            </p>
+            <p className="text-[10px] text-rose-500 font-medium">
+              Silakan ambil ulang 1 foto bukti / perbaiki redaman lalu kirim ulang laporan.
+            </p>
+          </div>
+        )}
+
         {/* Technical Data Bar untuk Tugas Selesai */}
         {isCompleted && (
           <div className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/70 space-y-1.5">

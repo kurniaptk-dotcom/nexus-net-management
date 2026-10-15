@@ -601,6 +601,48 @@ export function seedAllDemoData() {
       );
     });
     console.log("✅ [DEMO SEEDER] Seluruh data demo berhasil diisi ke sistem.");
+
+    // Sinkronisasi latar belakang ke Supabase Cloud jika user sedang login
+    if (typeof window !== "undefined") {
+      import("../lib/supabase").then(({ supabase }) => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session) return;
+          Promise.allSettled([
+            supabase.from("tim").upsert(timList.map(t => ({ id: t.id, nama: t.nama })), { onConflict: "id" }),
+            supabase.from("pekerjaan").upsert(pekerjaanList.map(p => ({
+              id: p.id,
+              tim: p.tim,
+              jenis: p.jenis,
+              alamat: p.alamat,
+              pelanggan: p.pelanggan,
+              odp: p.odp,
+              status: p.status,
+              tanggal: p.tanggal,
+              keterangan: p.keterangan,
+              spk_no: p.spk_no,
+              prioritas: p.prioritas,
+              sesi: p.sesi,
+              telepon: p.telepon,
+              port: p.port,
+              komisi_total: p.komisi_total,
+            })), { onConflict: "id" }),
+            supabase.from("leads").upsert(leadsList.map(l => ({
+              id: l.id,
+              nama: l.nama,
+              sumber: l.sumber,
+              status: l.status,
+              tanggal: l.tanggal,
+              telepon: l.telepon,
+              alamat: l.alamat,
+              odp_terdekat: l.odp_terdekat,
+              jarak_odp: l.jarak_odp,
+            })), { onConflict: "id" }),
+          ]).then(() => {
+            console.log("☁️ [SUPABASE CLOUD] Data demo berhasil disinkronkan ke cloud database.");
+          });
+        }).catch(() => {});
+      }).catch(() => {});
+    }
   } catch (err) {
     console.warn("Gagal seed demo data:", err);
   }
