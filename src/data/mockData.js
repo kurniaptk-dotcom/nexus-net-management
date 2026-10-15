@@ -572,22 +572,26 @@ export function seedAllDemoData() {
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.setItem("xnet_tim", JSON.stringify(timList));
+    localStorage.setItem("xnet_personil", JSON.stringify(initialPersonilList));
     localStorage.setItem("xnet_pekerjaan", JSON.stringify(pekerjaanList));
     localStorage.setItem("xnet_leads", JSON.stringify(leadsList));
     localStorage.setItem("xnet_gangguan", JSON.stringify(gangguanList));
     localStorage.setItem("xnet_daftar_gangguan_v2", JSON.stringify(daftarGangguanList));
     localStorage.setItem("xnet_pengajuan_pemutusan", JSON.stringify(pengajuanPemutusanList));
     localStorage.setItem("xnet_pelanggan_radius", JSON.stringify(initialPelangganRadius));
+    localStorage.setItem("xnet_odpodc", JSON.stringify(odpOdcList));
 
     // Kirim notifikasi storage update agar seluruh hook di komponen langsung me-render ulang
     const keys = [
       "xnet_tim",
+      "xnet_personil",
       "xnet_pekerjaan",
       "xnet_leads",
       "xnet_gangguan",
       "xnet_daftar_gangguan_v2",
       "xnet_pengajuan_pemutusan",
       "xnet_pelanggan_radius",
+      "xnet_odpodc",
     ];
     keys.forEach((k) => {
       window.dispatchEvent(

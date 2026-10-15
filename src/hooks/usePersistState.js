@@ -155,22 +155,8 @@ function toSnake(row) {
   return out;
 }
 
-// One-time automatic reset of local mock data caches to start with clean real data
-const RESET_STORAGE_KEY = "xnet_reset_to_real_data_v4";
-if (typeof window !== "undefined" && !localStorage.getItem(RESET_STORAGE_KEY)) {
-  const keysToReset = [
-    "xnet_pekerjaan",
-    "xnet_leads",
-    "xnet_gangguan",
-    "xnet_daftar_gangguan_v2",
-    "xnet_tim",
-    "xnet_odpodc",
-    "xnet_odc_list",
-    "xnet_pengajuan_pemutusan",
-  ];
-  keysToReset.forEach((k) => localStorage.removeItem(k));
-  localStorage.setItem(RESET_STORAGE_KEY, "done");
-}
+// Proteksi LocalStorage: Jangan menghapus data demo/lokal secara otomatis
+// agar data operasional lapangan tidak hilang saat browser dimuat ulang
 
 /**
  * Penyimpanan LocalStorage Aman dengan Proteksi Batas Kuota Browser (5MB limit)
@@ -428,7 +414,14 @@ export function usePersistState(key, initialValue) {
   const [state, setState] = useState(() => {
     try {
       const saved = localStorage.getItem(key);
-      return saved ? JSON.parse(saved) : initialValue;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(initialValue) && initialValue.length > 0) {
+          return initialValue;
+        }
+        return parsed;
+      }
+      return initialValue;
     } catch {
       return initialValue;
     }
@@ -469,7 +462,19 @@ export function usePersistState(key, initialValue) {
         const camelRows = rows.map(toCamel);
         
         setState((current) => {
-          const currentList = Array.isArray(current) ? current : [];
+          const currentList = Array.isArray(current) && current.length > 0
+            ? current
+            : (Array.isArray(initialValue) && initialValue.length > 0 ? initialValue : []);
+
+          // JIKA data dari Supabase kosong (misal tabel belum di-seed atau RLS membatasi),
+          // JANGAN hapus data lokal! Pertahankan data lokal / demo yang sudah ada.
+          if (camelRows.length === 0) {
+            if (currentList.length > 0) {
+              safeSetLocalStorage(key, currentList);
+            }
+            return currentList;
+          }
+
           // Keep only user-created pending items with timestamp IDs
           const localOnly = currentList.filter((r) => r.id >= 1000000000000);
           
@@ -480,8 +485,6 @@ export function usePersistState(key, initialValue) {
           });
 
           const merged = [...mergedRemote, ...localOnly];
-          // Tidak broadcast: setiap instance hook dengan key sama melakukan merge sendiri
-          // dari hasil fetch yang di-share, sehingga tidak terjadi badai event.
           safeSetLocalStorage(key, merged);
           return merged;
         });
@@ -490,7 +493,7 @@ export function usePersistState(key, initialValue) {
       }
     })();
     return () => { cancelled = true; };
-  }, [table, key]);
+  }, [table, key, initialValue]);
 
   // Real-time: daftar ke channel bersama per tabel (bukan 1 channel per komponen)
   useEffect(() => {
