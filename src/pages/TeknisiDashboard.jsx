@@ -629,6 +629,17 @@ export default function TeknisiDashboard() {
               is_started: true,
               waktu_mulai: nowIso,
               keterangan: (t.keterangan ? t.keterangan + " · " : "") + "Sedang menuju/dikerjakan di lokasi",
+              timeline: [
+                ...(Array.isArray(t.timeline) ? t.timeline : []),
+                {
+                  timestamp: nowIso,
+                  formattedTime: new Date(nowIso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+                  action: "Menuju Lokasi Pelanggan",
+                  actor: "Teknisi Lapangan",
+                  color: "blue",
+                  notes: `Teknisi (${t.tim || "Lapangan"}) telah memulai perjalanan menuju lokasi pemasangan/perbaikan.`,
+                },
+              ],
             }
           : t
       )
@@ -753,6 +764,19 @@ export default function TeknisiDashboard() {
           cutoff_status: cutoffEval.status,
           cutoff_label: cutoffEval.label,
         },
+        timeline: [
+          ...(Array.isArray(selectedTask.timeline) ? selectedTask.timeline : []),
+          {
+            timestamp: nowIso,
+            formattedTime: new Date(nowIso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+            action: targetStatus === "SELESAI" ? "Pekerjaan Disahkan Selesai" : "Laporan 1 Foto Terkirim",
+            actor: isSupervisor ? "Supervisor (SPV)" : "Teknisi Lapangan",
+            color: targetStatus === "SELESAI" ? "emerald" : "purple",
+            notes: targetStatus === "SELESAI"
+              ? `Pekerjaan disetujui. Redaman OPM: ${completionForm.redaman || "-"} dBm. Komisi: ${formatRupiah(totalKomisi)}.`
+              : `Foto bukti fisik terlampir. Redaman: ${completionForm.redaman || "-"} dBm, SN: ${completionForm.serialNumber || "-"}. Menunggu validasi SPV (${cutoffEval.label}).`,
+          },
+        ],
         komisi_items: completionWorkItems,
         komisi_total: totalKomisi,
         keterangan: [extraDetails, itemsSummaryStr ? `Rincian: ${itemsSummaryStr}` : ""].filter(Boolean).join(" | ") || "Laporan 1 foto pengerjaan lapangan.",
@@ -798,6 +822,7 @@ export default function TeknisiDashboard() {
     e.preventDefault();
     if (!kendalaTask) return;
 
+    const nowIso = new Date().toISOString();
     const reason = `[KENDALA] ${kendalaForm.alasan}${kendalaForm.catatan ? " - " + kendalaForm.catatan : ""}`;
 
     setPekerjaan((prev) =>
@@ -807,6 +832,17 @@ export default function TeknisiDashboard() {
               ...t,
               status: "GAGAL",
               keterangan: reason,
+              timeline: [
+                ...(Array.isArray(t.timeline) ? t.timeline : []),
+                {
+                  timestamp: nowIso,
+                  formattedTime: new Date(nowIso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+                  action: "Laporan Kendala Lapangan",
+                  actor: "Teknisi Lapangan",
+                  color: "rose",
+                  notes: `Kendala: ${kendalaForm.alasan}${kendalaForm.catatan ? ` - ${kendalaForm.catatan}` : ""}. Menunggu tindak lanjut CS & Reschedule.`,
+                },
+              ],
             }
           : t
       )

@@ -23,6 +23,11 @@ import {
 } from "../src/lib/portCollision.js";
 
 import { syncCustomerOnTaskCompletion } from "../src/lib/customerPortLifecycle.js";
+import {
+  createWhatsAppUrl,
+  getRescheduleCustomerWaTemplate,
+  getCustomerStatusUpdateWaTemplate,
+} from "../src/lib/whatsapp.js";
 
 test("SPK Generator - generates standardized SPK format", () => {
   const spkPsb = generateSpkNumber("PEMASANGAN", 1234);
@@ -462,6 +467,59 @@ test("Task Progress State & Validation Status Preservation", () => {
 
   assert.equal(startedTask.is_started, true);
   assert.ok(startedTask.waktu_mulai);
+});
+
+test("WhatsApp Templates - Reschedule & Customer Status Updates", () => {
+  const obstacleTask = {
+    id: 88,
+    spk_no: "SPK/PSB/20261021/0088",
+    jenis: "PEMASANGAN",
+    pelanggan: "Bpk. Suryo",
+    alasan_kendala: "Pohon tumbang menghalangi jalur kabel dropcore",
+    tim: "GATRA - AIS",
+    tanggal: "2026-10-22",
+    sesi: "Sesi Pagi (08:30 - 12:00 WIB)",
+  };
+
+  const rescheduleMsg = getRescheduleCustomerWaTemplate(obstacleTask);
+  assert.ok(rescheduleMsg.includes("Bpk. Suryo"));
+  assert.ok(rescheduleMsg.includes("Pohon tumbang"));
+  assert.ok(rescheduleMsg.includes("kunjungan ulang (reschedule)"));
+
+  const scheduledUpdate = getCustomerStatusUpdateWaTemplate(obstacleTask, "SCHEDULED");
+  assert.ok(scheduledUpdate.includes("telah dijadwalkan"));
+  assert.ok(scheduledUpdate.includes("2026-10-22"));
+
+  const otwTask = { ...obstacleTask, is_started: true };
+  const otwUpdate = getCustomerStatusUpdateWaTemplate(otwTask, "ON_THE_WAY");
+  assert.ok(otwUpdate.includes("sedang dalam perjalanan menuju lokasi Anda"));
+
+  const completedTask = { ...obstacleTask, status: "SELESAI" };
+  const completedUpdate = getCustomerStatusUpdateWaTemplate(completedTask, "SELESAI");
+  assert.ok(completedUpdate.includes("telah selesai dilakukan"));
+});
+
+test("Ticket Timeline & Audit Trail - Event logging integrity", () => {
+  const task = {
+    id: 99,
+    spk_no: "SPK/PSB/20261021/0099",
+    timeline: [
+      {
+        timestamp: "2026-10-21T08:00:00Z",
+        action: "SPK Diterbitkan",
+        actor: "CS / Dispatcher",
+      },
+      {
+        timestamp: "2026-10-21T09:30:00Z",
+        action: "Menuju Lokasi Pelanggan",
+        actor: "Teknisi Lapangan",
+      },
+    ],
+  };
+
+  assert.equal(task.timeline.length, 2);
+  assert.equal(task.timeline[0].actor, "CS / Dispatcher");
+  assert.equal(task.timeline[1].action, "Menuju Lokasi Pelanggan");
 });
 
 

@@ -90,3 +90,52 @@ export function createCutoffRecapWaMessage(personilList = [], tasksList = [], da
   );
 }
 
+/**
+ * Template WhatsApp CS untuk Follow-up Kendala Lapangan & Penjadwalan Ulang
+ */
+export function getRescheduleCustomerWaTemplate(task) {
+  if (!task) return "";
+  const nama = task.pelanggan || "Bpk/Ibu";
+  const kendala = task.alasan_kendala || task.keterangan || "kondisi di lokasi";
+  return (
+    `Halo Bpk/Ibu *${nama}*, kami dari Layanan Pelanggan Nexus Net.\n\n` +
+    `Tim teknisi kami sebelumnya telah menjadwalkan kunjungan untuk *${task.jenis || "Pekerjaan Layanan"}* (SPK: ${task.spk_no || "-"}), namun terdapat kendala di lapangan: _"${kendala}"_.\n\n` +
+    `Kapan waktu luang yang tepat bagi kami untuk melakukan *kunjungan ulang (reschedule)*? Mohon konfirmasi hari dan jam yang nyaman bagi Anda. Terima kasih! 🙏`
+  );
+}
+
+/**
+ * Template WhatsApp CS untuk Update Status Pekerjaan ke Pelanggan
+ */
+export function getCustomerStatusUpdateWaTemplate(task, updateType = "SCHEDULED") {
+  if (!task) return "";
+  const nama = task.pelanggan || "Bpk/Ibu";
+  const spk = task.spk_no ? ` [SPK: ${task.spk_no}]` : "";
+
+  if (updateType === "SCHEDULED" || (!task.is_started && task.status === "DIJADWALKAN")) {
+    return (
+      `Halo Bpk/Ibu *${nama}*, pemasangan/perbaikan internet Nexus Net Anda${spk} telah dijadwalkan:\n\n` +
+      `📅 *Hari/Tanggal:* ${task.tanggal || "Hari Ini"}\n` +
+      `⏰ *Sesi:* ${task.sesi || "Sesi Kerja"}\n` +
+      `👷 *Tim Teknisi:* ${task.tim || "Tim Lapangan Nexus Net"}\n\n` +
+      `Mohon pastikan ada anggota keluarga di rumah saat teknisi kami tiba. Terima kasih!`
+    );
+  }
+
+  if (updateType === "ON_THE_WAY" || task.is_started) {
+    return (
+      `Halo Bpk/Ibu *${nama}*, tim teknisi Nexus Net (*${task.tim || "Teknisi Lapangan"}*) saat ini sedang dalam perjalanan menuju lokasi Anda${spk}.\n\n` +
+      `Estimasi kedatangan dalam waktu dekat. Mohon pastikan nomor telepon ini dapat dihubungi jika teknisi memerlukan panduan arah. Terima kasih! 🛵💨`
+    );
+  }
+
+  if (updateType === "SELESAI" || task.status === "SELESAI") {
+    return (
+      `Halo Bpk/Ibu *${nama}*, pekerjaan *${task.jenis || "Layanan WiFi"}* Nexus Net Anda telah selesai dilakukan oleh tim teknisi kami.\n\n` +
+      `Selamat menikmati koneksi internet Nexus Net! Jika ada pertanyaan atau kendala di kemudian hari, silakan hubungi nomor layanan ini. Terima kasih telah mempercayai kami 🙏✨`
+    );
+  }
+
+  return `Halo Bpk/Ibu *${nama}*, update status pekerjaan ${task.jenis} Anda: ${task.status}. Terima kasih.`;
+}
+

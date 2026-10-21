@@ -33,6 +33,8 @@ import {
   Copy,
   Sparkles,
   CheckCircle2,
+  History,
+  CalendarSync,
 } from "lucide-react";
 import {
   pekerjaanList,
@@ -52,6 +54,8 @@ import MasterKomisiTab from "../components/MasterKomisiTab";
 import WorkItemsChecklist from "../components/WorkItemsChecklist";
 import ConfirmModal from "../components/ConfirmModal";
 import TaskCompletionModal from "../components/TaskCompletionModal";
+import TicketTimelineModal from "../components/TicketTimelineModal";
+import RescheduleModal from "../components/RescheduleModal";
 import {
   KOMISI_PEKERJAAN_MASTER,
   getDefaultWorkItemsForTask,
@@ -60,6 +64,7 @@ import {
 } from "../lib/incentives";
 import { syncCustomerOnTaskCompletion } from "../lib/customerPortLifecycle";
 import { generateSpkWaUrl, formatPhoneWa } from "../lib/spkGenerator";
+import { createWhatsAppUrl, getCustomerStatusUpdateWaTemplate } from "../lib/whatsapp";
 
 function notify(notif) {
   if (window.__addNotification) window.__addNotification(notif);
@@ -164,7 +169,20 @@ function JenisBadge({ jenis }) {
   );
 }
 
-function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvidence, onSendWaSpk, onCompleteTask, teamWorkloadMap }) {
+function KanbanCard({
+  item,
+  onEdit,
+  onDelete,
+  onDragStart,
+  onDragEnd,
+  onViewEvidence,
+  onSendWaSpk,
+  onCompleteTask,
+  onViewTimeline,
+  onReschedule,
+  onNotifyCustomerWa,
+  teamWorkloadMap,
+}) {
   const [copied, setCopied] = useState(false);
   const jc = jenisColors[item.jenis] || jenisColors.PEMASANGAN;
 
@@ -190,13 +208,16 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvid
   };
 
   const isTeamOverload = teamWorkloadMap && teamWorkloadMap[item.tim] >= 5 && item.status !== "SELESAI";
+  const isSlaUrgent = item.jenis === "PERBAIKAN" && item.status === "WAITING LIST";
 
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, item.id)}
       onDragEnd={onDragEnd}
-      className="bg-white rounded-2xl border border-slate-200/90 p-4 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-slate-300 transition-all group relative overflow-hidden"
+      className={`bg-white rounded-2xl border p-4 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-slate-300 transition-all group relative overflow-hidden ${
+        isSlaUrgent ? "border-rose-300 ring-2 ring-rose-100" : "border-slate-200/90"
+      }`}
     >
       <div className="flex items-start justify-between gap-1.5 mb-2">
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -209,6 +230,12 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvid
           {item.spk_no && (
             <span className="text-[9px] font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
               {item.spk_no}
+            </span>
+          )}
+          {isSlaUrgent && (
+            <span className="text-[9px] font-bold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded border border-rose-300 flex items-center gap-1 animate-pulse">
+              <AlertTriangle className="w-2.5 h-2.5 text-rose-600 shrink-0" />
+              <span>SLA Mendesak</span>
             </span>
           )}
           {item.is_started && item.status !== "SELESAI" && (
@@ -363,6 +390,48 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvid
               <span>SPK</span>
             </button>
           )}
+          {onViewTimeline && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewTimeline(item);
+              }}
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer"
+              title="Lihat Kronologis Perjalanan SPK & Audit Trail"
+            >
+              <History className="w-3 h-3 text-blue-600" />
+              <span>Jejak</span>
+            </button>
+          )}
+          {item.status === "GAGAL" && onReschedule && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onReschedule(item);
+              }}
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-amber-600 hover:bg-amber-700 shadow-xs px-2 py-0.5 rounded-md transition-colors cursor-pointer"
+              title="Atur Ulang Jadwal Kunjungan & Regu Teknisi"
+            >
+              <CalendarSync className="w-3 h-3 text-white" />
+              <span>Jadwal Ulang</span>
+            </button>
+          )}
+          {item.telepon && onNotifyCustomerWa && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onNotifyCustomerWa(item);
+              }}
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer"
+              title="Kabari Pelanggan via WhatsApp"
+            >
+              <Phone className="w-3 h-3 text-emerald-600" />
+              <span>Kabari</span>
+            </button>
+          )}
           {onViewEvidence && (item.status === "SELESAI" || item.evidence || item.foto_opm) && (
             <button
               type="button"
@@ -399,6 +468,8 @@ export default function Pekerjaan() {
 
   const [viewEvidenceTask, setViewEvidenceTask] = useState(null);
   const [completingTask, setCompletingTask] = useState(null);
+  const [timelineTask, setTimelineTask] = useState(null);
+  const [rescheduleTask, setRescheduleTask] = useState(null);
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
   const [dispatchInitialData, setDispatchInitialData] = useState({});
   const [searchParams, setSearchParams] = useSearchParams();
@@ -476,6 +547,50 @@ export default function Pekerjaan() {
   const handleSendWaSpk = (task) => {
     const targetTeam = timData.find((t) => t.nama === task.tim) || null;
     const waUrl = generateSpkWaUrl(task, targetTeam?.telepon);
+    window.open(waUrl, "_blank");
+  };
+
+  // Konfirmasi Reschedule Tugas yang Terkendala / Gagal
+  const handleConfirmReschedule = (updatedTask) => {
+    setData((prev) =>
+      prev.map((item) => (item.id === updatedTask.id ? updatedTask : item))
+    );
+
+    try {
+      const currentRaw = localStorage.getItem("xnet_pekerjaan");
+      const currentList = currentRaw ? JSON.parse(currentRaw) : [];
+      const updatedList = currentList.map((t) => (t.id === updatedTask.id ? updatedTask : t));
+      localStorage.setItem("xnet_pekerjaan", JSON.stringify(updatedList));
+      window.dispatchEvent(
+        new CustomEvent("xnet_storage_update", {
+          detail: { key: "xnet_pekerjaan", value: updatedList },
+        })
+      );
+    } catch (e) {
+      console.warn("[RESCHEDULE SYNC EVENT]", e);
+    }
+
+    notify({
+      id: Date.now(),
+      type: "SUCCESS",
+      title: "Jadwal Ulang Berhasil",
+      message: `Tugas #${updatedTask.spk_no || updatedTask.id} (${updatedTask.pelanggan}) dijadwalkan ulang ke ${updatedTask.tanggal} (${updatedTask.tim}).`,
+      timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+      read: false,
+    });
+    showToast(`Tugas "${updatedTask.pelanggan}" berhasil dijadwalkan ulang!`, "success");
+    setRescheduleTask(null);
+  };
+
+  // Kirim Update Status / Notifikasi ke Pelanggan via WhatsApp
+  const handleNotifyCustomerWa = (task) => {
+    if (!task.telepon) {
+      showToast("Nomor WhatsApp pelanggan belum tersedia.", "warning");
+      return;
+    }
+    const updateType = task.status === "SELESAI" ? "SELESAI" : task.is_started ? "OTW" : "JADWAL";
+    const waText = getCustomerStatusUpdateWaTemplate(task, updateType);
+    const waUrl = createWhatsAppUrl(task.telepon, waText);
     window.open(waUrl, "_blank");
   };
 
@@ -1177,7 +1292,7 @@ export default function Pekerjaan() {
               </div>
 
               {/* Kanban Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                 {KANBAN_COLUMNS.filter(
                   (col) => mobileKanbanCol === "ALL" || col.key === mobileKanbanCol
                 ).map((col) => {
@@ -1228,6 +1343,9 @@ export default function Pekerjaan() {
                             onViewEvidence={setViewEvidenceTask}
                             onSendWaSpk={handleSendWaSpk}
                             onCompleteTask={setCompletingTask}
+                            onViewTimeline={setTimelineTask}
+                            onReschedule={setRescheduleTask}
+                            onNotifyCustomerWa={handleNotifyCustomerWa}
                             teamWorkloadMap={teamWorkloadMap}
                           />
                         ))}
@@ -1355,6 +1473,22 @@ export default function Pekerjaan() {
                           </button>
                         )}
                         <button
+                          onClick={() => setTimelineTask(item)}
+                          className="min-w-[34px] min-h-[34px] p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-all flex items-center justify-center active:scale-95"
+                          title="Lihat Kronologis Jejak SPK"
+                        >
+                          <History className="w-4 h-4 text-blue-600" />
+                        </button>
+                        {item.status === "GAGAL" && (
+                          <button
+                            onClick={() => setRescheduleTask(item)}
+                            className="min-w-[34px] min-h-[34px] p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition-all flex items-center justify-center active:scale-95"
+                            title="Jadwalkan Ulang Kunjungan Lapangan"
+                          >
+                            <CalendarSync className="w-4 h-4 text-amber-600" />
+                          </button>
+                        )}
+                        <button
                           onClick={() => handleEdit(item)}
                           className="min-w-[34px] min-h-[34px] p-2 rounded-xl bg-slate-50 hover:bg-gray-100 text-slate-600 hover:text-[#0D1B4A] border border-slate-200 transition-all flex items-center justify-center active:scale-95"
                           title="Edit"
@@ -1442,6 +1576,22 @@ export default function Pekerjaan() {
                                 title="Validasi Selesai (SOP Lapangan)"
                               >
                                 <Check className="w-4 h-4 text-white" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setTimelineTask(item)}
+                              className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors"
+                              title="Lihat Kronologis Perjalanan SPK & Audit Trail"
+                            >
+                              <History className="w-4 h-4 text-blue-600" />
+                            </button>
+                            {item.status === "GAGAL" && (
+                              <button
+                                onClick={() => setRescheduleTask(item)}
+                                className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition-colors"
+                                title="Jadwalkan Ulang Kunjungan Lapangan"
+                              >
+                                <CalendarSync className="w-4 h-4 text-amber-600" />
                               </button>
                             )}
                             <button
@@ -2148,6 +2298,22 @@ export default function Pekerjaan() {
         confirmText="Hapus Data"
         cancelText="Batal"
         variant="danger"
+      />
+
+      {/* Modal Kronologis Jejak Tiket / Audit Trail */}
+      <TicketTimelineModal
+        isOpen={Boolean(timelineTask)}
+        task={timelineTask}
+        onClose={() => setTimelineTask(null)}
+      />
+
+      {/* Modal Reschedule & Tindak Lanjut CS untuk Pekerjaan Gagal/Terkendala */}
+      <RescheduleModal
+        isOpen={Boolean(rescheduleTask)}
+        task={rescheduleTask}
+        timList={timData}
+        onClose={() => setRescheduleTask(null)}
+        onConfirm={handleConfirmReschedule}
       />
     </div>
   );

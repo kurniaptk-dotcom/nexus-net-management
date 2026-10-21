@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Edit2, Trash2, Target, Phone, MapPin, Calendar, Globe, Radio, ExternalLink, Zap, MessageCircle, Loader2, Share2, Check, HardHat, Send } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Target, Phone, MapPin, Calendar, Globe, Radio, ExternalLink, Zap, MessageCircle, Loader2, Share2, Check, HardHat, Send, AlertTriangle } from "lucide-react";
 import { leadsList, sumberLeads, odpOdcList, initialPelangganRadius, initialTimData } from "../data/mockData";
 import { generateLeadsNotification } from "../store/notificationStore";
 import { usePersistState } from "../hooks/usePersistState";
@@ -285,6 +285,19 @@ export default function Leads() {
     setDeleteTargetLead(null);
   };
 
+  const leadPhoneDuplicate = useMemo(() => {
+    if (!formData.telepon || editingItem) return null;
+    const clean = formatPhoneWa(formData.telepon);
+    if (!clean || clean.length < 8) return null;
+    const matchLead = (data || []).find((d) => formatPhoneWa(d.telepon) === clean);
+    if (matchLead) return { type: "LEAD", name: matchLead.nama, status: matchLead.status };
+    const matchTask = (pekerjaan || []).find(
+      (p) => formatPhoneWa(p.telepon) === clean && p.status !== "SELESAI" && p.status !== "GAGAL"
+    );
+    if (matchTask) return { type: "SPK", name: matchTask.pelanggan, spk: matchTask.spk_no, status: matchTask.status };
+    return null;
+  }, [formData.telepon, editingItem, data, pekerjaan]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const cleanNama = (formData.nama || "").trim();
@@ -293,6 +306,30 @@ export default function Leads() {
       return;
     }
     const cleanTelepon = formatPhoneWa(formData.telepon || "");
+
+    // Cek Duplikasi Lead & Tiket SPK Aktif
+    if (!editingItem && cleanTelepon) {
+      const dupLead = (data || []).find((d) => formatPhoneWa(d.telepon) === cleanTelepon);
+      if (dupLead) {
+        showToast(
+          `Nomor ${cleanTelepon} sudah ada dalam database Lead atas nama "${dupLead.nama}" (${dupLead.status})!`,
+          "error"
+        );
+        return;
+      }
+
+      const dupTask = (pekerjaan || []).find(
+        (p) => formatPhoneWa(p.telepon) === cleanTelepon && p.status !== "SELESAI" && p.status !== "GAGAL"
+      );
+      if (dupTask) {
+        showToast(
+          `Nomor ${cleanTelepon} sudah memiliki SPK aktif #${dupTask.spk_no || dupTask.id} (${dupTask.jenis})!`,
+          "error"
+        );
+        return;
+      }
+    }
+
     const cleanData = {
       ...formData,
       nama: cleanNama,
@@ -527,9 +564,35 @@ export default function Leads() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Telepon</label>
-                <input type="text" value={formData.telepon} onChange={(e) => setFormData({ ...formData, telepon: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none" />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">Telepon (WhatsApp)</label>
+                  {leadPhoneDuplicate && (
+                    <span className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">
+                      ⚠️ Nomor Terdaftar
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  placeholder="08xxxxxxxxxx"
+                  value={formData.telepon}
+                  onChange={(e) => setFormData({ ...formData, telepon: e.target.value })}
+                  className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-all ${
+                    leadPhoneDuplicate
+                      ? "border-rose-400 bg-rose-50/30 focus:ring-2 focus:ring-rose-400"
+                      : "border-gray-200 focus:ring-2 focus:ring-[#F59E0B]"
+                  }`}
+                />
+                {leadPhoneDuplicate && (
+                  <div className="mt-1.5 p-2 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start gap-1.5 font-medium animate-in fade-in">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                    <span className="leading-tight">
+                      {leadPhoneDuplicate.type === "LEAD"
+                        ? `Nomor sudah ada di Lead: "${leadPhoneDuplicate.name}" (${leadPhoneDuplicate.status}). Hubungi calon pelanggan lewat data lead yang sudah ada.`
+                        : `Nomor ini sudah memiliki SPK Aktif: ${leadPhoneDuplicate.spk || ""} (${leadPhoneDuplicate.status}).`}
+                    </span>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Alamat</label>

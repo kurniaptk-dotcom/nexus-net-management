@@ -223,6 +223,28 @@ export default function DispatchTaskModal({
       spk_no: spkNo,
       status: "WAITING LIST",
       created_at: new Date().toISOString(),
+      timeline: Array.isArray(initialData.timeline) && initialData.timeline.length > 0
+        ? [
+            ...initialData.timeline,
+            {
+              timestamp: new Date().toISOString(),
+              action: "SPK Diperbarui",
+              actor: "CS / Dispatcher",
+              status: "WAITING LIST",
+              color: "blue",
+              notes: `Jadwal: ${form.tanggal || "-"} (${form.sesi || "Reguler"}). Ditugaskan ke ${form.tim}.`,
+            },
+          ]
+        : [
+            {
+              timestamp: new Date().toISOString(),
+              action: "SPK Diterbitkan",
+              actor: "CS / Dispatcher",
+              status: "WAITING LIST",
+              color: "blue",
+              notes: `SPK ${spkNo} diterbitkan untuk pekerjaan ${form.jenis}. Dijadwalkan tanggal ${form.tanggal || "-"} (${form.sesi || "Reguler"}) ke Tim ${form.tim}.`,
+            },
+          ],
       komisi_items: form.komisi_items || [],
       komisi_total: form.komisi_total !== undefined
         ? Number(form.komisi_total)
