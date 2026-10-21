@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   HardHat,
   Wrench,
@@ -9,6 +9,7 @@ import {
   MessageCircle,
   Gauge,
   Wifi,
+  WifiOff,
   AlertTriangle,
   Users,
   Search,
@@ -60,7 +61,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { usePersistState } from "../hooks/usePersistState";
+import { usePersistState, useRealtimeStatus } from "../hooks/usePersistState";
 import { pekerjaanList, initialTimData, odpOdcList, initialPelangganRadius } from "../data/mockData";
 import {
   KOMISI_PEKERJAAN_MASTER,
@@ -240,6 +241,18 @@ export default function TeknisiDashboard() {
   const [showOpmGuideModal, setShowOpmGuideModal] = useState(false);
   const [showNocContactModal, setShowNocContactModal] = useState(false);
   const [showSopModal, setShowSopModal] = useState(false);
+
+  // Status Koneksi Jaringan & Sinkronisasi Offline Lapangan (PWA)
+  const { isOnline } = useRealtimeStatus();
+
+  // Dynamic Live Timer Cut-Off Pk 21:00 WIB (Interval Realtime)
+  const [cutoffRemaining, setCutoffRemaining] = useState(() => getRemainingTimeToCutoff());
+  useEffect(() => {
+    const update = () => setCutoffRemaining(getRemainingTimeToCutoff());
+    update();
+    const timer = setInterval(update, 20000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Search & Filter Kolom Mobile
   const [search, setSearch] = useState("");
@@ -1112,17 +1125,17 @@ export default function TeknisiDashboard() {
           </div>
         )}
 
-        {/* Bottom Actions Bar */}
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1.5">
-          {/* Quick Contact & Navigation Toolbar */}
-          <div className="flex items-center gap-1">
+        {/* Bottom Actions Bar (Mobile Touch-Friendly Min 40px Targets) */}
+        <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+          {/* Quick Contact & Navigation Toolbar (PWA Field Optimized) */}
+          <div className="flex items-center gap-1.5">
             {task.telepon && (
               <a
                 href={`tel:${task.telepon}`}
-                className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center border border-blue-200 transition-colors"
+                className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-700 flex items-center justify-center border border-blue-200 transition-all active:scale-95 shadow-2xs"
                 title="Panggilan Telepon Langsung"
               >
-                <PhoneCall className="w-3.5 h-3.5" />
+                <PhoneCall className="w-4 h-4" />
               </a>
             )}
 
@@ -1131,10 +1144,10 @@ export default function TeknisiDashboard() {
                 href={createWhatsAppUrl(cleanWaPhone, waMessage)}
                 target="_blank"
                 rel="noreferrer"
-                className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center border border-emerald-200 transition-colors"
+                className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-700 flex items-center justify-center border border-emerald-200 transition-all active:scale-95 shadow-2xs"
                 title="Chat WhatsApp Pelanggan"
               >
-                <MessageCircle className="w-3.5 h-3.5" />
+                <MessageCircle className="w-4 h-4" />
               </a>
             )}
 
@@ -1142,29 +1155,29 @@ export default function TeknisiDashboard() {
               href={mapsNavigationUrl}
               target="_blank"
               rel="noreferrer"
-              className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center border border-slate-200 transition-colors"
+              className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center border border-slate-200 transition-all active:scale-95 shadow-2xs"
               title="Navigasi Rute Langsung (Google Maps)"
             >
-              <Navigation className="w-3.5 h-3.5 text-blue-600" />
+              <Navigation className="w-4 h-4 text-blue-600" />
             </a>
           </div>
 
-          {/* Action Buttons Right */}
+          {/* Action Buttons Right (Comfortable Touch Target) */}
           <div className="flex items-center gap-1.5">
             {!isCompleted ? (
               <>
                 {!task.is_started ? (
                   <button
                     onClick={() => handleStartTask(task)}
-                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold border border-blue-200 transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                    className="h-10 px-3.5 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-700 rounded-xl text-xs font-bold border border-blue-200 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-2xs"
                     title="Tandai Mulai Kerjakan / Menuju Lokasi"
                   >
-                    <Activity className="w-3.5 h-3.5 text-blue-600" />
+                    <Activity className="w-4 h-4 text-blue-600" />
                     <span>Mulai</span>
                   </button>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                  <span className="h-10 px-3 rounded-xl inline-flex items-center gap-1.5 text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs">
+                    <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
                     <span>Proses</span>
                   </span>
                 )}
@@ -1188,9 +1201,9 @@ export default function TeknisiDashboard() {
                       fotoModem: null,
                     });
                   }}
-                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center gap-1"
+                  className="h-10 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
                 >
-                  <Check className="w-3.5 h-3.5" />
+                  <Check className="w-4 h-4" />
                   <span>Selesai</span>
                 </button>
 
@@ -1202,7 +1215,7 @@ export default function TeknisiDashboard() {
                       catatan: "",
                     });
                   }}
-                  className="p-1 hover:bg-rose-50 text-slate-300 hover:text-rose-600 rounded transition-colors"
+                  className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-600 border border-rose-200 transition-all cursor-pointer flex items-center justify-center active:scale-95 shadow-2xs"
                   title="Ada Kendala"
                 >
                   <AlertTriangle className="w-4 h-4" />
@@ -1212,7 +1225,7 @@ export default function TeknisiDashboard() {
               <button
                 type="button"
                 onClick={() => setViewEvidenceTask(task)}
-                className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-[11px] font-bold border border-emerald-200 transition-all cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95"
+                className="h-10 px-3.5 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95"
                 title="Lihat Bukti Foto & Parameter Lapangan"
               >
                 <Camera className="w-3.5 h-3.5 text-emerald-600" />
@@ -1230,6 +1243,24 @@ export default function TeknisiDashboard() {
       {/* Toast Notification */}
       {toast.show && (
         <Toast message={toast.message} type={toast.type} onClose={() => setToast((prev) => ({ ...prev, show: false }))} />
+      )}
+
+      {/* Visual Offline Mode Banner (PWA Field Optimized) */}
+      {!isOnline && (
+        <div className="sticky top-2 z-40 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white px-4 py-2.5 rounded-2xl shadow-lg border border-amber-300/40 flex items-center justify-between gap-3 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <WifiOff className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-black tracking-wide">Mode Offline Lapangan Aktif</p>
+              <p className="text-[11px] text-amber-100">Koneksi internet terputus. Anda tetap bisa input & simpan foto laporan. Sistem akan otomatis sinkron ke server begitu kembali online.</p>
+            </div>
+          </div>
+          <span className="shrink-0 text-[10px] font-black uppercase px-2.5 py-1 bg-black/25 text-amber-200 rounded-full border border-white/20 font-mono">
+            Tersimpan Lokal
+          </span>
+        </div>
       )}
 
       {/* ========================================================================= */}
@@ -1485,9 +1516,25 @@ export default function TeknisiDashboard() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto text-xs bg-white/95 border border-amber-200 px-3 py-1.5 rounded-xl font-mono text-amber-900 shadow-2xs">
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-              <span className="font-bold">{getRemainingTimeToCutoff().text}</span>
+            <div
+              className={`flex items-center gap-2 shrink-0 self-end sm:self-auto text-xs px-3.5 py-1.5 rounded-xl font-mono shadow-2xs border transition-all ${
+                cutoffRemaining.isPassed
+                  ? "bg-rose-50 border-rose-200 text-rose-800"
+                  : cutoffRemaining.minutesRemaining <= 60
+                  ? "bg-amber-100 border-amber-300 text-amber-900"
+                  : "bg-white/95 border-amber-200 text-amber-900"
+              }`}
+            >
+              <span
+                className={`w-2.5 h-2.5 rounded-full ${
+                  cutoffRemaining.isPassed
+                    ? "bg-rose-500"
+                    : cutoffRemaining.minutesRemaining <= 60
+                    ? "bg-amber-600 animate-ping"
+                    : "bg-amber-500 animate-pulse"
+                }`}
+              />
+              <span className="font-bold">{cutoffRemaining.text}</span>
             </div>
           </div>
 
@@ -2947,6 +2994,28 @@ export default function TeknisiDashboard() {
                     </span>
                   </div>
                   <OpticalPowerGauge value={completionForm.redaman} mode="full" className="mt-2.5" />
+
+                  {/* SOP Realtime Warning Banner if Redaman > -27.0 dBm */}
+                  {completionForm.redaman && Math.abs(parseFloat(completionForm.redaman)) > 27 && (
+                    <div className="mt-2.5 p-3.5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-900 text-xs flex items-start gap-3 animate-in fade-in">
+                      <div className="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center shrink-0 text-rose-600 mt-0.5">
+                        <AlertTriangle className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-extrabold text-rose-900 text-xs">
+                          Peringatan SOP: Redaman Melebihi Batas Toleransi (-27.0 dBm)!
+                        </p>
+                        <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
+                          Nilai redaman <b>{completionForm.redaman} dBm</b> berisiko tinggi menyebabkan packet loss, LOS, atau komplain pelanggan. Sebelum mengirim:
+                        </p>
+                        <ul className="list-disc pl-4 mt-1 text-[11px] text-rose-800 space-y-0.5">
+                          <li>Periksa tekukan mikro pada kabel dropcore di tiang & rumah pelanggan.</li>
+                          <li>Bersihkan ferrule konektor SC/UPC dengan optik cleaner.</li>
+                          <li>Lakukan kupas ulang atau splicing fast connector jika diperlukan.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

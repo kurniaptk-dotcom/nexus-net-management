@@ -543,9 +543,10 @@ export default function DispatchTaskModal({
                   {availableTeams.map((t) => {
                     const workload = getTeamWorkload(t.nama, taskList);
                     const membersStr = Array.isArray(t.anggota) && t.anggota.length > 0 ? ` (${t.anggota.join(", ")})` : "";
+                    const isOverload = workload >= 5;
                     return (
                       <option key={t.id || t.nama} value={t.nama}>
-                        {t.nama}{membersStr} {workload > 0 ? `(${workload} Tugas Aktif)` : "(Siap / Bebas)"}
+                        {t.nama}{membersStr} {isOverload ? `⚠️ OVERLOAD (${workload} Tugas Aktif)` : workload > 0 ? `(${workload} Tugas Aktif)` : "(Siap / Bebas)"}
                       </option>
                     );
                   })}
@@ -554,14 +555,32 @@ export default function DispatchTaskModal({
                   {(personilList || []).map((p) => {
                     const pName = p.panggilan || p.nama;
                     const workload = getTeamWorkload(pName, taskList);
+                    const isOverload = workload >= 5;
                     return (
                       <option key={`solo_${p.id}`} value={`${pName} (Solo)`}>
-                        {p.nama} ({pName}) - Solo {workload > 0 ? `(${workload} Tugas)` : "(Siap)"}
+                        {p.nama} ({pName}) - Solo {isOverload ? `⚠️ OVERLOAD (${workload} Tugas)` : workload > 0 ? `(${workload} Tugas)` : "(Siap)"}
                       </option>
                     );
                   })}
                 </optgroup>
               </select>
+              {(() => {
+                const curWorkload = getTeamWorkload(form.tim?.replace(" (Solo)", ""), taskList);
+                if (curWorkload >= 5) {
+                  return (
+                    <div className="mt-2 p-2.5 bg-rose-50 border border-rose-300 rounded-xl text-xs text-rose-900 flex items-start gap-2 animate-in fade-in">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold">Peringatan: Tim {form.tim} Sedang Overload ({curWorkload} Tugas Aktif)!</p>
+                        <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
+                          Beban kerja tim ini telah mencapai {curWorkload} SPK aktif hari ini. Penugasan baru berisiko menyebabkan penundaan dan keterlambatan melewati cut-off 21:00 WIB.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               {selectedTeamObj && (
                 <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
                   <span>📱 WA Tim: {selectedTeamObj.telepon || "Tidak dicatat"}</span>

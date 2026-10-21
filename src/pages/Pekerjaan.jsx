@@ -30,6 +30,9 @@ import {
   Coins,
   AlertTriangle,
   Check,
+  Copy,
+  Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import {
   pekerjaanList,
@@ -70,6 +73,61 @@ const KANBAN_COLUMNS = [
   { key: "GAGAL", label: "Gagal", color: "#EF4444", bg: "bg-red-50", border: "border-red-200", icon: XCircle },
 ];
 
+const EMPTY_STATE_CONFIG = {
+  "WAITING LIST": {
+    icon: CheckCircle2,
+    color: "text-amber-500",
+    bg: "bg-amber-50",
+    title: "Antrean Bersih",
+    desc: "Seluruh SPK telah dijadwalkan ke tim teknisi lapangan.",
+  },
+  "DIJADWALKAN": {
+    icon: Clock,
+    color: "text-blue-500",
+    bg: "bg-blue-50",
+    title: "Tidak Ada Tugas Berjalan",
+    desc: "Belum ada tugas lapangan yang sedang dikerjakan saat ini.",
+  },
+  "MENUNGGU VALIDASI": {
+    icon: Camera,
+    color: "text-purple-500",
+    bg: "bg-purple-50",
+    title: "Validasi SPV Tuntas",
+    desc: "Semua laporan foto telah disahkan oleh supervisor.",
+  },
+  "SELESAI": {
+    icon: Sparkles,
+    color: "text-emerald-500",
+    bg: "bg-emerald-50",
+    title: "Belum Ada Pekerjaan Selesai",
+    desc: "Pekerjaan yang divalidasi hari ini akan tercatat di sini.",
+  },
+  "GAGAL": {
+    icon: Sparkles,
+    color: "text-emerald-600",
+    bg: "bg-emerald-50",
+    title: "Nol Kendala Lapangan",
+    desc: "Sempurna! Tidak ada laporan kendala atau pekerjaan tertunda.",
+  },
+};
+
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200/80 p-4 space-y-3 animate-pulse shadow-2xs">
+      <div className="flex items-center justify-between">
+        <div className="h-5 bg-slate-200 rounded-md w-24" />
+        <div className="h-5 bg-slate-100 rounded-md w-12" />
+      </div>
+      <div className="h-4 bg-slate-200 rounded w-3/4" />
+      <div className="h-3 bg-slate-100 rounded w-1/2" />
+      <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+        <div className="h-4 bg-slate-200 rounded w-20" />
+        <div className="h-6 bg-slate-100 rounded-lg w-16" />
+      </div>
+    </div>
+  );
+}
+
 const jenisColors = {
   PEMASANGAN: { bg: "bg-blue-50", text: "text-blue-700", ring: "ring-blue-200", dot: "bg-blue-500" },
   PERBAIKAN: { bg: "bg-orange-50", text: "text-orange-700", ring: "ring-orange-200", dot: "bg-orange-500" },
@@ -106,8 +164,33 @@ function JenisBadge({ jenis }) {
   );
 }
 
-function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvidence, onSendWaSpk, onCompleteTask }) {
+function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvidence, onSendWaSpk, onCompleteTask, teamWorkloadMap }) {
+  const [copied, setCopied] = useState(false);
   const jc = jenisColors[item.jenis] || jenisColors.PEMASANGAN;
+
+  const handleQuickCopy = (e) => {
+    e.stopPropagation();
+    const summary = [
+      `📋 SPK: ${item.spk_no || `#${item.id}`} (${item.jenis})`,
+      `👤 Pelanggan: ${item.pelanggan || "-"}`,
+      `📞 Telp: ${item.telepon || "-"}`,
+      `📍 Alamat: ${item.alamat || "-"}`,
+      `🌐 ODP: ${item.odp || "-"} ${item.port ? `(Port ${item.port})` : ""}`,
+      `👷 Tim: ${item.tim || "-"}`,
+      `📅 Jadwal: ${item.tanggal || "-"} ${item.sesi ? `(${item.sesi})` : ""}`,
+      item.keterangan ? `📝 Catatan: ${item.keterangan}` : "",
+    ].filter(Boolean).join("\n");
+
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(summary);
+    }
+    setCopied(true);
+    showToast(`Ringkasan SPK "${item.pelanggan || item.spk_no}" berhasil disalin!`, "success");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const isTeamOverload = teamWorkloadMap && teamWorkloadMap[item.tim] >= 5 && item.status !== "SELESAI";
+
   return (
     <div
       draggable
@@ -135,7 +218,28 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvid
             </span>
           )}
         </div>
-        <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+          {/* 1-Click Quick Copy Button with Visual Feedback */}
+          <button
+            type="button"
+            onClick={handleQuickCopy}
+            className={`p-1 rounded-lg transition-all cursor-pointer ${
+              copied
+                ? "bg-emerald-100 text-emerald-800 font-bold px-1.5 text-[10px]"
+                : "hover:bg-slate-100 text-slate-400 hover:text-blue-600"
+            }`}
+            title="1-Click Salin Ringkasan SPK & Info Pelanggan"
+          >
+            {copied ? (
+              <span className="flex items-center gap-1 font-bold">
+                <Check className="w-3 h-3 text-emerald-600" />
+                <span>Tersalin!</span>
+              </span>
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
+          </button>
+
           {onCompleteTask && item.status !== "SELESAI" && (
             <button
               onClick={(e) => { e.stopPropagation(); onCompleteTask(item); }}
@@ -202,11 +306,19 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvid
       ) : null}
       <div className="flex items-center justify-between gap-1 flex-wrap">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#0D1B4A]/5 text-[#0D1B4A] font-bold">
-            {item.tim || "-"}
+          <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#0D1B4A]/5 text-[#0D1B4A] font-bold flex items-center gap-1">
+            <span>{item.tim || "-"}</span>
             {Array.isArray(item.teknisi_list) && item.teknisi_list.length > 0
               ? ` (${item.teknisi_list.join(", ")})`
               : ""}
+            {isTeamOverload && (
+              <span
+                className="text-[9px] px-1.5 py-0.2 rounded font-black bg-rose-100 text-rose-700 border border-rose-300"
+                title={`Tim ${item.tim} memiliki ${teamWorkloadMap[item.tim]} tugas aktif (Overload)`}
+              >
+                ⚠️ Overload ({teamWorkloadMap[item.tim]})
+              </span>
+            )}
           </span>
           {item.komisi_total ? (
             <span
@@ -296,6 +408,7 @@ export default function Pekerjaan() {
   const [filterJenis, setFilterJenis] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterTim, setFilterTim] = useState("ALL");
+  const [quickFilter, setQuickFilter] = useState("ALL");
   const [viewMode, setViewMode] = useState("kanban");
   const [mobileKanbanCol, setMobileKanbanCol] = useState("ALL");
   const [activeTab, setActiveTab] = useState("pekerjaan");
@@ -422,6 +535,46 @@ export default function Pekerjaan() {
     return groups;
   }, [odpData]);
 
+  const teamWorkloadMap = useMemo(() => {
+    const map = {};
+    (data || []).forEach((t) => {
+      if (!t.tim || t.status === "SELESAI" || t.status === "GAGAL") return;
+      map[t.tim] = (map[t.tim] || 0) + 1;
+    });
+    return map;
+  }, [data]);
+
+  const quickFilterCounts = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    const todayStr = `${y}-${m}-${d}`;
+
+    const tm = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const ty = tm.getFullYear();
+    const tmm = String(tm.getMonth() + 1).padStart(2, "0");
+    const td = String(tm.getDate()).padStart(2, "0");
+    const tomorrowStr = `${ty}-${tmm}-${td}`;
+
+    let todayCount = 0;
+    let tomorrowCount = 0;
+    let pagiCount = 0;
+    let siangCount = 0;
+    let soreCount = 0;
+
+    (data || []).forEach((item) => {
+      if (item.tanggal === todayStr) todayCount++;
+      if (item.tanggal === tomorrowStr) tomorrowCount++;
+      const s = (item.sesi || "").toUpperCase();
+      if (s.includes("PAGI")) pagiCount++;
+      else if (s.includes("SIANG")) siangCount++;
+      else if (s.includes("SORE")) soreCount++;
+    });
+
+    return { todayCount, tomorrowCount, pagiCount, siangCount, soreCount, todayStr, tomorrowStr };
+  }, [data]);
+
   const filtered = data.filter((item) => {
     const q = (search || "").toLowerCase().trim();
     const matchSearch =
@@ -433,7 +586,21 @@ export default function Pekerjaan() {
     const matchJenis = filterJenis === "ALL" || item.jenis === filterJenis;
     const matchStatus = filterStatus === "ALL" || item.status === filterStatus;
     const matchTim = filterTim === "ALL" || item.tim === filterTim;
-    return matchSearch && matchJenis && matchStatus && matchTim;
+
+    let matchQuick = true;
+    if (quickFilter === "TODAY") {
+      matchQuick = item.tanggal === quickFilterCounts.todayStr;
+    } else if (quickFilter === "TOMORROW") {
+      matchQuick = item.tanggal === quickFilterCounts.tomorrowStr;
+    } else if (quickFilter === "PAGI") {
+      matchQuick = (item.sesi || "").toUpperCase().includes("PAGI") || (item.keterangan || "").toLowerCase().includes("pagi");
+    } else if (quickFilter === "SIANG") {
+      matchQuick = (item.sesi || "").toUpperCase().includes("SIANG") || (item.keterangan || "").toLowerCase().includes("siang");
+    } else if (quickFilter === "SORE") {
+      matchQuick = (item.sesi || "").toUpperCase().includes("SORE") || (item.keterangan || "").toLowerCase().includes("sore");
+    }
+
+    return matchSearch && matchJenis && matchStatus && matchTim && matchQuick;
   });
 
   const stats = {
@@ -881,6 +1048,46 @@ export default function Pekerjaan() {
             ))}
           </div>
 
+          {/* Quick Date & Session Filter Pills (Segmented Filter Bar) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 text-xs">
+            <span className="text-[11px] font-bold uppercase text-slate-400 shrink-0 mr-1 hidden sm:inline">
+              Filter Cepat:
+            </span>
+            {[
+              { id: "ALL", label: "Semua Jadwal", count: data.length },
+              { id: "TODAY", label: "Hari Ini", count: quickFilterCounts.todayCount },
+              { id: "TOMORROW", label: "Besok", count: quickFilterCounts.tomorrowCount },
+              { id: "PAGI", label: "Sesi Pagi (08-12)", count: quickFilterCounts.pagiCount },
+              { id: "SIANG", label: "Sesi Siang (13-16)", count: quickFilterCounts.siangCount },
+              { id: "SORE", label: "Sesi Sore (16-20)", count: quickFilterCounts.soreCount },
+            ].map((pill) => {
+              const active = quickFilter === pill.id;
+              return (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => setQuickFilter(pill.id)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer text-xs border ${
+                    active
+                      ? "bg-[#0D1B4A] text-white border-[#0D1B4A] shadow-xs"
+                      : "bg-white text-slate-600 hover:bg-slate-50 border-slate-200"
+                  }`}
+                >
+                  <span>{pill.label}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                      active
+                        ? "bg-amber-400 text-[#0D1B4A]"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {pill.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           {/* Filters */}
           <div className="bg-white rounded-2xl p-3 sm:p-4 border border-gray-100 shadow-sm grid grid-cols-2 sm:flex sm:flex-wrap gap-2.5 sm:gap-3">
             <div className="col-span-2 sm:col-span-1 sm:flex-1 min-w-0 sm:min-w-[200px] relative">
@@ -1021,12 +1228,25 @@ export default function Pekerjaan() {
                             onViewEvidence={setViewEvidenceTask}
                             onSendWaSpk={handleSendWaSpk}
                             onCompleteTask={setCompletingTask}
+                            teamWorkloadMap={teamWorkloadMap}
                           />
                         ))}
                         {colItems.length === 0 && (
-                          <div className="text-center py-10 text-gray-300">
-                            <GripVertical className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                            <p className="text-xs font-medium">Belum ada pekerjaan di kolom ini</p>
+                          <div className="py-8 px-3 text-center rounded-2xl border border-dashed border-slate-200/90 bg-white/70 space-y-2.5">
+                            <div className={`w-10 h-10 rounded-2xl mx-auto flex items-center justify-center ${EMPTY_STATE_CONFIG[col.key]?.bg || "bg-slate-50"}`}>
+                              {(() => {
+                                const EmptyIcon = EMPTY_STATE_CONFIG[col.key]?.icon || GripVertical;
+                                return <EmptyIcon className={`w-5 h-5 ${EMPTY_STATE_CONFIG[col.key]?.color || "text-slate-400"}`} />;
+                              })()}
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-800">
+                                {EMPTY_STATE_CONFIG[col.key]?.title || "Kosong"}
+                              </p>
+                              <p className="text-[11px] text-slate-400 mt-0.5 leading-snug max-w-[170px] mx-auto">
+                                {EMPTY_STATE_CONFIG[col.key]?.desc || "Belum ada pekerjaan di kolom ini"}
+                              </p>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1034,6 +1254,33 @@ export default function Pekerjaan() {
                   );
                 })}
               </div>
+
+              {filtered.length === 0 && (
+                <div className="mt-4 py-12 px-4 text-center bg-white rounded-3xl border border-dashed border-slate-200 shadow-2xs space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-2xs">
+                    <Search className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-slate-900">Tidak ada pekerjaan yang cocok</h3>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                      {search ? `Tidak ditemukan pekerjaan untuk kata kunci "${search}".` : "Tidak ada pekerjaan untuk filter yang dipilih."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearch("");
+                      setFilterJenis("ALL");
+                      setFilterStatus("ALL");
+                      setFilterTim("ALL");
+                      setQuickFilter("ALL");
+                    }}
+                    className="px-4 py-2 bg-[#0D1B4A] hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer active:scale-95"
+                  >
+                    Reset Semua Filter
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

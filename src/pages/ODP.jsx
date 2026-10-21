@@ -31,6 +31,75 @@ import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import OdpGoogleEarthMap from "../components/OdpGoogleEarthMap";
 
+/**
+ * Visual Circular Donut Meter untuk Utilisasi Port ODP
+ */
+function PortDonutMeter({ used = 0, total = 8, size = 38 }) {
+  const cap = Number(total) || 8;
+  const u = Number(used) || 0;
+  const pct = Math.min(Math.round((u / cap) * 100), 100);
+  const isFull = u >= cap;
+  const isNear = pct >= 70 && !isFull;
+
+  const strokeWidth = 3.5;
+  const radius = (size - strokeWidth * 2) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (pct / 100) * circumference;
+
+  const colorClass = isFull
+    ? "text-rose-500"
+    : isNear
+    ? "text-amber-500"
+    : "text-emerald-500";
+
+  const badgeBg = isFull
+    ? "bg-rose-100 text-rose-800 border-rose-300"
+    : isNear
+    ? "bg-amber-100 text-amber-800 border-amber-300"
+    : "bg-emerald-100 text-emerald-800 border-emerald-300";
+
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="relative shrink-0 flex items-center justify-center" style={{ width: size, height: size }}>
+        <svg className="w-full h-full -rotate-90 transform" viewBox={`0 0 ${size} ${size}`}>
+          {/* Background Ring */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            className="text-slate-200 stroke-current"
+            strokeWidth={strokeWidth}
+            fill="transparent"
+          />
+          {/* Foreground Progress Ring */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            className={`${colorClass} stroke-current transition-all duration-500`}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            fill="transparent"
+          />
+        </svg>
+        <span className="absolute text-[9px] font-black font-mono text-slate-700">
+          {pct}%
+        </span>
+      </div>
+      <div className="text-left">
+        <span className="text-xs font-black text-slate-800 block leading-tight">
+          {u} / {cap} Port
+        </span>
+        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${badgeBg} inline-block mt-0.5`}>
+          {isFull ? "⛔ PENUH" : isNear ? `Sisa ${cap - u}` : `Sisa ${cap - u} Port`}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function ODP() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -952,38 +1021,21 @@ export default function ODP() {
                                 </p>
                               )}
 
-                              {/* Port Utilization Bar Mobile */}
-                              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1.5">
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="font-bold text-slate-700">
-                                    Port: <b>{item.port_terpakai || 0}</b> / {item.port_kapasitas || 8}
-                                  </span>
-                                  {item.port_is_full ? (
-                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200">
-                                      ⛔ PENUH (0 Sisa)
-                                    </span>
-                                  ) : (
-                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                      Sisa {item.port_sisa} Port
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full transition-all ${
-                                      item.port_is_full ? "bg-rose-500" : item.port_is_near_full ? "bg-amber-500" : "bg-emerald-500"
-                                    }`}
-                                    style={{ width: `${item.port_percent || 0}%` }}
-                                  />
-                                </div>
+                              {/* Port Utilization Donut Meter Mobile */}
+                              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
+                                <PortDonutMeter
+                                  used={item.port_terpakai || 0}
+                                  total={item.port_kapasitas || 8}
+                                  size={40}
+                                />
                                 {item.connected_customers?.length > 0 && (
                                   <button
                                     type="button"
                                     onClick={() => setSelectedOdpCustomers(item)}
-                                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer pt-0.5"
+                                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-white px-2.5 py-1 rounded-xl border border-slate-200 flex items-center gap-1 cursor-pointer shrink-0 shadow-2xs active:scale-95"
                                   >
-                                    <Users className="w-3 h-3" />
-                                    <span>{item.connected_customers.length} Pelanggan Terdaftar (Lihat)</span>
+                                    <Users className="w-3.5 h-3.5" />
+                                    <span>{item.connected_customers.length} User</span>
                                   </button>
                                 )}
                               </div>
@@ -1062,40 +1114,22 @@ export default function ODP() {
                                     {item.keterangan || "-"}
                                   </td>
                                   <td className="px-5 py-3">
-                                    <div className="space-y-1.5 max-w-[200px]">
-                                      <div className="flex items-center justify-between text-xs">
-                                        <span className="font-semibold text-slate-800">
-                                          {item.port_terpakai || 0} / {item.port_kapasitas || 8} Port
-                                        </span>
-                                        {item.port_is_full ? (
-                                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200">
-                                            ⛔ PENUH
-                                          </span>
-                                        ) : (
-                                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                            Sisa {item.port_sisa}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                        <div
-                                          className={`h-full rounded-full transition-all ${
-                                            item.port_is_full ? "bg-rose-500" : item.port_is_near_full ? "bg-amber-500" : "bg-emerald-500"
-                                          }`}
-                                          style={{ width: `${item.port_percent || 0}%` }}
-                                        />
-                                      </div>
-                                      {item.connected_customers?.length > 0 ? (
+                                    <div className="flex items-center gap-3">
+                                      <PortDonutMeter
+                                        used={item.port_terpakai || 0}
+                                        total={item.port_kapasitas || 8}
+                                        size={36}
+                                      />
+                                      {item.connected_customers?.length > 0 && (
                                         <button
                                           type="button"
                                           onClick={() => setSelectedOdpCustomers(item)}
-                                          className="text-[10px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer hover:underline"
+                                          className="text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50/80 hover:bg-blue-100 px-2 py-1 rounded-lg border border-blue-200 flex items-center gap-1 cursor-pointer shrink-0 transition-colors shadow-2xs"
+                                          title="Lihat rincian pelanggan aktif di port ODP ini"
                                         >
-                                          <Users className="w-3 h-3" />
-                                          <span>{item.connected_customers.length} Pelanggan Aktif</span>
+                                          <Users className="w-3 h-3 text-blue-600" />
+                                          <span>{item.connected_customers.length}</span>
                                         </button>
-                                      ) : (
-                                        <span className="text-[10px] text-slate-400 block">Belum ada pelanggan</span>
                                       )}
                                     </div>
                                   </td>
