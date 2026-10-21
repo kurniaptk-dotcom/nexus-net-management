@@ -231,6 +231,20 @@ export default function DispatchTaskModal({
 
     onSave(payload, sendWaDirectly);
 
+    try {
+      const currentRaw = localStorage.getItem("xnet_pekerjaan");
+      const currentList = currentRaw ? JSON.parse(currentRaw) : (taskList || []);
+      const updatedList = [payload, ...currentList.filter((t) => t.id !== payload.id)];
+      localStorage.setItem("xnet_pekerjaan", JSON.stringify(updatedList));
+      window.dispatchEvent(
+        new CustomEvent("xnet_storage_update", {
+          detail: { key: "xnet_pekerjaan", value: updatedList },
+        })
+      );
+    } catch (e) {
+      console.warn("[DISPATCH SYNC EVENT]", e);
+    }
+
     if (sendWaDirectly) {
       const waUrl = generateSpkWaUrl(payload, selectedTeamObj?.telepon, spkNo);
       window.open(waUrl, "_blank");

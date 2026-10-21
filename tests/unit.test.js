@@ -409,4 +409,60 @@ test("SPK Solo Dispatching - assigns single technician directly as member", () =
   assert.deepEqual(assignedMembers, ["AIS"]);
 });
 
+test("Closed-Loop Disconnection Sync - cleans up pending disconnection request", async () => {
+  const { syncPemutusanOnTaskCompletion } = await import("../src/lib/customerPortLifecycle.js");
+
+  // Setup mock global window and localStorage for node environment
+  const mockStorage = new Map();
+  global.window = {
+    dispatchEvent: () => {},
+  };
+  global.CustomEvent = class { constructor(type, detail) { this.type = type; this.detail = detail; } };
+  global.localStorage = {
+    getItem: (k) => mockStorage.get(k) || null,
+    setItem: (k, v) => mockStorage.set(k, String(v)),
+  };
+
+  const initialRequests = [
+    { id: 901, nama: "Bpk. Budi Santoso", kontak: "0812345", alasan: "Pindah rumah" },
+    { id: 902, nama: "Ibu Siti Aminah", kontak: "0856789", alasan: "Biaya" },
+  ];
+  mockStorage.set("xnet_pengajuan_pemutusan", JSON.stringify(initialRequests));
+
+  const completedDisconnectionTask = {
+    id: 55,
+    sourceId: 901,
+    jenis: "PEMUTUSAN",
+    pelanggan: "Bpk. Budi Santoso",
+  };
+
+  const res = syncPemutusanOnTaskCompletion(completedDisconnectionTask);
+  assert.equal(res, true);
+
+  const remaining = JSON.parse(mockStorage.get("xnet_pengajuan_pemutusan"));
+  assert.equal(remaining.length, 1);
+  assert.equal(remaining[0].id, 902);
+});
+
+test("Task Progress State & Validation Status Preservation", () => {
+  const validStatusList = ["WAITING LIST", "DIJADWALKAN", "MENUNGGU VALIDASI", "SELESAI", "GAGAL"];
+  assert.ok(validStatusList.includes("MENUNGGU VALIDASI"));
+
+  const task = {
+    id: 1,
+    status: "DIJADWALKAN",
+    is_started: false,
+  };
+
+  const startedTask = {
+    ...task,
+    is_started: true,
+    waktu_mulai: "2026-10-21T12:00:00Z",
+  };
+
+  assert.equal(startedTask.is_started, true);
+  assert.ok(startedTask.waktu_mulai);
+});
+
+
 

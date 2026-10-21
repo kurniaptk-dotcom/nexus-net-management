@@ -605,15 +605,17 @@ export default function TeknisiDashboard() {
     return `${linePathD} L ${last.cx} 140 L ${first.cx} 140 Z`;
   }, [linePathD, lineChartPoints]);
 
-  // Handle Mark In-Progress (Mulai Jalan)
+  // Handle Mark In-Progress (Mulai Jalan / Dikerjakan)
   const handleStartTask = (task) => {
+    const nowIso = new Date().toISOString();
     setPekerjaan((prev) =>
       prev.map((t) =>
         t.id === task.id
           ? {
               ...t,
-              status: "DIJADWALKAN",
-              keterangan: (t.keterangan ? t.keterangan + " · " : "") + "Sedang menuju lokasi pengerjaan",
+              is_started: true,
+              waktu_mulai: nowIso,
+              keterangan: (t.keterangan ? t.keterangan + " · " : "") + "Sedang menuju/dikerjakan di lokasi",
             }
           : t
       )
@@ -983,6 +985,14 @@ export default function TeknisiDashboard() {
               </span>
             )}
 
+            {/* In-Progress / Sedang Dikerjakan Badge */}
+            {task.is_started && !isCompleted && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                <span>Sedang Dikerjakan</span>
+              </span>
+            )}
+
             {/* Cut-Off Status Badge */}
             {task.cutoff_status && (
               <span
@@ -1143,13 +1153,20 @@ export default function TeknisiDashboard() {
           <div className="flex items-center gap-1.5">
             {!isCompleted ? (
               <>
-                {!isScheduled && (
+                {!task.is_started ? (
                   <button
                     onClick={() => handleStartTask(task)}
-                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold border border-blue-200 transition-all cursor-pointer"
+                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold border border-blue-200 transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                    title="Tandai Mulai Kerjakan / Menuju Lokasi"
                   >
-                    Mulai
+                    <Activity className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Mulai</span>
                   </button>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                    <span>Proses</span>
+                  </span>
                 )}
 
                 <button

@@ -121,8 +121,11 @@ function TeamCard({ tim, pekerjaanData, masterKomisi, onEdit, onDelete }) {
   ).length;
   const totalPekerjaan =
     pemasanganSelesai + perbaikanSelesai + perbaikanKhususSelesai + pemutusanSelesai;
+  const totalMenungguValidasi = timPekerjaan.filter(
+    (p) => p.status === "MENUNGGU VALIDASI"
+  ).length;
   const totalWaiting = timPekerjaan.filter(
-    (p) => p.status === "WAITING LIST" || p.status === "DIJADWALKAN"
+    (p) => p.status === "WAITING LIST" || p.status === "DIJADWALKAN" || p.status === "MENUNGGU VALIDASI"
   ).length;
   const completionRate =
     totalPekerjaan + totalWaiting > 0
@@ -257,6 +260,15 @@ function TeamCard({ tim, pekerjaanData, masterKomisi, onEdit, onDelete }) {
                 style={{ width: `${completionRate}%` }}
               />
             </div>
+            {totalMenungguValidasi > 0 && (
+              <div className="mt-2 flex items-center justify-between text-[11px] bg-purple-50 text-purple-700 px-2.5 py-1 rounded-lg border border-purple-200">
+                <span className="font-semibold flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-purple-600" />
+                  <span>Menunggu Validasi SPV:</span>
+                </span>
+                <span className="font-black font-mono">{totalMenungguValidasi} SPK</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between pt-3 border-t border-gray-100">

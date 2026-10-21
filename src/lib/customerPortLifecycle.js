@@ -134,6 +134,59 @@ export function syncLeadsOnTaskCompletion(task) {
   return false;
 }
 
+/**
+ * Helper untuk sinkronisasi pengajuan pemutusan saat tugas pemutusan selesai
+ */
+export function syncPemutusanOnTaskCompletion(task) {
+  if (!task || typeof window === "undefined") return null;
+
+  try {
+    const rawPemutusan = localStorage.getItem("xnet_pengajuan_pemutusan");
+    if (!rawPemutusan) return null;
+
+    const list = JSON.parse(rawPemutusan);
+    if (!Array.isArray(list) || list.length === 0) return null;
+
+    const targetName = (task.pelanggan || "").trim().toLowerCase();
+    const targetSourceId = task.sourceId;
+
+    let matchedItem = null;
+    const updatedList = list.filter((p) => {
+      if (!p) return false;
+      const pName = (p.nama || "").trim().toLowerCase();
+      const isMatch =
+        (targetSourceId && (p.id === targetSourceId || String(p.id) === String(targetSourceId))) ||
+        (targetName && (pName === targetName || targetName.includes(pName) || pName.includes(targetName)));
+
+      if (isMatch) {
+        matchedItem = p;
+        // Hapus dari cloud Supabase jika ada id valid
+        if (p.id && typeof p.id === "number" && p.id < 1000000000000) {
+          db.remove("pengajuan_pemutusan", p.id).catch((err) =>
+            console.warn("[SYNC PEMUTUSAN DB] Error:", err.message)
+          );
+        }
+        return false; // Hapus dari daftar antrian pengajuan masuk
+      }
+      return true;
+    });
+
+    if (matchedItem) {
+      localStorage.setItem("xnet_pengajuan_pemutusan", JSON.stringify(updatedList));
+      window.dispatchEvent(
+        new CustomEvent("xnet_storage_update", {
+          detail: { key: "xnet_pengajuan_pemutusan", value: updatedList },
+        })
+      );
+      console.info(`[CLOSED-LOOP SYNC] Pengajuan pemutusan "${matchedItem.nama}" otomatis diselesaikan & dibersihkan.`);
+      return true;
+    }
+  } catch (err) {
+    console.warn("[CLOSED-LOOP SYNC PEMUTUSAN] Error:", err);
+  }
+  return false;
+}
+
 export function syncCustomerOnTaskCompletion(task, pelangganList = [], setPelangganList) {
   if (!task || !setPelangganList) return null;
 
@@ -141,9 +194,12 @@ export function syncCustomerOnTaskCompletion(task, pelangganList = [], setPelang
   const namaTarget = (task.pelanggan || "").trim();
   const odpTarget = (task.odp || "").trim();
 
-  // Eksekusi Closed-Loop Sync ke modul Gangguan dan Leads
+  // Eksekusi Closed-Loop Sync ke modul Gangguan, Leads, dan Pengajuan Pemutusan
   syncGangguanOnTaskCompletion(task);
   syncLeadsOnTaskCompletion(task);
+  if (jenis === "PEMUTUSAN") {
+    syncPemutusanOnTaskCompletion(task);
+  }
 
   if (!namaTarget) return null;
 

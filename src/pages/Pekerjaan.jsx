@@ -128,6 +128,12 @@ function KanbanCard({ item, onEdit, onDelete, onDragStart, onDragEnd, onViewEvid
               {item.spk_no}
             </span>
           )}
+          {item.is_started && item.status !== "SELESAI" && (
+            <span className="text-[9px] font-bold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+              <span>Dikerjakan</span>
+            </span>
+          )}
         </div>
         <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           {onCompleteTask && item.status !== "SELESAI" && (

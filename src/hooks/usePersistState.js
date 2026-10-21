@@ -36,6 +36,14 @@ const ALLOWED_COLUMNS = {
     "komisi_items",
     "komisi_total",
     "waktu_selesai",
+    "revisi_catatan",
+    "waktu_lapor",
+    "cutoff_status",
+    "cutoff_label",
+    "foto_bukti_utama",
+    "teknisi_list",
+    "is_started",
+    "waktu_mulai",
   ],
   daftar_gangguan: ["nama", "keterangan", "kontak", "tanggal_mulai", "follow_up", "hasil_fu"],
   gangguan: ["tanggal", "kategori", "pelanggan", "alamat", "status", "keterangan", "user_terdampak"],
@@ -111,7 +119,7 @@ function sanitizeForTable(tableName, row, useBaseColumnsOnly = false) {
       clean.status = (clean.status || "").toLowerCase().includes("perbaik") ? "Diperbaiki" : "Aman";
     }
   } else if (tableName === "pekerjaan") {
-    const validStatus = ["WAITING LIST", "DIJADWALKAN", "SELESAI", "GAGAL"];
+    const validStatus = ["WAITING LIST", "DIJADWALKAN", "MENUNGGU VALIDASI", "SELESAI", "GAGAL"];
     if (clean.status && !validStatus.includes(clean.status)) {
       clean.status = "WAITING LIST";
     }
