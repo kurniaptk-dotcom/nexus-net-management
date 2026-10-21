@@ -8,7 +8,7 @@
 
     @page {
       size: A4;
-      margin: 14mm 14mm 14mm 14mm;
+      margin: 12mm 13mm 12mm 13mm;
     }
 
     * {
@@ -21,8 +21,8 @@
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: #1e293b;
       background: #ffffff;
-      line-height: 1.55;
-      font-size: 11pt;
+      line-height: 1.45;
+      font-size: 10pt;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -30,7 +30,7 @@
     .page {
       page-break-after: always;
       position: relative;
-      padding-bottom: 20px;
+      padding-bottom: 10px;
     }
 
     .page:last-child {
@@ -43,12 +43,12 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 2px solid #e2e8f0;
-      padding-bottom: 12px;
-      margin-bottom: 20px;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
     }
 
     .brand-title {
-      font-size: 16pt;
+      font-size: 14pt;
       font-weight: 800;
       color: #0f172a;
       letter-spacing: -0.5px;
@@ -62,9 +62,9 @@
       background: #eff6ff;
       color: #1d4ed8;
       border: 1px solid #bfdbfe;
-      padding: 4px 10px;
+      padding: 3px 8px;
       border-radius: 9999px;
-      font-size: 8.5pt;
+      font-size: 8pt;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -74,9 +74,9 @@
     .section-header {
       background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
       color: #ffffff;
-      padding: 14px 18px;
-      border-radius: 10px;
-      margin-bottom: 18px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 12px;
     }
 
     .section-header.tech {
@@ -84,54 +84,54 @@
     }
 
     .section-tag {
-      font-size: 8pt;
+      font-size: 7.5pt;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.8px;
       opacity: 0.85;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
 
     .section-title {
-      font-size: 15pt;
+      font-size: 13pt;
       font-weight: 800;
       letter-spacing: -0.3px;
     }
 
     .section-desc {
-      font-size: 9pt;
+      font-size: 8.5pt;
       opacity: 0.9;
-      margin-top: 3px;
+      margin-top: 2px;
     }
 
     /* STEP CARDS */
     .step-card {
       border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 12px 14px;
-      margin-bottom: 12px;
+      border-radius: 7px;
+      padding: 9px 12px;
+      margin-bottom: 9px;
       background: #ffffff;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
     }
 
     .step-head {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
+      gap: 8px;
+      margin-bottom: 5px;
     }
 
     .step-num {
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
       background: #2563eb;
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
-      font-size: 9pt;
+      font-size: 8pt;
       flex-shrink: 0;
     }
 
@@ -140,76 +140,71 @@
     }
 
     .step-title {
-      font-size: 11pt;
+      font-size: 10pt;
       font-weight: 700;
       color: #0f172a;
     }
 
     .step-content {
-      font-size: 9.5pt;
+      font-size: 8.8pt;
       color: #334155;
-      padding-left: 34px;
+      padding-left: 28px;
     }
 
     .step-content ul {
-      margin-left: 16px;
-      margin-top: 4px;
+      margin-left: 14px;
+      margin-top: 2px;
     }
 
     .step-content li {
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
 
     /* CALLOUT BOXES */
     .callout {
-      border-radius: 8px;
-      padding: 10px 14px;
-      margin: 10px 0 10px 34px;
-      font-size: 9pt;
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin: 6px 0 6px 28px;
+      font-size: 8.5pt;
     }
 
     .callout-amber {
       background: #fffbeb;
-      border-left: 4px solid #f59e0b;
+      border-left: 3px solid #f59e0b;
       color: #92400e;
     }
 
     .callout-blue {
       background: #eff6ff;
-      border-left: 4px solid #3b82f6;
+      border-left: 3px solid #3b82f6;
       color: #1e40af;
     }
 
     .callout-emerald {
       background: #ecfdf5;
-      border-left: 4px solid #10b981;
+      border-left: 3px solid #10b981;
       color: #065f46;
     }
 
-    .callout strong {
-      font-weight: 700;
-    }
-
-    /* CODE SNIPPET */
     .code-box {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 8pt;
+      font-size: 7.5pt;
       background: #f8fafc;
       border: 1px solid #e2e8f0;
-      padding: 8px 12px;
-      border-radius: 6px;
-      margin-top: 6px;
+      padding: 6px 10px;
+      border-radius: 5px;
+      margin-top: 5px;
       white-space: pre-wrap;
       color: #0f172a;
-      line-height: 1.4;
+      line-height: 1.35;
     }
 
     /* TABLE */
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 9pt;
-      margin-top: 10px;
+      font-size: 8.5pt;
+      margin-top: 6px;
     }
 
     th {
@@ -217,12 +212,12 @@
       color: #0f172a;
       font-weight: 700;
       text-align: left;
-      padding: 8px 10px;
+      padding: 6px 8px;
       border: 1px solid #cbd5e1;
     }
 
     td {
-      padding: 7px 10px;
+      padding: 5px 8px;
       border: 1px solid #e2e8f0;
       vertical-align: top;
     }
@@ -233,15 +228,16 @@
 
     .badge-status {
       display: inline-block;
-      padding: 2px 7px;
+      padding: 2px 6px;
       border-radius: 4px;
-      font-size: 8pt;
+      font-size: 7.5pt;
       font-weight: 700;
       text-transform: uppercase;
     }
 
-    .badge-blue { background: #dbeafe; color: #1e40af; }
     .badge-amber { background: #fef3c7; color: #92400e; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-purple { background: #f3e8ff; color: #6b21a8; }
     .badge-green { background: #d1fae5; color: #065f46; }
     .badge-red { background: #fee2e2; color: #991b1b; }
 
@@ -250,9 +246,9 @@
       display: flex;
       justify-content: space-between;
       border-top: 1px solid #e2e8f0;
-      padding-top: 8px;
-      margin-top: 16px;
-      font-size: 8pt;
+      padding-top: 6px;
+      margin-top: 10px;
+      font-size: 7.5pt;
       color: #94a3b8;
     }
   </style>
@@ -263,26 +259,26 @@
   <div class="page">
     <div class="header-bar">
       <div class="brand-title">NEXUS<span>NET</span> OPERASIONAL</div>
-      <div class="doc-badge">SOP RESMI • BAGIAN A</div>
+      <div class="doc-badge">SOP KANTOR • BAGIAN A</div>
     </div>
 
     <div class="section-header">
       <div class="section-tag">Role: Operator • Admin Registrasi • NOC • Supervisor (SPV)</div>
       <div class="section-title">Workflow Operasional Kantor (Web Portal)</div>
-      <div class="section-desc">Panduan komprehensif penanganan pelanggan, disposisi SPK, audit mutu, dan cut-off harian.</div>
+      <div class="section-desc">Panduan cerdas penanganan leads, disposisi SPK terpadu, monitoring Kanban, audit mutu, dan cut-off.</div>
     </div>
 
     <!-- Step 1 -->
     <div class="step-card">
       <div class="step-head">
         <div class="step-num">1</div>
-        <div class="step-title">Pagi: Cek Leads & Verifikasi Port ODP (GIS)</div>
+        <div class="step-title">Pagi: Cek Leads Masuk & Verifikasi ODP / Coverage (GIS)</div>
       </div>
       <div class="step-content">
         <ul>
-          <li>Buka menu <strong>Leads</strong> (calon pelanggan) atau menu <strong>Gangguan</strong> (tiket keluhan masuk).</li>
-          <li>Klik <strong>Cek Coverage / GIS</strong> untuk melihat koordinat rumah terhadap tiang ODP terdekat (jarak aman &lt; 250m).</li>
-          <li>Buka menu <strong>ODP</strong>: Pastikan kapasitas port masih tersedia. Sistem otomatis memproteksi bentrok nomor port.</li>
+          <li>Buka menu <strong>Leads</strong> (prospek registrasi baru) atau menu <strong>Gangguan</strong> (tiket komplain pelanggan).</li>
+          <li>Klik tombol <strong>Cek Coverage / GIS</strong> pada baris data untuk memeriksa jarak rumah pelanggan ke tiang ODP terdekat (jarak aman rekomendasi &lt; 250m).</li>
+          <li>Menu <strong>ODP</strong> secara otomatis menghitung sisa port dan memblokir tabrakan nomor port (<em>collision protection</em>).</li>
         </ul>
       </div>
     </div>
@@ -291,19 +287,19 @@
     <div class="step-card">
       <div class="step-head">
         <div class="step-num">2</div>
-        <div class="step-title">Penerbitan SPK & Disposisi (Tim Lapangan / Teknisi Solo)</div>
+        <div class="step-title">Penerbitan SPK Cepat (1-Klik Disposisi Langsung dari Leads / Gangguan)</div>
       </div>
       <div class="step-content">
         <ul>
-          <li>Buka menu <strong>Pekerjaan</strong> &rarr; Klik tombol <strong>+ Tambah Pekerjaan / Disposisi</strong>.</li>
-          <li>Pilih jenis pekerjaan: <em>Pasang Baru (PSB)</em>, <em>Perbaikan Gangguan</em>, atau <em>Maintenance</em>.</li>
-          <li><strong>Pilih Pelaksana:</strong>
+          <li><strong>Shortcut Efisien:</strong> Klik langsung tombol <strong>"Disposisi SPK"</strong> pada baris Leads atau Gangguan. Data nama, kontak, alamat, dan ODP terisi otomatis tanpa perlu mengetik ulang!</li>
+          <li><strong>Disposisi Manual:</strong> Di menu <strong>Pekerjaan</strong>, klik tombol <strong>+ Pasang Baru</strong> atau <strong>+ ODP/ODC</strong>.</li>
+          <li><strong>Pilih Pelaksana Lapangan:</strong>
             <ul>
-              <li><strong>Tim Lapangan:</strong> Pilih tim 2 orang (misal: <em>Tim Alpha - Budi & Agus</em>).</li>
-              <li><strong>Teknisi Personal (Solo):</strong> Pilih nama teknisi perorangan di grup <em>Teknisi Personal (Solo)</em> jika bertugas sendiri. Hak komisi dihitung <strong>100% penuh</strong>.</li>
+              <li><em>Regu Kerja (Tim 2 Orang):</em> Pilih nama tim (contoh: <em>Tim Alpha - Budi & Agus</em>).</li>
+              <li><em>Teknisi Personal (Solo):</em> Pilih nama teknisi di grup <strong>Teknisi Personal (Solo)</strong> jika bertugas perorangan (Komisi <strong>100% penuh</strong> per individu).</li>
             </ul>
           </li>
-          <li>Klik <strong>Terbitkan SPK</strong> &rarr; Klik <strong>Kirim SPK via WhatsApp</strong> untuk broadcast resmi ke HP teknisi.</li>
+          <li>Klik <strong>Terbitkan SPK</strong> &rarr; Opsi broadcast langsung via WhatsApp otomatis menyusun pesan rincian kerja resmi.</li>
         </ul>
       </div>
     </div>
@@ -312,16 +308,21 @@
     <div class="step-card">
       <div class="step-head">
         <div class="step-num">3</div>
-        <div class="step-title">Siang/Sore: Monitoring Papan Kanban Real-Time</div>
+        <div class="step-title">Penjadwalan & Monitoring Kanban Real-Time (5 Kolom Resmi)</div>
       </div>
       <div class="step-content">
-        Pantau pergerakan kartu di menu <strong>Pekerjaan</strong>:
-        <div style="margin-top: 6px; display: flex; gap: 6px;">
-          <span class="badge-status badge-blue">BARU</span> &rarr;
-          <span class="badge-status badge-amber">DIJADWALKAN</span> &rarr;
-          <span class="badge-status badge-blue">SEDANG DIKERJAKAN</span> &rarr;
-          <span class="badge-status badge-amber">MENUNGGU VALIDASI</span>
+        Papan Kanban di menu <strong>Pekerjaan</strong> menggunakan 5 kolom alur nyata:
+        <div style="margin: 6px 0; display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+          <span class="badge-status badge-amber">WAITING LIST</span> &rarr;
+          <span class="badge-status badge-blue">DIJADWALKAN</span> &rarr;
+          <span class="badge-status badge-purple">MENUNGGU VALIDASI</span> &rarr;
+          <span class="badge-status badge-green">SELESAI</span> / <span class="badge-status badge-red">GAGAL</span>
         </div>
+        <ul>
+          <li><strong>Waiting List &rarr; Dijadwalkan:</strong> SPV men-<em>drag</em> kartu SPK dari kolom Waiting List ke Dijadwalkan sesuai plot waktu teknisi.</li>
+          <li><strong>Indikator Live "Dikerjakan":</strong> Ketika teknisi menekan tombol <strong>"Mulai"</strong> di smartphone, kartu di kolom Dijadwalkan menampilkan badge biru live berdenyut <strong>"Dikerjakan"</strong>. SPV tahu tim sedang aktif di lokasi.</li>
+          <li><strong>Menunggu Validasi:</strong> Kartu otomatis bergeser ke kolom ini saat teknisi mengirim 1 foto bukti fisik dari lapangan.</li>
+        </ul>
       </div>
     </div>
 
@@ -329,14 +330,14 @@
     <div class="step-card">
       <div class="step-head">
         <div class="step-num">4</div>
-        <div class="step-title">Sore: Audit Mutu & Validasi SPV (Sahkan vs Tolak/Revisi)</div>
+        <div class="step-title">Sore: Audit Mutu & Validasi SPV (Sahkan vs Tolak/Minta Revisi)</div>
       </div>
       <div class="step-content">
-        Ketika kartu berada pada kolom <strong>MENUNGGU VALIDASI</strong>, klik kartu untuk membuka form audit:
+        Klik kartu pada kolom <strong>MENUNGGU VALIDASI</strong> untuk membuka audit bukti SOP:
         <ul>
-          <li><strong>Periksa Bukti:</strong> Foto OPM/ONT, Timestamp, Watermark Koordinat GPS, dan nilai Redaman (dBm).</li>
-          <li><strong>Opsi 1 - Sahkan (Hijau):</strong> Klik <em>"Validasi Selesai & Sahkan Komisi"</em> jika sesuai standar. Status berganti <strong>SELESAI</strong>, port ODP terkunci permanen, dan komisi cair otomatis ke dompet teknisi.</li>
-          <li><strong>Opsi 2 - Tolak / Revisi (Amber):</strong> Klik <em>"Tolak / Minta Revisi"</em> jika foto buram atau redaman buruk (&gt; -27 dBm). Masukkan catatan revisi. Status kembali ke <strong>DIJADWALKAN</strong> dan peringatan revisi dikirim ke HP teknisi.</li>
+          <li><strong>Periksa Bukti Fisik:</strong> Teliti foto OPM/ONT, watermark GPS, tanggal/jam, dan angka Redaman (dBm).</li>
+          <li><strong style="color:#059669;">Tombol Hijau ("Validasi Selesai & Sahkan Komisi"):</strong> Jika pekerjaan sesuai SOP. Status berubah ke <strong>SELESAI</strong>, port ODP terkunci permanen, tiket pengajuan pemutusan (jika ada) otomatis bersih, dan saldo komisi teknisi langsung bertambah.</li>
+          <li><strong style="color:#d97706;">Tombol Oranye ("Tolak / Minta Revisi"):</strong> Jika foto buram atau redaman buruk (&gt; -27 dBm). Masukkan catatan revisi. Status otomatis kembali ke <strong>DIJADWALKAN</strong> disertai banner peringatan revisi di HP teknisi.</li>
         </ul>
       </div>
     </div>
@@ -345,21 +346,22 @@
     <div class="step-card">
       <div class="step-head">
         <div class="step-num">5</div>
-        <div class="step-title">Malam (21:00 WIB): Evaluasi Cut-Off & Rekap WhatsApp Eksekutif</div>
+        <div class="step-title">Malam (21:00 WIB): Evaluasi Cut-Off & Broadcast Rekap WA Eksekutif</div>
       </div>
       <div class="step-content">
         <ul>
-          <li>Buka menu <strong>Tim</strong> &rarr; Tab <strong>Perorangan</strong> &rarr; Periksa ringkasan kepatuhan laporan jam 21:00 WIB.</li>
-          <li>Klik tombol <strong>"Kirim Rekap WA"</strong> untuk mengirim rekapitulasi harian siap kirim ke WhatsApp Group Manajemen:</li>
+          <li>Buka menu <strong>Tim</strong> &rarr; Tab <strong>Perorangan</strong> &rarr; Cek kepatuhan jam upload seluruh personil teknisi.</li>
+          <li>Klik tombol hijau <strong>"Kirim Rekap WA"</strong> untuk menyalin rekap eksekutif harian siap kirim ke grup manajemen:</li>
         </ul>
-        <div class="code-box">*REKAP LAPORAN HARIAN TEKNISI*
-Tanggal: 15/10/2026 | Cut-Off: 21:00 WIB
-Total Personil: 5 Teknisi (Tertib: 4 | Terlambat: 1 | Belum Lapor: 0)</div>
+        <div class="code-box">*REKAP LAPORAN OPERASIONAL TEKNISI (CUT-OFF 21:00 WIB)*
+Tanggal: 21/10/2026 | Total Personil: 5 Teknisi
+- Tertib / Tepat Waktu: 4 Personil (Upload <= 21:00 WIB)
+- Terlambat: 1 Personil | Belum Melaporkan: 0</div>
       </div>
     </div>
 
     <div class="footer">
-      <div>Nexus Net WiFi Manager • Sistem SOP Operasional</div>
+      <div>Nexus Net WiFi Manager • Dokumen Standar Operasional Prosedur (SOP)</div>
       <div>Halaman 1 dari 2</div>
     </div>
   </div>
@@ -368,13 +370,13 @@ Total Personil: 5 Teknisi (Tertib: 4 | Terlambat: 1 | Belum Lapor: 0)</div>
   <div class="page">
     <div class="header-bar">
       <div class="brand-title">NEXUS<span>NET</span> OPERASIONAL</div>
-      <div class="doc-badge" style="background:#ecfdf5; color:#065f46; border-color:#a7f3d0;">SOP RESMI • BAGIAN B</div>
+      <div class="doc-badge" style="background:#ecfdf5; color:#065f46; border-color:#a7f3d0;">SOP LAPANGAN • BAGIAN B</div>
     </div>
 
     <div class="section-header tech">
-      <div class="section-tag">Role: Teknisi Lapangan (Pasang Baru • Perbaikan • Maintenance)</div>
+      <div class="section-tag">Role: Teknisi Lapangan (Pasang Baru • Perbaikan • Pemutusan)</div>
       <div class="section-title">Workflow Teknisi Lapangan (Mobile PWA)</div>
-      <div class="section-desc">Panduan instalasi aplikasi smartphone, pelaksanaan tugas, SOP 1 foto fisik, dan disiplin waktu.</div>
+      <div class="section-desc">Panduan instalasi smartphone, penanganan tugas lapangan, SOP 1 foto fisik, pelaporan kendala, dan cut-off.</div>
     </div>
 
     <!-- Step 1 -->
@@ -385,9 +387,9 @@ Total Personil: 5 Teknisi (Tertib: 4 | Terlambat: 1 | Belum Lapor: 0)</div>
       </div>
       <div class="step-content">
         <ul>
-          <li>Buka link web Nexus Net melalui Google Chrome (Android) atau Safari (iPhone).</li>
-          <li>Klik tombol <strong>"Pasang Aplikasi"</strong> atau pilih menu browser &rarr; <strong>"Tambahkan ke Layar Utama" (Add to Home screen)</strong>.</li>
-          <li><strong>PENTING:</strong> Wajib izinkan akses <strong>Kamera</strong> dan <strong>Lokasi (GPS)</strong> pada pop-up izin browser.</li>
+          <li>Buka tautan web Nexus Net di Google Chrome (Android) atau Safari (iOS).</li>
+          <li>Klik banner pop-up <strong>"Pasang Aplikasi (Install PWA)"</strong> atau menu browser titik tiga &rarr; <strong>"Tambahkan ke Layar Utama" (Add to Home screen)</strong>. Ikon aplikasi akan terpasang di beranda ponsel.</li>
+          <li><strong>PENTING:</strong> Wajib izinkan akses <strong>Kamera</strong> dan <strong>Lokasi (GPS)</strong> agar watermark koordinat otomatis aktif.</li>
         </ul>
       </div>
     </div>
@@ -396,13 +398,13 @@ Total Personil: 5 Teknisi (Tertib: 4 | Terlambat: 1 | Belum Lapor: 0)</div>
     <div class="step-card">
       <div class="step-head">
         <div class="step-num green">2</div>
-        <div class="step-title">Terima Tugas & Ubah Status "Mulai Kerjakan"</div>
+        <div class="step-title">Menerima Tugas & Menekan Tombol "Mulai" (Otw / Tarik Kabel)</div>
       </div>
       <div class="step-content">
         <ul>
-          <li>Saat menerima notifikasi WhatsApp SPK, buka tab <strong>Dashboard Teknisi</strong> di aplikasi HP.</li>
-          <li>Baca data pelanggan, nomor kontak (bisa langsung klik tombol WA/Telepon), alamat, dan tiang ODP tujuan.</li>
-          <li>Saat mulai menuju lokasi atau mulai tarik kabel, klik tombol <strong>"Mulai Kerjakan"</strong> agar status terpantau live oleh kantor.</li>
+          <li>Saat menerima notifikasi WhatsApp SPK, buka tab <strong>Dashboard Teknisi</strong> di ponsel.</li>
+          <li>Lihat rincian pelanggan, target tiang ODP, serta tombol cepat telepon/WhatsApp pelanggan dan rute Google Maps.</li>
+          <li>Ketika mulai meluncur atau mulai penarikan kabel, klik tombol <strong>"Mulai"</strong>. Tombol berubah menjadi badge <strong>"Proses"</strong> dan kantor memantau status Anda secara <em>real-time</em>.</li>
         </ul>
       </div>
     </div>
@@ -411,14 +413,14 @@ Total Personil: 5 Teknisi (Tertib: 4 | Terlambat: 1 | Belum Lapor: 0)</div>
     <div class="step-card">
       <div class="step-head">
         <div class="step-num green">3</div>
-        <div class="step-title">Standar Kualitas Teknis & Pengukuran Redaman</div>
+        <div class="step-title">Standar Kualitas Teknis & Pengukuran Redaman OPM</div>
       </div>
       <div class="step-content">
-        Ukur sinyal menggunakan Optical Power Meter (OPM) pada konektor SC roset pelanggan:
+        Ukur sinyal menggunakan Optical Power Meter (OPM) pada konektor roset pelanggan sebelum modem dipasang:
         <ul>
-          <li><strong style="color:#059669;">Bagus / Ideal:</strong> -16.00 dBm s/d -23.99 dBm (Lolos Verifikasi).</li>
-          <li><strong style="color:#d97706;">Toleransi:</strong> -24.00 dBm s/d -26.00 dBm (Waspada bending kabel).</li>
-          <li><strong style="color:#dc2626;">Ditolak:</strong> &gt; -27.00 dBm (Wajib splicing/fast connector ulang).</li>
+          <li><strong style="color:#059669;">Bagus / Prima:</strong> -16.00 dBm s/d -23.99 dBm (Lolos Verifikasi Otomatis).</li>
+          <li><strong style="color:#d97706;">Toleransi:</strong> -24.00 dBm s/d -26.00 dBm (Waspada lekukan/bending kabel).</li>
+          <li><strong style="color:#dc2626;">Ditolak:</strong> Lebih tinggi dari -27.00 dBm (Wajib splicing ulang sebelum lapor).</li>
         </ul>
       </div>
     </div>
@@ -427,14 +429,15 @@ Total Personil: 5 Teknisi (Tertib: 4 | Terlambat: 1 | Belum Lapor: 0)</div>
     <div class="step-card">
       <div class="step-head">
         <div class="step-num green">4</div>
-        <div class="step-title">SOP 1 Foto Fisik & Pelaporan Selesai</div>
+        <div class="step-title">Pelaporan Selesai via Tombol Hijau "Selesai" (SOP 1 Foto Fisik)</div>
       </div>
       <div class="step-content">
-        Setelah internet menyala, klik tombol <strong>"Lapor Selesai"</strong> pada kartu tugas:
+        Setelah internet menyala dan dites lancar, klik tombol hijau <strong>"Selesai"</strong> (ikon centang):
         <ul>
-          <li><strong>Ambil 1 FOTO BUKTI FISIK:</strong> Arahkan kamera HP ke layar OPM yang menyala dan modem ONT aktif. Aplikasi otomatis menyematkan koordinat GPS dan jam digital.</li>
-          <li><strong>Input Formulir:</strong> Masukkan angka Redaman (dBm), Kabel Terpakai (meter), dan Serial Number (SN) ONT.</li>
-          <li>Klik <strong>Kirim Laporan</strong> &rarr; Tugas berpindah ke <strong>MENUNGGU VALIDASI</strong>.</li>
+          <li><strong>Pasang Baru (PSB):</strong> Ambil 1 foto fisik OPM menyala berdampingan dengan modem ONT aktif. Input angka Redaman (dBm), meter kabel dropcore yang dipakai, dan Serial Number (SN) ONT.</li>
+          <li><strong>Perbaikan Gangguan (RPR):</strong> Ambil 1 foto OPM hasil perbaikan, input Redaman (dBm), dan item klaim perbaikan.</li>
+          <li><strong>Pemutusan (Bongkar):</strong> Ambil 1 foto port ODP yang dicabut atau modem yang ditarik (Redaman otomatis N/A, tanpa SN).</li>
+          <li>Klik <strong>Kirim Laporan</strong> &rarr; Status tugas berpindah ke <strong>MENUNGGU VALIDASI</strong>.</li>
         </ul>
       </div>
     </div>
@@ -443,13 +446,12 @@ Total Personil: 5 Teknisi (Tertib: 4 | Terlambat: 1 | Belum Lapor: 0)</div>
     <div class="step-card">
       <div class="step-head">
         <div class="step-num green">5</div>
-        <div class="step-title">Disiplin Waktu: Aturan Cut-Off Jam 21:00 WIB Malam</div>
+        <div class="step-title">Disiplin Waktu Cut-Off Jam 21:00 WIB & Penanganan Revisi SPV</div>
       </div>
       <div class="step-content">
         <ul>
-          <li><strong>Submit SEBELUM 21:00 WIB:</strong> Laporan tercatat <strong style="color:#059669;">Tepat Waktu (Hijau)</strong>.</li>
-          <li><strong>Submit SETELAH 21:00 WIB:</strong> Laporan tercatat <strong style="color:#d97706;">Terlambat (Kuning/Merah)</strong> dan masuk rekap evaluasi SPV.</li>
-          <li><em>SOP Disiplin:</em> Upload laporan langsung saat masih di rumah pelanggan, jangan menumpuk di galeri malam hari.</li>
+          <li><strong>Batas Upload 21:00 WIB:</strong> Laporan sebelum 21:00 WIB tercatat <strong style="color:#059669;">Tepat Waktu (Hijau)</strong>. Jika lewat, tercatat <strong style="color:#d97706;">Terlambat</strong> di rekap harian SPV. <em>Wajib upload langsung di lokasi!</em></li>
+          <li><strong>Jika Ada Permintaan Revisi SPV:</strong> Kartu tugas kembali ke <strong>DIJADWALKAN</strong> dengan kotak peringatan oranye berisi catatan SPV (misal: <em>"Foto OPM buram"</em>). Klik <strong>"Kirim Revisi"</strong>, unggah foto perbaikan, lalu submit ulang.</li>
         </ul>
       </div>
     </div>
@@ -458,55 +460,66 @@ Total Personil: 5 Teknisi (Tertib: 4 | Terlambat: 1 | Belum Lapor: 0)</div>
     <div class="step-card">
       <div class="step-head">
         <div class="step-num green">6</div>
-        <div class="step-title">Penanganan Revisi (Jika Ditolak SPV) & Cek Komisi</div>
+        <div class="step-title">Penanganan Kendala Lapangan (Rumah Kosong / Pelanggan Tunda / Batal)</div>
       </div>
       <div class="step-content">
         <ul>
-          <li>Jika ada revisi, kartu tugas kembali ke status <strong>DIJADWALKAN</strong> disertai kotak peringatan oranye instruksi perbaikan dari SPV (misal: <em>"Foto redaman buram"</em>).</li>
-          <li>Klik <strong>"Kirim Revisi"</strong>, perbaiki foto/data yang diminta, lalu kirim ulang.</li>
-          <li>Pantau dompet pendapatan pada widget <strong>Ringkasan Komisi</strong>. Komisi Anda 100% penuh per pekerjaan.</li>
+          <li>Jika pekerjaan tidak dapat dilanjutkan karena faktor eksternal, <strong>JANGAN upload foto palsu</strong>.</li>
+          <li>Klik tombol segitiga peringatan kuning <strong>"Ada Kendala"</strong> di samping tombol Selesai.</li>
+          <li>Pilih alasan kendala (misal: <em>Rumah Kosong / Pelanggan Menunda / Tiang ODP Penuh</em>), lalu klik konfirmasi.</li>
+          <li>Tugas otomatis dialihkan ke status <strong>GAGAL / KENDALA</strong> untuk ditindaklanjuti customer service tanpa merusak rekap kedisiplinan Anda.</li>
         </ul>
       </div>
     </div>
 
     <!-- Matriks Ringkas -->
-    <div style="margin-top: 14px;">
-      <div style="font-weight: 700; font-size: 9.5pt; margin-bottom: 6px; color:#0f172a;">MATRIKS TANGGUNG JAWAB & AKSES</div>
+    <div style="margin-top: 10px;">
+      <div style="font-weight: 700; font-size: 9pt; margin-bottom: 4px; color:#0f172a;">MATRIKS ALUR OPERASIONAL & PERAN</div>
       <table>
         <thead>
           <tr>
-            <th>Parameter</th>
+            <th>Fitur / Aksi</th>
             <th>Operator / Admin / SPV</th>
-            <th>Teknisi Lapangan</th>
+            <th>Teknisi Lapangan (PWA)</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>Perangkat Utama</strong></td>
+            <td><strong>Akses Perangkat</strong></td>
             <td>Komputer / Laptop (Web Portal)</td>
             <td>Smartphone Android/iPhone (Mobile PWA)</td>
           </tr>
           <tr>
-            <td><strong>Tugas Utama</strong></td>
-            <td>Disposisi SPK (Tim/Solo) & Validasi</td>
-            <td>Eksekusi Lapangan & SOP 1 Foto Fisik</td>
+            <td><strong>Penugasan SPK</strong></td>
+            <td>1-Klik Disposisi dari Leads / Gangguan</td>
+            <td>Terima notifikasi WA & SPK di aplikasi HP</td>
           </tr>
           <tr>
-            <td><strong>Batas Jam Lapor</strong></td>
-            <td>Cek & Broadcast WA Rekap 21:00 WIB</td>
-            <td>Wajib submit bukti sebelum 21:00 WIB</td>
+            <td><strong>Progres Kerja</strong></td>
+            <td>Monitor kolom Kanban & badge "Dikerjakan"</td>
+            <td>Tekan tombol <strong>"Mulai"</strong> saat meluncur/bekerja</td>
           </tr>
           <tr>
-            <td><strong>Penggajian & Komisi</strong></td>
-            <td>Cetak Slip Gaji & Rekap Payroll</td>
-            <td>Melihat akumulasi komisi live di HP</td>
+            <td><strong>Pelaporan & SOP</strong></td>
+            <td>Audit foto OPM, koordinat GPS, & redaman</td>
+            <td>Tekan tombol <strong>"Selesai"</strong> & upload 1 foto fisik</td>
+          </tr>
+          <tr>
+            <td><strong>Kendala / Batal</strong></td>
+            <td>Melihat laporan kendala di kolom Gagal</td>
+            <td>Tekan tombol kuning <strong>"Ada Kendala"</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Cut-Off 21:00 WIB</strong></td>
+            <td>1-Klik Kirim Rekapitulasi WA ke Manajemen</td>
+            <td>Wajib submit seluruh bukti sebelum jam 21:00</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <div class="footer">
-      <div>Nexus Net WiFi Manager • Sistem SOP Operasional</div>
+      <div>Nexus Net WiFi Manager • Dokumen Standar Operasional Prosedur (SOP)</div>
       <div>Halaman 2 dari 2</div>
     </div>
   </div>
