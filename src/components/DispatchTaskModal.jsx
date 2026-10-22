@@ -23,6 +23,7 @@ import {
   User,
   Info,
   ClipboardCheck,
+  Zap,
 } from "lucide-react";
 import {
   TASK_TYPES,
@@ -365,12 +366,28 @@ export default function DispatchTaskModal({
         <div className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1 text-slate-800">
           {/* 1. Pilih Jenis Penugasan */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-              1. Pilih Jenis Penugasan Lapangan <span className="text-rose-500">*</span>
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                1. Jenis Penugasan Lapangan <span className="text-rose-500">*</span>
+              </label>
+              <span className="text-[11px] font-semibold text-slate-400 hidden sm:inline">
+                Pilih jenis alur penugasan & format SPK
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 sm:gap-2">
               {Object.values(TASK_TYPES).map((type) => {
                 const isSelected = form.jenis === type.key;
+                const shortLabel =
+                  type.key === "PERBAIKAN KHUSUS (ODP/ODC)"
+                    ? "Perbaikan ODP"
+                    : type.key === "PEMASANGAN"
+                    ? "Pasang Baru"
+                    : type.key === "PEMUTUSAN"
+                    ? "Pemutusan"
+                    : type.key === "PERBAIKAN"
+                    ? "Perbaikan"
+                    : "Relokasi";
+
                 return (
                   <button
                     key={type.key}
@@ -384,23 +401,21 @@ export default function DispatchTaskModal({
                       }));
                       setSpkNo(generateSpkNumber(type.key, initialData.sourceId || Date.now()));
                     }}
-                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    className={`py-2 px-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col justify-between ${
                       isSelected
-                        ? "border-[#0D1B4A] bg-[#0D1B4A]/5 ring-2 ring-[#0D1B4A] shadow-sm"
-                        : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
+                        ? "border-[#0D1B4A] bg-[#0D1B4A] text-white shadow-sm ring-2 ring-[#0D1B4A]/20"
+                        : "border border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-extrabold text-slate-900">{type.label}</span>
-                      {isSelected ? (
-                        <CheckCircle2 className="w-4 h-4 text-[#0D1B4A]" />
-                      ) : (
-                        <span className="text-[10px] font-bold text-slate-400">{type.code}</span>
-                      )}
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-[10px] font-black uppercase tracking-wider ${isSelected ? "text-amber-400" : "text-slate-400"}`}>
+                        {type.code}
+                      </span>
+                      {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />}
                     </div>
-                    <p className="text-[10px] text-slate-500 line-clamp-2 leading-tight">
-                      {type.desc}
-                    </p>
+                    <span className="text-xs font-extrabold truncate leading-tight">
+                      {shortLabel}
+                    </span>
                   </button>
                 );
               })}
@@ -408,27 +423,56 @@ export default function DispatchTaskModal({
           </div>
 
           {/* Info Operasional: Rincian Item Pekerjaan Riil Diinput oleh Teknisi */}
-          <div className="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-2xl flex items-start gap-3 shadow-2xs">
-            <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 text-blue-700 mt-0.5">
-              <ClipboardCheck className="w-4 h-4" />
-            </div>
-            <div className="flex-1 text-xs">
-              <div className="flex items-center gap-1.5 font-bold text-slate-800 mb-0.5">
-                <span>Rincian Item & Meteran Kabel Dilaporkan Teknisi</span>
-                <span className="text-[10px] font-extrabold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">SOP Lapangan</span>
-              </div>
-              <p className="text-slate-600 leading-relaxed text-[11px]">
-                Admin/Operator tidak perlu mengisi checklist dan meter kabel di awal. Teknisi akan mencatat volume riil di lapangan (meter dropcore, pemakaian ONT, redaman OPM) saat menyelesaikan tugas, yang kemudian divalidasi oleh Supervisor.
-              </p>
-            </div>
+          <div className="px-3 py-2 bg-blue-50/70 border border-blue-200/80 rounded-xl flex items-center gap-2.5 text-xs text-blue-900 shadow-2xs">
+            <ClipboardCheck className="w-4 h-4 text-blue-600 shrink-0" />
+            <p className="text-[11px] leading-tight flex-1">
+              <span className="font-bold text-blue-950">SOP Lapangan:</span> Rincian material, meter dropcore, & redaman OPM diisi riil oleh teknisi saat penyelesaian tugas, lalu divalidasi oleh Supervisor.
+            </p>
           </div>
 
           {/* 2. Informasi Pelanggan & Lokasi */}
           <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-3">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-              <User className="w-4 h-4 text-[#0D1B4A]" />
-              <span>Data Pelanggan & Lokasi Kunjungan</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                <User className="w-4 h-4 text-[#0D1B4A]" />
+                <span>Data Pelanggan & Lokasi Kunjungan</span>
+              </div>
+              {Array.isArray(pelangganList) && pelangganList.length > 0 && (
+                <span className="text-[10px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-blue-600" />
+                  {pelangganList.length} Pelanggan Terdaftar
+                </span>
+              )}
             </div>
+
+            {/* Quick Fill Dropdown dari Database Pelanggan */}
+            {Array.isArray(pelangganList) && pelangganList.length > 0 && (
+              <select
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  if (!selectedId) return;
+                  const cust = pelangganList.find((p) => String(p.id_pelanggan || p.id) === String(selectedId));
+                  if (cust) {
+                    setForm((prev) => ({
+                      ...prev,
+                      pelanggan: cust.nama || prev.pelanggan,
+                      telepon: cust.telepon || cust.kontak || cust.no_wa || prev.telepon,
+                      alamat: cust.alamat || prev.alamat,
+                      odp: cust.odp || prev.odp,
+                      paket: cust.paket || prev.paket,
+                    }));
+                  }
+                }}
+                className="w-full px-3 py-1.5 bg-blue-50/80 hover:bg-blue-100/60 border border-blue-200/90 rounded-xl text-xs font-semibold text-blue-900 focus:bg-white focus:ring-2 focus:ring-blue-400 outline-none cursor-pointer"
+              >
+                <option value="">⚡ Pilih Cepat dari Database Pelanggan (Auto-Fill Alamat & ODP)...</option>
+                {pelangganList.map((p) => (
+                  <option key={p.id_pelanggan || p.id} value={p.id_pelanggan || p.id}>
+                    [{p.status || "AKTIF"}] {p.nama} {p.id_pelanggan ? `(${p.id_pelanggan})` : ""} · {p.odp || "Tanpa ODP"}
+                  </option>
+                ))}
+              </select>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
