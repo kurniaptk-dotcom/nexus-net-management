@@ -159,6 +159,7 @@ export function formatSpkWaText(task, spkNo = "") {
     `👷 *Tim Ditugaskan:* *${task.tim || "-"}*`,
     `📅 *Target Tanggal:* ${task.tanggal || "-"}`,
     task.sesi ? `⏰ *Sesi Waktu:* ${task.sesi}` : null,
+    task.janji_jam ? `🎯 *KOMITMEN JANJI TEMU:* *${task.janji_jam}* (⚠️ Hubungi pelanggan sebelum meluncur)` : null,
     `--------------------------------`,
     `👤 *Nama Pelanggan:* ${task.pelanggan || "-"}`,
     `📱 *Kontak Pelanggan:* ${task.telepon || "-"}`,

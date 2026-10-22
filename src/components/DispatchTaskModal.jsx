@@ -93,6 +93,7 @@ export default function DispatchTaskModal({
     sourceId: null,
     komisi_items: [],
     komisi_total: 0,
+    janji_jam: "",
   });
 
   const [copiedWa, setCopiedWa] = useState(false);
@@ -124,6 +125,7 @@ export default function DispatchTaskModal({
         tim: initialData.tim || availableTeams[0]?.nama || "AZWAR - RIO",
         tanggal: initialData.tanggal || new Date().toISOString().split("T")[0],
         sesi: initialData.sesi || "Pagi (08:30 - 12:00 WIB)",
+        janji_jam: initialData.janji_jam || "",
         pelanggan: initialData.pelanggan || initialData.nama || "",
         telepon: initialData.telepon || initialData.kontak || "",
         alamat: initialData.alamat || "",
@@ -181,6 +183,46 @@ export default function DispatchTaskModal({
     return null;
   }, [form.tim, availableTeams, personilList]);
 
+  // Rekomendasi tim terdekat berdasarkan klaster ODC yang sama
+  const clusterTeamRecommendation = useMemo(() => {
+    if (!selectedOdpInfo?.odc || !Array.isArray(taskList) || taskList.length === 0) return null;
+    const currentOdc = selectedOdpInfo.odc;
+    const targetDate = form.tanggal;
+
+    const teamCounts = {};
+    taskList.forEach((t) => {
+      if (
+        t &&
+        t.tanggal === targetDate &&
+        (t.status === "WAITING LIST" || t.status === "DIJADWALKAN" || t.status === "PROSES" || t.is_started)
+      ) {
+        // Cek apakah ODP tugas ini satu ODC
+        const matchingOdp = enrichedOdps.find((o) => o.nama === t.odp);
+        if (matchingOdp && matchingOdp.odc === currentOdc && t.tim) {
+          teamCounts[t.tim] = (teamCounts[t.tim] || 0) + 1;
+        }
+      }
+    });
+
+    let bestTeam = null;
+    let maxCount = 0;
+    Object.entries(teamCounts).forEach(([tName, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        bestTeam = tName;
+      }
+    });
+
+    if (bestTeam && maxCount > 0) {
+      return {
+        teamName: bestTeam,
+        count: maxCount,
+        odc: currentOdc,
+      };
+    }
+    return null;
+  }, [selectedOdpInfo, taskList, form.tanggal, enrichedOdps]);
+
   // Naskah teks WhatsApp live preview
   const waPreviewText = useMemo(() => {
     return formatSpkWaText({ ...form, spk_no: spkNo }, spkNo);
@@ -219,6 +261,7 @@ export default function DispatchTaskModal({
       alamat: (form.alamat || "").trim(),
       shareloc: (form.shareloc || "").trim(),
       keterangan: (form.keterangan || "").trim(),
+      janji_jam: (form.janji_jam || "").trim(),
       id: initialData.id || Date.now(),
       spk_no: spkNo,
       status: "WAITING LIST",
@@ -232,7 +275,7 @@ export default function DispatchTaskModal({
               actor: "CS / Dispatcher",
               status: "WAITING LIST",
               color: "blue",
-              notes: `Jadwal: ${form.tanggal || "-"} (${form.sesi || "Reguler"}). Ditugaskan ke ${form.tim}.`,
+              notes: `Jadwal: ${form.tanggal || "-"} (${form.sesi || "Reguler"}${form.janji_jam ? ` - Janji: ${form.janji_jam}` : ""}). Ditugaskan ke ${form.tim}.`,
             },
           ]
         : [
@@ -242,7 +285,7 @@ export default function DispatchTaskModal({
               actor: "CS / Dispatcher",
               status: "WAITING LIST",
               color: "blue",
-              notes: `SPK ${spkNo} diterbitkan untuk pekerjaan ${form.jenis}. Dijadwalkan tanggal ${form.tanggal || "-"} (${form.sesi || "Reguler"}) ke Tim ${form.tim}.`,
+              notes: `SPK ${spkNo} diterbitkan untuk pekerjaan ${form.jenis}. Dijadwalkan tanggal ${form.tanggal || "-"} (${form.sesi || "Reguler"}${form.janji_jam ? ` - Janji: ${form.janji_jam}` : ""}) ke Tim ${form.tim}.`,
             },
           ],
       komisi_items: form.komisi_items || [],
@@ -586,6 +629,26 @@ export default function DispatchTaskModal({
                   })}
                 </optgroup>
               </select>
+
+              {/* Rekomendasi Klaster Wilayah / ODC Terdekat */}
+              {clusterTeamRecommendation && clusterTeamRecommendation.teamName !== form.tim && (
+                <div className="mt-2 p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center justify-between gap-2 animate-in fade-in">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span className="truncate">
+                      💡 <b>Rekomendasi Klaster:</b> Tim <b>{clusterTeamRecommendation.teamName}</b> punya {clusterTeamRecommendation.count} tugas lain di <b>{clusterTeamRecommendation.odc}</b> hari ini.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, tim: clusterTeamRecommendation.teamName }))}
+                    className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold shrink-0 cursor-pointer transition-colors shadow-2xs"
+                  >
+                    Tugaskan ke Tim Ini
+                  </button>
+                </div>
+              )}
+
               {(() => {
                 const curWorkload = getTeamWorkload(form.tim?.replace(" (Solo)", ""), taskList);
                 if (curWorkload >= 5) {
@@ -655,22 +718,43 @@ export default function DispatchTaskModal({
               </div>
             </div>
 
-            {/* Sesi Waktu */}
+            {/* Sesi Waktu & Janji Jam Spesifik */}
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Sesi Waktu Kunjungan
-              </label>
-              <select
-                value={form.sesi}
-                onChange={(e) => setForm({ ...form, sesi: e.target.value })}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-              >
-                {TIME_SESSIONS.map((s) => (
-                  <option key={s.key} value={s.label}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Sesi Kunjungan
+                  </label>
+                  <select
+                    value={form.sesi}
+                    onChange={(e) => setForm({ ...form, sesi: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+                  >
+                    {TIME_SESSIONS.map((s) => (
+                      <option key={s.key} value={s.label}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider truncate">
+                      Janji Jam Pelanggan
+                    </label>
+                  </div>
+                  <div className="relative">
+                    <Clock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      value={form.janji_jam || ""}
+                      onChange={(e) => setForm({ ...form, janji_jam: e.target.value })}
+                      placeholder="Contoh: 14:00 WIB"
+                      className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -522,5 +522,22 @@ test("Ticket Timeline & Audit Trail - Event logging integrity", () => {
   assert.equal(task.timeline[1].action, "Menuju Lokasi Pelanggan");
 });
 
+test("SPK Generator - Customer Time Slot Commitment (janji_jam)", () => {
+  const taskWithAppointment = {
+    id: 102,
+    jenis: "PEMASANGAN",
+    tim: "GATRA - AIS",
+    pelanggan: "Ibu Maya",
+    tanggal: "2026-10-22",
+    sesi: "Siang (13:00 - 15:30 WIB)",
+    janji_jam: "14:30 WIB",
+  };
+
+  const text = formatSpkWaText(taskWithAppointment, "SPK/PSB/20261022/0102");
+  assert.ok(text.includes("KOMITMEN JANJI TEMU"));
+  assert.ok(text.includes("14:30 WIB"));
+  assert.ok(text.includes("Hubungi pelanggan sebelum meluncur"));
+});
+
 
 

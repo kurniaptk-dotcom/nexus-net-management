@@ -196,6 +196,7 @@ function KanbanCard({
       `🌐 ODP: ${item.odp || "-"} ${item.port ? `(Port ${item.port})` : ""}`,
       `👷 Tim: ${item.tim || "-"}`,
       `📅 Jadwal: ${item.tanggal || "-"} ${item.sesi ? `(${item.sesi})` : ""}`,
+      item.janji_jam ? `🎯 Janji Jam: ${item.janji_jam}` : "",
       item.keterangan ? `📝 Catatan: ${item.keterangan}` : "",
     ].filter(Boolean).join("\n");
 
@@ -236,6 +237,12 @@ function KanbanCard({
             <span className="text-[9px] font-bold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded border border-rose-300 flex items-center gap-1 animate-pulse">
               <AlertTriangle className="w-2.5 h-2.5 text-rose-600 shrink-0" />
               <span>SLA Mendesak</span>
+            </span>
+          )}
+          {item.janji_jam && item.status !== "SELESAI" && (
+            <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded border border-amber-300 flex items-center gap-1">
+              <Clock className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+              <span>Janji: {item.janji_jam}</span>
             </span>
           )}
           {item.is_started && item.status !== "SELESAI" && (
