@@ -646,8 +646,10 @@ export default function Pekerjaan() {
     let pagiCount = 0;
     let siangCount = 0;
     let soreCount = 0;
+    let validasiCount = 0;
 
     (data || []).forEach((item) => {
+      if (item.status === "MENUNGGU VALIDASI") validasiCount++;
       if (item.tanggal === todayStr) todayCount++;
       if (item.tanggal === tomorrowStr) tomorrowCount++;
       const s = (item.sesi || "").toUpperCase();
@@ -656,7 +658,7 @@ export default function Pekerjaan() {
       else if (s.includes("SORE")) soreCount++;
     });
 
-    return { todayCount, tomorrowCount, pagiCount, siangCount, soreCount, todayStr, tomorrowStr };
+    return { todayCount, tomorrowCount, pagiCount, siangCount, soreCount, validasiCount, todayStr, tomorrowStr };
   }, [data]);
 
   const filtered = data.filter((item) => {
@@ -672,7 +674,9 @@ export default function Pekerjaan() {
     const matchTim = filterTim === "ALL" || item.tim === filterTim;
 
     let matchQuick = true;
-    if (quickFilter === "TODAY") {
+    if (quickFilter === "VALIDASI") {
+      matchQuick = item.status === "MENUNGGU VALIDASI";
+    } else if (quickFilter === "TODAY") {
       matchQuick = item.tanggal === quickFilterCounts.todayStr;
     } else if (quickFilter === "TOMORROW") {
       matchQuick = item.tanggal === quickFilterCounts.tomorrowStr;
@@ -1019,6 +1023,12 @@ export default function Pekerjaan() {
             </span>
             {[
               { id: "ALL", label: "Semua Jadwal", count: data.length },
+              {
+                id: "VALIDASI",
+                label: "🔍 Perlu Validasi SPV",
+                count: quickFilterCounts.validasiCount,
+                highlight: quickFilterCounts.validasiCount > 0,
+              },
               { id: "TODAY", label: "Hari Ini", count: quickFilterCounts.todayCount },
               { id: "TOMORROW", label: "Besok", count: quickFilterCounts.tomorrowCount },
               { id: "PAGI", label: "Sesi Pagi (08-12)", count: quickFilterCounts.pagiCount },
@@ -1026,6 +1036,7 @@ export default function Pekerjaan() {
               { id: "SORE", label: "Sesi Sore (16-20)", count: quickFilterCounts.soreCount },
             ].map((pill) => {
               const active = quickFilter === pill.id;
+              const isHighlight = pill.highlight && !active;
               return (
                 <button
                   key={pill.id}
@@ -1034,6 +1045,8 @@ export default function Pekerjaan() {
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer text-xs border ${
                     active
                       ? "bg-[#0D1B4A] text-white border-[#0D1B4A] shadow-xs"
+                      : isHighlight
+                      ? "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-300 ring-2 ring-purple-100"
                       : "bg-white text-slate-600 hover:bg-slate-50 border-slate-200"
                   }`}
                 >
@@ -1042,6 +1055,8 @@ export default function Pekerjaan() {
                     className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
                       active
                         ? "bg-amber-400 text-[#0D1B4A]"
+                        : isHighlight
+                        ? "bg-purple-200 text-purple-900 animate-pulse"
                         : "bg-slate-100 text-slate-600"
                     }`}
                   >

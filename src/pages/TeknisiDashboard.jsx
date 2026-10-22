@@ -78,6 +78,7 @@ import {
 import { compressAndWatermarkImage, getCurrentLocation } from "../lib/imageCompressor";
 import { getOdpPortMap, checkPortCollision, extractPortNumber } from "../lib/portCollision";
 import BuktiLapanganModal from "../components/BuktiLapanganModal";
+import TaskCompletionModal from "../components/TaskCompletionModal";
 import { enrichOdpWithPortUtilization } from "../lib/odpUtilization";
 import { uploadTaskEvidenceBundle } from "../lib/storageUpload";
 import { syncCustomerOnTaskCompletion } from "../lib/customerPortLifecycle";
@@ -724,246 +725,72 @@ export default function TeknisiDashboard() {
     triggerToast(`Status tugas ${task.pelanggan} diubah: Sedang Dikerjakan.`, "info");
   };
 
-  // Handle Submit Completion (Upload Bukti Lapangan ke Storage & Auto Sync Port Pelanggan)
-  const handleCompleteSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedTask || isSubmittingCompletion) return;
-
-    // === VALIDASI SOP KETAT (WAJIB MUTLAK: 1 FOTO BUKTI LAPANGAN) ===
-    const isPemutusan = selectedTask.jenis === "PEMUTUSAN";
-    const isPemasangan = selectedTask.jenis === "PEMASANGAN";
-    const finalPhoto = completionForm.fotoBuktiUtama || completionForm.fotoOpm || completionForm.fotoModem || completionForm.fotoDropcore;
-    const hasPhoto = Boolean(finalPhoto);
-
-    if (isPemasangan) {
-      if (!completionForm.redaman || isNaN(parseFloat(completionForm.redaman))) {
-        triggerToast("SOP Wajib: Masukkan nilai redaman OPM yang valid (contoh: -19.5 dBm).", "error");
-        return;
-      }
-      if (!completionForm.serialNumber || !completionForm.serialNumber.trim()) {
-        triggerToast("SOP Wajib: Nomor Seri (SN) / MAC Modem ONT wajib diisi untuk pemasangan baru.", "error");
-        return;
-      }
-      if (!hasPhoto) {
-        triggerToast("SOP Wajib: Lampirkan 1 Foto Bukti Utama fisik sebelum mengirim laporan.", "error");
-        return;
-      }
-    } else if (isPemutusan) {
-      if (!hasPhoto) {
-        triggerToast("SOP Wajib: Lampirkan 1 foto bukti fisik perangkat yang ditarik atau port ODP yang dicabut.", "error");
-        return;
-      }
-    } else {
-      // Perbaikan / Gangguan / Khusus
-      if (!completionForm.redaman || isNaN(parseFloat(completionForm.redaman))) {
-        triggerToast("SOP Wajib: Masukkan nilai redaman optik OPM akhir (contoh: -19.5 dBm).", "error");
-        return;
-      }
-      if (!hasPhoto) {
-        triggerToast("SOP Wajib: Lampirkan 1 foto bukti fisik perbaikan sebelum mengirim laporan.", "error");
-        return;
-      }
-    }
-
-    const hasValidWorkItem = (completionWorkItems || []).some((it) => (Number(it.qty) || 0) > 0);
-    if (!hasValidWorkItem) {
-      triggerToast("SOP Wajib: Rincian item pekerjaan fisik belum diisi (masukkan meteran kabel atau unit kerja untuk klaim komisi).", "error");
-      return;
-    }
-
-    setIsSubmittingCompletion(true);
-
+    // Handle Submit Completion dari TaskCompletionModal (Dukungan Offline Queue & Cloud Storage)
+  const handleCompleteTaskFromModal = async (finalPayload) => {
     try {
+      setIsSubmittingCompletion(true);
+      const isDeviceOffline = !isOnline || (typeof navigator !== "undefined" && !navigator.onLine);
       const nowIso = new Date().toISOString();
       const cutoffEval = evaluateReportSubmissionTime(nowIso);
 
-      const redamanStr = completionForm.redaman ? `Redaman: ${completionForm.redaman} dBm` : "";
-      const snStr = completionForm.serialNumber ? `SN ONT: ${completionForm.serialNumber}` : "";
-      const odpStr = selectedOdpForTask ? `ODP: ${selectedOdpForTask}` : "";
-      const extraDetails = [redamanStr, snStr, odpStr, "📷 1 Foto Bukti Lapangan", completionForm.catatan].filter(Boolean).join(" | ");
-
-      const rawEvidence = {
-        foto_bukti_utama: finalPhoto,
-        foto_opm: finalPhoto,
-        foto_dropcore: finalPhoto,
-        foto_modem: finalPhoto,
-        redaman: completionForm.redaman,
-        sn_modem: completionForm.serialNumber,
-        odp: selectedOdpForTask || selectedTask.odp,
-        catatan: completionForm.catatan,
-        waktu_lapor: nowIso,
-        waktu_selesai: nowIso,
-        cutoff_status: cutoffEval.status,
-        cutoff_label: cutoffEval.label,
-      };
-
-      // Hitung komisi riil tugas ini berdasarkan rincian item pekerjaan
-      const totalKomisi = (completionWorkItems || []).reduce((acc, it) => {
-        const rate = incentiveConfig?.itemRates?.[it.id] !== undefined
-          ? incentiveConfig.itemRates[it.id]
-          : (KOMISI_MAP[it.id]?.tarif || 0);
-        return acc + (Number(it.qty) || 0) * rate;
-      }, 0);
-
-      const itemsSummaryStr = (completionWorkItems || [])
-        .filter((it) => (Number(it.qty) || 0) > 0)
-        .map((it) => `${KOMISI_MAP[it.id]?.nama || it.id}: ${it.qty} ${KOMISI_MAP[it.id]?.satuan || ""}`)
-        .join(", ");
-
-      const targetStatus = isSupervisor ? "SELESAI" : "MENUNGGU VALIDASI";
-      const isDeviceOffline = !isOnline || (typeof navigator !== "undefined" && !navigator.onLine);
-
-      // JIKA PERANGKAT DALAM MODE OFFLINE (AREA BLANKSPOT)
       if (isDeviceOffline) {
         const offlineTask = {
-          ...selectedTask,
-          status: targetStatus,
-          redaman: completionForm.redaman,
-          sn_modem: completionForm.serialNumber,
-          odp: selectedOdpForTask || selectedTask.odp,
-          foto_bukti_utama: finalPhoto,
-          foto_opm: finalPhoto,
-          foto_dropcore: finalPhoto,
-          foto_modem: finalPhoto,
-          waktu_lapor: nowIso,
-          waktu_selesai: targetStatus === "SELESAI" ? nowIso : selectedTask.waktu_selesai,
-          cutoff_status: cutoffEval.status,
-          cutoff_label: cutoffEval.label,
+          ...finalPayload,
           is_offline_draft: true,
           offline_queued_at: nowIso,
-          revisi_catatan: null, // Clear revisi flag upon resubmission
-          evidence: {
-            ...rawEvidence,
-            foto_bukti_utama: finalPhoto,
-            waktu_lapor: nowIso,
-            cutoff_status: cutoffEval.status,
-            cutoff_label: cutoffEval.label,
-          },
-          timeline: [
-            ...(Array.isArray(selectedTask.timeline) ? selectedTask.timeline : []),
-            {
-              timestamp: nowIso,
-              formattedTime: new Date(nowIso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-              action: "Laporan Disimpan di Memori HP (Mode Offline)",
-              actor: "Teknisi Lapangan",
-              color: "amber",
-              notes: `Laporan disimpan lokal karena sinyal minim (${cutoffEval.label}). Akan otomatis terkirim saat sinyal pulih.`,
-            },
-          ],
-          komisi_items: completionWorkItems,
-          komisi_total: totalKomisi,
-          keterangan: [extraDetails, itemsSummaryStr ? `Rincian: ${itemsSummaryStr}` : ""].filter(Boolean).join(" | ") || "Laporan 1 foto pengerjaan lapangan (Draft Offline).",
         };
 
         addToOfflineQueue({
           type: "COMPLETE_TASK",
-          taskId: selectedTask.id,
+          taskId: finalPayload.id,
           taskData: offlineTask,
-          evidenceBundle: rawEvidence,
-          customerName: selectedTask.pelanggan,
-          jenis: selectedTask.jenis,
+          evidenceBundle: finalPayload.evidence || {},
+          customerName: finalPayload.pelanggan,
+          jenis: finalPayload.jenis,
         });
 
         setPekerjaan((prev) =>
-          prev.map((t) => (t.id === selectedTask.id ? offlineTask : t))
+          prev.map((t) => (t.id === finalPayload.id ? offlineTask : t))
         );
 
         triggerToast(
-          `📶 Mode Offline (Blankspot): Laporan "${selectedTask.pelanggan}" aman tersimpan di HP. Otomatis dikirim saat sinyal 4G pulih.`,
+          `📶 Mode Offline (Blankspot): Laporan "${finalPayload.pelanggan}" aman tersimpan di HP. Otomatis dikirim saat sinyal 4G pulih.`,
           "info"
         );
-
         setSelectedTask(null);
-        setCompletionWorkItems([]);
-        setCompletionForm({
-          redaman: "-19.5",
-          serialNumber: "",
-          odp: "",
-          catatan: "",
-          fotoBuktiUtama: null,
-          fotoOpm: null,
-          fotoDropcore: null,
-          fotoModem: null,
-        });
         return;
       }
 
-      // JIKA ONLINE: Upload foto bukti ke Supabase Storage (dengan graceful offline/local fallback)
-      let finalEvidence = rawEvidence;
+      // Online: background upload bukti foto ke Supabase Storage
+      let finalEvidence = finalPayload.evidence;
       try {
-        finalEvidence = await uploadTaskEvidenceBundle(rawEvidence, selectedTask.id);
+        if (finalPayload.evidence) {
+          finalEvidence = await uploadTaskEvidenceBundle(finalPayload.evidence, finalPayload.id);
+        }
       } catch (uploadErr) {
         console.warn("Storage upload exception, fallback to local data:", uploadErr);
       }
 
-      const finalTask = {
-        ...selectedTask,
-        status: targetStatus,
-        redaman: completionForm.redaman,
-        sn_modem: completionForm.serialNumber,
-        odp: selectedOdpForTask || selectedTask.odp,
-        foto_bukti_utama: finalPhoto,
-        foto_opm: finalPhoto,
-        foto_dropcore: finalPhoto,
-        foto_modem: finalPhoto,
-        waktu_lapor: nowIso,
-        waktu_selesai: targetStatus === "SELESAI" ? nowIso : selectedTask.waktu_selesai,
-        cutoff_status: cutoffEval.status,
-        cutoff_label: cutoffEval.label,
-        is_offline_draft: false,
-        revisi_catatan: null, // Clear revisi flag upon resubmission
-        evidence: {
-          ...finalEvidence,
-          foto_bukti_utama: finalPhoto,
-          waktu_lapor: nowIso,
-          cutoff_status: cutoffEval.status,
-          cutoff_label: cutoffEval.label,
-        },
-        timeline: [
-          ...(Array.isArray(selectedTask.timeline) ? selectedTask.timeline : []),
-          {
-            timestamp: nowIso,
-            formattedTime: new Date(nowIso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-            action: targetStatus === "SELESAI" ? "Pekerjaan Disahkan Selesai" : "Laporan 1 Foto Terkirim",
-            actor: isSupervisor ? "Supervisor (SPV)" : "Teknisi Lapangan",
-            color: targetStatus === "SELESAI" ? "emerald" : "purple",
-            notes: targetStatus === "SELESAI"
-              ? `Pekerjaan disetujui. Redaman OPM: ${completionForm.redaman || "-"} dBm. Komisi: ${formatRupiah(totalKomisi)}.`
-              : `Foto bukti fisik terlampir. Redaman: ${completionForm.redaman || "-"} dBm, SN: ${completionForm.serialNumber || "-"}. Menunggu validasi SPV (${cutoffEval.label}).`,
-          },
-        ],
-        komisi_items: completionWorkItems,
-        komisi_total: totalKomisi,
-        keterangan: [extraDetails, itemsSummaryStr ? `Rincian: ${itemsSummaryStr}` : ""].filter(Boolean).join(" | ") || "Laporan 1 foto pengerjaan lapangan.",
+      const taskToSave = {
+        ...finalPayload,
+        evidence: finalEvidence || finalPayload.evidence,
       };
 
-      // 2. Simpan status pekerjaan
       setPekerjaan((prev) =>
-        prev.map((t) => (t.id === selectedTask.id ? finalTask : t))
+        prev.map((t) => (t.id === finalPayload.id ? taskToSave : t))
       );
 
-      // 3. Otomatisasi Sinkronisasi Port Pelanggan (jika status langsung SELESAI)
-      if (targetStatus === "SELESAI") {
-        syncCustomerOnTaskCompletion(finalTask, pelangganList, setPelangganList);
+      // Otomatisasi Sinkronisasi Port Pelanggan (jika status langsung SELESAI)
+      if (taskToSave.status === "SELESAI") {
+        syncCustomerOnTaskCompletion(taskToSave, pelangganList, setPelangganList);
       }
 
-      const toastMessage = targetStatus === "MENUNGGU VALIDASI"
+      const toastMessage = taskToSave.status === "MENUNGGU VALIDASI"
         ? `Laporan 1 foto berhasil dikirim (${cutoffEval.label}). Menunggu validasi SPV.`
-        : `Laporan & bukti foto pekerjaan "${selectedTask.pelanggan}" berhasil disetujui. Komisi: ${formatRupiah(totalKomisi)}`;
+        : `Laporan & bukti foto pekerjaan "${finalPayload.pelanggan}" berhasil disetujui. Komisi: ${formatRupiah(finalPayload.komisi_total || 0)}`;
       triggerToast(toastMessage, "success");
 
       setSelectedTask(null);
-      setCompletionWorkItems([]);
-      setCompletionForm({
-        redaman: "-19.5",
-        serialNumber: "",
-        odp: "",
-        catatan: "",
-        fotoBuktiUtama: null,
-        fotoOpm: null,
-        fotoDropcore: null,
-        fotoModem: null,
-      });
     } catch (err) {
       console.error("Gagal menyelesaikan pekerjaan:", err);
       triggerToast("Gagal menyimpan pekerjaan: " + err.message, "error");
@@ -3323,424 +3150,15 @@ export default function TeknisiDashboard() {
       {/* ========================================================================= */}
       {/* 7. MODALS (SELESAI & KENDALA)                                             */}
       {/* ========================================================================= */}
-      {selectedTask && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-7 border border-slate-100 max-h-[92vh] overflow-y-auto">
-            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden" />
-
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Laporan Selesai Pengerjaan</h3>
-                  <p className="text-xs text-slate-500">{selectedTask.pelanggan} · {selectedTask.jenis}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedTask(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCompleteSubmit} className="mt-4 space-y-4">
-              {/* SOP Compliance Banner */}
-              <div className="p-3 bg-blue-50/90 border border-blue-200/90 rounded-2xl text-xs text-blue-900 flex items-start gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                <div className="leading-relaxed">
-                  <p className="font-bold text-blue-950">Validasi SOP Teknisi Nexus Net</p>
-                  <p className="text-[11px] text-blue-800">
-                    Sesuai SOP, mohon pastikan <b>hasil ukur OPM</b>, <b>nomor seri modem ONT</b>, <b>meteran tarikan kabel riil</b>, dan <b>minimal 1 foto bukti fisik</b> terlampir sebelum menutup tiket. Komisi tugas akan dihitung otomatis sesuai data yang Anda masukkan.
-                  </p>
-                </div>
-              </div>
-
-              {/* SPV Revision Instruction Banner */}
-              {selectedTask.revisi_catatan && selectedTask.status !== "SELESAI" && (
-                <div className="p-3.5 bg-rose-50 border-2 border-rose-300 rounded-2xl text-xs text-rose-900 flex items-start gap-2.5 animate-in fade-in">
-                  <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center shrink-0 text-rose-600 mt-0.5">
-                    <AlertTriangle className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-black text-rose-950 text-xs">Instruksi Revisi dari Supervisor (SPV):</p>
-                    <p className="text-[11px] text-rose-900 mt-1 font-semibold leading-relaxed bg-white/90 p-2.5 rounded-xl border border-rose-200">
-                      "{selectedTask.revisi_catatan}"
-                    </p>
-                    <p className="text-[10px] text-rose-600 mt-1 font-medium">
-                      Silakan ambil ulang foto bukti fisik atau perbarui nilai redaman/SN di bawah ini sesuai arahan SPV.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {selectedTask.jenis === "PEMUTUSAN" ? (
-                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-900 space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-extrabold text-rose-700">
-                    <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span>Instruksi Pemutusan (Dismantle Perangkat)</span>
-                  </div>
-                  <p className="text-[11px] text-rose-800 leading-relaxed">
-                    1. Cabut kabel dropcore dari port tiang ODP <b>{selectedTask.odp || ""}</b>.<br />
-                    2. Tarik kembali unit modem ONT & adaptor dari rumah pelanggan.<br />
-                    3. Foto perangkat yang ditarik & barcode nomor seri modem.<br />
-                    <b>1 Port ODP otomatis dibebaskan</b> saat Anda menyimpan laporan ini.
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                      Hasil Redaman Optik (dBm) <span className="text-rose-500 font-extrabold">* (Wajib)</span>
-                    </label>
-                    {dbmQuality && (
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${dbmQuality.color}`}>
-                        <span className={`w-2 h-2 rounded-full ${dbmQuality.dot}`} />
-                        {dbmQuality.label}
-                      </span>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <Gauge className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      required
-                      value={completionForm.redaman}
-                      onChange={(e) => setCompletionForm({ ...completionForm, redaman: e.target.value })}
-                      placeholder="Contoh: -19.5"
-                      className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-                      dBm
-                    </span>
-                  </div>
-                  <OpticalPowerGauge value={completionForm.redaman} mode="full" className="mt-2.5" />
-
-                  {/* SOP Realtime Warning Banner if Redaman > -27.0 dBm */}
-                  {completionForm.redaman && Math.abs(parseFloat(completionForm.redaman)) > 27 && (
-                    <div className="mt-2.5 p-3.5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-900 text-xs flex items-start gap-3 animate-in fade-in">
-                      <div className="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center shrink-0 text-rose-600 mt-0.5">
-                        <AlertTriangle className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="font-extrabold text-rose-900 text-xs">
-                          Peringatan SOP: Redaman Melebihi Batas Toleransi (-27.0 dBm)!
-                        </p>
-                        <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
-                          Nilai redaman <b>{completionForm.redaman} dBm</b> berisiko tinggi menyebabkan packet loss, LOS, atau komplain pelanggan. Sebelum mengirim:
-                        </p>
-                        <ul className="list-disc pl-4 mt-1 text-[11px] text-rose-800 space-y-0.5">
-                          <li>Periksa tekukan mikro pada kabel dropcore di tiang & rumah pelanggan.</li>
-                          <li>Bersihkan ferrule konektor SC/UPC dengan optik cleaner.</li>
-                          <li>Lakukan kupas ulang atau splicing fast connector jika diperlukan.</li>
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between">
-                  <span>
-                    Nomor Seri (SN) / MAC Modem ONT{" "}
-                    {selectedTask.jenis === "PEMASANGAN" && (
-                      <span className="text-rose-500 font-extrabold">* (Wajib)</span>
-                    )}
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  required={selectedTask.jenis === "PEMASANGAN"}
-                  autoCapitalize="characters"
-                  value={completionForm.serialNumber}
-                  onChange={(e) => setCompletionForm({ ...completionForm, serialNumber: e.target.value })}
-                  placeholder="Contoh: ZTEGC1234567 atau HWTC89ABC"
-                  className="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm uppercase font-mono focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-                />
-              </div>
-
-              {/* Konfirmasi Tiang ODP Tujuan */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <Wifi className="w-3.5 h-3.5 text-blue-600" />
-                    <span>ODP / Tiang Distribusi</span>
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-normal">
-                    (Sinkron Port ODP & Pelanggan)
-                  </span>
-                </label>
-                <select
-                  value={selectedOdpForTask}
-                  onChange={(e) => {
-                    const newOdp = e.target.value;
-                    setSelectedOdpForTask(newOdp);
-                    setCompletionForm((prev) => ({
-                      ...prev,
-                      odp: newOdp,
-                    }));
-                  }}
-                  className="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none cursor-pointer"
-                >
-                  {(odpList || []).map((o) => (
-                    <option key={o.id || o.nama} value={o.nama}>
-                      {o.nama} ({o.odc}) — {o.status || "Aman"}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Catatan Lapangan (Opsional)
-                </label>
-                <textarea
-                  rows={2}
-                  value={completionForm.catatan}
-                  onChange={(e) => setCompletionForm({ ...completionForm, catatan: e.target.value })}
-                  placeholder="Contoh: Kabel dropcore 110 meter, penempatan ONT di ruang tengah aman."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-                />
-              </div>
-
-              {/* Rincian Item Pekerjaan & Klaim Komisi (Team Nexus) */}
-              <div className="p-3.5 sm:p-4 bg-amber-50/70 border border-amber-200/90 rounded-2xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
-                      <Coins className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-900">Rincian Pekerjaan Lapangan</h4>
-                      <p className="text-[10px] text-slate-500">Tabel Komisi Pekerjaan Team Nexus</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] text-slate-500 block">Total Komisi Tugas:</span>
-                    <span className="text-sm font-black text-amber-700">
-                      {formatRupiah(
-                        (completionWorkItems || []).reduce((acc, it) => {
-                          const rate = incentiveConfig?.itemRates?.[it.id] !== undefined
-                            ? incentiveConfig.itemRates[it.id]
-                            : (KOMISI_MAP[it.id]?.tarif || 0);
-                          return acc + (Number(it.qty) || 0) * rate;
-                        }, 0)
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                {/* List Item Pekerjaan */}
-                <div className="space-y-2">
-                  {completionWorkItems.map((item, idx) => {
-                    const master = KOMISI_MAP[item.id] || { nama: item.id, satuan: "Unit", tarif: 0 };
-                    const rate = incentiveConfig?.itemRates?.[item.id] !== undefined ? incentiveConfig.itemRates[item.id] : master.tarif;
-                    const subtotal = (Number(item.qty) || 0) * rate;
-
-                    return (
-                      <div key={item.id || idx} className="p-2.5 bg-white rounded-xl border border-amber-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-slate-800 truncate">{master.nama}</p>
-                          <p className="text-[10px] text-slate-400">
-                            {formatRupiah(rate)} / {master.satuan}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
-                          <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const step = master.satuan === "Meter" ? 10 : 1;
-                                const newQty = Math.max(0, (Number(item.qty) || 0) - step);
-                                setCompletionWorkItems((prev) =>
-                                  prev.map((it, i) => (i === idx ? { ...it, qty: newQty } : it))
-                                );
-                              }}
-                              className="px-2.5 py-1 hover:bg-slate-200 text-slate-600 font-bold text-xs cursor-pointer select-none"
-                            >
-                              -
-                            </button>
-                            <input
-                              type="number"
-                              min={0}
-                              value={item.qty}
-                              onChange={(e) => {
-                                const val = Math.max(0, Number(e.target.value) || 0);
-                                setCompletionWorkItems((prev) =>
-                                  prev.map((it, i) => (i === idx ? { ...it, qty: val } : it))
-                                );
-                              }}
-                              className="w-16 text-center text-xs font-bold py-1 bg-white outline-none"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const step = master.satuan === "Meter" ? 10 : 1;
-                                const newQty = (Number(item.qty) || 0) + step;
-                                setCompletionWorkItems((prev) =>
-                                  prev.map((it, i) => (i === idx ? { ...it, qty: newQty } : it))
-                                );
-                              }}
-                              className="px-2.5 py-1 hover:bg-slate-200 text-slate-600 font-bold text-xs cursor-pointer select-none"
-                            >
-                              +
-                            </button>
-                          </div>
-                          <span className="text-[10px] font-semibold text-slate-500 w-9">{master.satuan}</span>
-                          <span className="text-xs font-black text-slate-900 w-20 text-right">
-                            {formatRupiah(subtotal)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCompletionWorkItems((prev) => prev.filter((_, i) => i !== idx));
-                            }}
-                            className="p-1 text-slate-300 hover:text-rose-500 rounded cursor-pointer"
-                            title="Hapus Item"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Dropdown Tambah Pekerjaan Lain */}
-                <div className="flex items-center gap-2 pt-1">
-                  <select
-                    value={selectedAddItem}
-                    onChange={(e) => setSelectedAddItem(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 outline-none"
-                  >
-                    <option value="">+ Tambah item pekerjaan lain...</option>
-                    {masterKomisi.filter(
-                      (m) => !completionWorkItems.some((it) => it.id === m.id)
-                    ).map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.nama} — {formatRupiah(incentiveConfig?.itemRates?.[m.id] ?? m.tarif)}/{m.satuan}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    disabled={!selectedAddItem}
-                    onClick={() => {
-                      if (!selectedAddItem) return;
-                      const master = KOMISI_MAP[selectedAddItem];
-                      const defaultQty = master?.satuan === "Meter" ? 50 : 1;
-                      setCompletionWorkItems((prev) => [...prev, { id: selectedAddItem, qty: defaultQty }]);
-                      setSelectedAddItem("");
-                    }}
-                    className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-[#0D1B4A] rounded-xl text-xs font-bold transition-all cursor-pointer"
-                  >
-                    Tambah
-                  </button>
-                </div>
-              </div>
-
-              {/* Upload 1 Foto Bukti Dokumentasi Lapangan (SOP Lapangan) */}
-              <div className="pt-2 border-t border-slate-100 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                    <span>1 Foto Bukti Lapangan</span>
-                    <span className="text-rose-500 font-extrabold text-[11px]">* (Wajib SOP)</span>
-                  </label>
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    Foto OPM / Modem ONT / Tiang
-                  </span>
-                </div>
-
-                {/* Indikator Cut-Off Jam 9 Malam */}
-                <div className="px-3 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs flex items-center justify-between text-slate-700">
-                  <div className="flex items-center gap-1.5 font-medium text-[11px]">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Cut-off Laporan: <b>Maks. Pk 21:00 WIB</b></span>
-                  </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600 font-mono">
-                    WIB: {getWibTimeParts().formattedTime}
-                  </span>
-                </div>
-
-                {/* Box Upload 1 Foto Utama */}
-                <div className="border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl p-3 bg-slate-50/70 transition-all text-center">
-                  {completionForm.fotoBuktiUtama || completionForm.fotoOpm || completionForm.fotoModem ? (
-                    <div className="relative w-full h-44 rounded-xl overflow-hidden shadow-xs border border-slate-200">
-                      <img
-                        src={completionForm.fotoBuktiUtama || completionForm.fotoOpm || completionForm.fotoModem}
-                        alt="Bukti Lapangan"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-2 right-2 flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePhoto("fotoBuktiUtama")}
-                          className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-md transition-colors cursor-pointer"
-                          title="Hapus Foto"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-black/75 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1.5">
-                        <Camera className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>1 Foto Bukti Fisik Terunggah</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <label className="w-full h-36 flex flex-col items-center justify-center cursor-pointer p-4 hover:bg-slate-100/80 rounded-xl transition-all">
-                      <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-2 shadow-xs">
-                        <Camera className="w-5 h-5" />
-                      </div>
-                      <p className="text-xs font-bold text-slate-800">
-                        Ambil / Unggah 1 Foto Bukti Lapangan
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        Bisa foto hasil ukur OPM atau foto unit modem ONT terpasang
-                      </p>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        className="hidden"
-                        onChange={(e) => handlePhotoUpload(e, "fotoBuktiUtama")}
-                      />
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setSelectedTask(null)}
-                  className="flex-1 py-3 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingCompletion}
-                  className="flex-2 py-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
-                >
-                  {isSubmittingCompletion ? (
-                    <>
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Mengunggah & Menyimpan...</span>
-                    </>
-                  ) : (
-                    <span>Konfirmasi Selesai</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Modal Terpadu Penyelesaian Tugas & SOP 1 Foto */}
+      <TaskCompletionModal
+        isOpen={Boolean(selectedTask)}
+        task={selectedTask}
+        odpList={odpList}
+        masterKomisi={masterKomisi}
+        onClose={() => setSelectedTask(null)}
+        onComplete={handleCompleteTaskFromModal}
+      />
 
       {kendalaTask && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">

@@ -85,14 +85,34 @@ export function syncLeadsOnTaskCompletion(task) {
 
     const targetName = (task.pelanggan || "").trim().toLowerCase();
     const targetSourceId = task.sourceId;
+    const taskPhone = (task.telepon || "").replace(/[^0-9]/g, "");
+    const cleanTaskName = targetName.replace(/^(bpk\.?|bapak|ibu|sdr\.?)\s+/i, "").replace(/\(.*?\)/g, "").trim();
     const todayIso = new Date().toISOString().split("T")[0];
 
     let matched = false;
     const updatedList = list.map((l) => {
       if (!l) return l;
-      const isMatch =
+      const leadPhone = (l.telepon || l.kontak || "").replace(/[^0-9]/g, "");
+      const phoneMatch = Boolean(
+        taskPhone &&
+        leadPhone &&
+        taskPhone.length >= 8 &&
+        leadPhone.length >= 8 &&
+        (taskPhone === leadPhone || taskPhone.endsWith(leadPhone.slice(-8)) || leadPhone.endsWith(taskPhone.slice(-8)))
+      );
+
+      const leadName = (l.nama || "").trim().toLowerCase();
+      const cleanLeadName = leadName.replace(/^(bpk\.?|bapak|ibu|sdr\.?)\s+/i, "").replace(/\(.*?\)/g, "").trim();
+      const nameMatch = Boolean(
+        (targetName && leadName === targetName) ||
+        (cleanLeadName && cleanTaskName && (cleanLeadName === cleanTaskName || cleanTaskName.includes(cleanLeadName) || cleanLeadName.includes(cleanTaskName)))
+      );
+
+      const isMatch = Boolean(
         (targetSourceId && (l.id === targetSourceId || String(l.id) === String(targetSourceId))) ||
-        (targetName && (l.nama || "").trim().toLowerCase() === targetName);
+        phoneMatch ||
+        nameMatch
+      );
 
       if (isMatch) {
         matched = true;
