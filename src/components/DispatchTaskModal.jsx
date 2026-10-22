@@ -22,6 +22,7 @@ import {
   FileText,
   User,
   Info,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   TASK_TYPES,
@@ -37,7 +38,6 @@ import {
 import { checkPortCollision, getOdpPortMap } from "../lib/portCollision";
 import { enrichOdpWithPortUtilization } from "../lib/odpUtilization";
 import { usePersistState } from "../hooks/usePersistState";
-import WorkItemsChecklist from "./WorkItemsChecklist";
 import {
   KOMISI_PEKERJAAN_MASTER,
   getDefaultWorkItemsForTask,
@@ -114,10 +114,10 @@ export default function DispatchTaskModal({
 
       const initialWorkItems = Array.isArray(initialData.komisi_items) && initialData.komisi_items.length > 0
         ? initialData.komisi_items
-        : getDefaultWorkItemsForTask(detectedJenis, 100, masterKomisi);
+        : [];
       const initialWorkTotal = initialData.komisi_total !== undefined && initialData.komisi_total !== null
         ? initialData.komisi_total
-        : calculateKomisiItemsTotal(initialWorkItems, masterKomisi);
+        : 0;
 
       setForm({
         jenis: detectedJenis,
@@ -376,13 +376,11 @@ export default function DispatchTaskModal({
                     key={type.key}
                     type="button"
                     onClick={() => {
-                      const newItems = getDefaultWorkItemsForTask(type.key, 100, masterKomisi);
-                      const newTotal = calculateKomisiItemsTotal(newItems, masterKomisi);
                       setForm((prev) => ({
                         ...prev,
                         jenis: type.key,
-                        komisi_items: newItems,
-                        komisi_total: newTotal,
+                        komisi_items: [],
+                        komisi_total: 0,
                       }));
                       setSpkNo(generateSpkNumber(type.key, initialData.sourceId || Date.now()));
                     }}
@@ -409,20 +407,21 @@ export default function DispatchTaskModal({
             </div>
           </div>
 
-          {/* Checklist Lingkup Pekerjaan & Komisi SPK */}
-          <WorkItemsChecklist
-            jenis={form.jenis}
-            value={form.komisi_items || []}
-            onChange={(newItems) => {
-              const newTotal = calculateKomisiItemsTotal(newItems, masterKomisi);
-              setForm((prev) => ({
-                ...prev,
-                komisi_items: newItems,
-                komisi_total: newTotal,
-              }));
-            }}
-            masterList={masterKomisi}
-          />
+          {/* Info Operasional: Rincian Item Pekerjaan Riil Diinput oleh Teknisi */}
+          <div className="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-2xl flex items-start gap-3 shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 text-blue-700 mt-0.5">
+              <ClipboardCheck className="w-4 h-4" />
+            </div>
+            <div className="flex-1 text-xs">
+              <div className="flex items-center gap-1.5 font-bold text-slate-800 mb-0.5">
+                <span>Rincian Item & Meteran Kabel Dilaporkan Teknisi</span>
+                <span className="text-[10px] font-extrabold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">SOP Lapangan</span>
+              </div>
+              <p className="text-slate-600 leading-relaxed text-[11px]">
+                Admin/Operator tidak perlu mengisi checklist dan meter kabel di awal. Teknisi akan mencatat volume riil di lapangan (meter dropcore, pemakaian ONT, redaman OPM) saat menyelesaikan tugas, yang kemudian divalidasi oleh Supervisor.
+              </p>
+            </div>
+          </div>
 
           {/* 2. Informasi Pelanggan & Lokasi */}
           <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-3">

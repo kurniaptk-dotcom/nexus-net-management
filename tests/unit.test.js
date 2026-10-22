@@ -638,6 +638,74 @@ test("Offline Mode & Auto-Sync Engine - Queue management and zero data loss sync
   assert.ok(syncedComplete.synced_at);
 });
 
+test("Simplified SPK Dispatch & Field Technician Reporting Lifecycle", async () => {
+  const {
+    getDefaultWorkItemsForTask,
+    calculateTaskIncentive,
+    KOMISI_PEKERJAAN_MASTER,
+  } = await import("../src/lib/incentives.js");
+
+  // 1. Admin dispatches SPK quickly without guessing work items / meterage
+  const dispatchedTask = {
+    id: 991,
+    spk_no: "SPK/PSB/20261022/0991",
+    jenis: "PEMASANGAN",
+    pelanggan: "Bpk. Danang Wicaksono",
+    odp: "ODP 2.3",
+    tim: "AZWAR - RIO",
+    status: "DIJADWALKAN",
+    komisi_items: [],
+    komisi_total: 0,
+  };
+
+  assert.equal(dispatchedTask.komisi_items.length, 0);
+  assert.equal(dispatchedTask.komisi_total, 0);
+
+  // 2. Technician opens completion modal: system smartly auto-templates for job type
+  const fallbackTemplate = (!dispatchedTask.komisi_items || dispatchedTask.komisi_items.length === 0)
+    ? getDefaultWorkItemsForTask(dispatchedTask.jenis, 100, KOMISI_PEKERJAAN_MASTER)
+    : dispatchedTask.komisi_items;
+
+  assert.ok(fallbackTemplate.length > 0);
+  const cableItem = fallbackTemplate.find((it) => it.id === "tarik_pelanggan_baru");
+  assert.ok(cableItem);
+
+  // 3. Technician enters real-world field report (e.g. actual dropcore measured: 75 meters)
+  const reportedItems = fallbackTemplate.map((it) =>
+    it.id === "tarik_pelanggan_baru" ? { ...it, qty: 75, subtotal: 75 * 100 } : it
+  );
+
+  const technicianReport = {
+    ...dispatchedTask,
+    status: "MENUNGGU VALIDASI",
+    redaman: "-19.2",
+    sn_modem: "ZTEGC7894561",
+    foto_bukti_utama: "data:image/jpeg;base64,samplephoto123",
+    komisi_items: reportedItems,
+  };
+
+  // 4. Validate commission calculation for MENUNGGU VALIDASI status
+  const pendingIncentive = calculateTaskIncentive(technicianReport, undefined, KOMISI_PEKERJAAN_MASTER);
+  assert.ok(pendingIncentive.total > 0);
+  const reportedCable = pendingIncentive.items.find((i) => i.id === "tarik_pelanggan_baru");
+  assert.equal(reportedCable.qty, 75);
+  assert.equal(reportedCable.subtotal, 7500); // 75m * Rp 100/m
+
+  // 5. Supervisor validates & approves to SELESAI
+  const approvedTask = {
+    ...technicianReport,
+    status: "SELESAI",
+    komisi_total: pendingIncentive.total,
+    validated_by: "Supervisor NOC",
+    validated_at: new Date().toISOString(),
+  };
+
+  assert.equal(approvedTask.status, "SELESAI");
+  assert.equal(approvedTask.komisi_total, pendingIncentive.total);
+  assert.equal(approvedTask.validated_by, "Supervisor NOC");
+});
+
+
 
 
 

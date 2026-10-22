@@ -118,7 +118,9 @@ export default function BuktiLapanganModal({ task, onClose, masterKomisi }) {
   const hasPhotos = isSinglePhotoSop ? Boolean(singlePhoto) : [fotoOpm, fotoDropcore, fotoModem].some(Boolean);
   const totalPhotos = isSinglePhotoSop ? (singlePhoto ? 1 : 0) : [fotoOpm, fotoDropcore, fotoModem].filter(Boolean).length;
 
-  const taskIncentive = task.status === "SELESAI" ? calculateTaskIncentive(task, undefined, activeMasterKomisi) : null;
+  const taskIncentive = (task.status === "SELESAI" || task.status === "MENUNGGU VALIDASI")
+    ? calculateTaskIncentive(task, undefined, activeMasterKomisi)
+    : null;
 
   return (
     <div
@@ -327,8 +329,12 @@ export default function BuktiLapanganModal({ task, onClose, masterKomisi }) {
                     <Coins className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">Rincian Komisi Pekerjaan</h4>
-                    <p className="text-[10px] text-slate-500">Berdasarkan Tabel Komisi Resmi Team Nexus</p>
+                    <h4 className="text-xs font-bold text-slate-900">
+                      {task.status === "MENUNGGU VALIDASI" ? "Laporan Fisik & Komisi Teknisi" : "Rincian Komisi Pekerjaan"}
+                    </h4>
+                    <p className="text-[10px] text-slate-500">
+                      {task.status === "MENUNGGU VALIDASI" ? "Diinput teknisi di lapangan (Menunggu Pengesahan SPV)" : "Berdasarkan Tabel Komisi Resmi Team Nexus"}
+                    </p>
                   </div>
                 </div>
                 <span className="text-sm font-black text-amber-700">

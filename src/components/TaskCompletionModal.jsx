@@ -394,8 +394,12 @@ export default function TaskCompletionModal({
                   <Coins className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-slate-900">Rincian Pekerjaan Fisik</h4>
-                  <p className="text-[10px] text-slate-500">Tabel Komisi Resmi Team Nexus</p>
+                  <h4 className="text-xs font-bold text-slate-900">
+                    {isValidationMode ? "Laporan Fisik & Komisi Teknisi" : "Rincian Pekerjaan Fisik"}
+                  </h4>
+                  <p className="text-[10px] text-slate-500">
+                    {isValidationMode ? "Diinput teknisi riil di lapangan (dapat disesuaikan SPV)" : "Tabel Komisi Resmi Team Nexus"}
+                  </p>
                 </div>
               </div>
               <div className="text-right">

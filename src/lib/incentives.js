@@ -282,7 +282,7 @@ export function getDbmQuality(val) {
 
 // Hitung komisi untuk 1 pekerjaan
 export function calculateTaskIncentive(task, config = DEFAULT_INCENTIVE_CONFIG, masterList = KOMISI_PEKERJAAN_MASTER) {
-  if (!task || task.status !== "SELESAI") {
+  if (!task || (task.status !== "SELESAI" && task.status !== "MENUNGGU VALIDASI")) {
     return {
       baseFee: 0,
       qualityBonus: 0,

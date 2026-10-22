@@ -1468,7 +1468,7 @@ export default function TeknisiDashboard() {
                     setSelectedOdpForTask(taskOdp);
                     const defaultItems = Array.isArray(task.komisi_items) && task.komisi_items.length > 0
                       ? task.komisi_items
-                      : getDefaultWorkItemsForTask(task.jenis);
+                      : getDefaultWorkItemsForTask(task.jenis, 100, masterKomisi);
                     setCompletionWorkItems(defaultItems);
                     setCompletionForm({
                       redaman: task.jenis === "PEMUTUSAN" ? "N/A" : "-19.5",

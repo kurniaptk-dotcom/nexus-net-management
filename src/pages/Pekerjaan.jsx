@@ -35,6 +35,8 @@ import {
   CheckCircle2,
   History,
   CalendarSync,
+  ClipboardCheck,
+  Layers,
 } from "lucide-react";
 import {
   pekerjaanList,
@@ -625,14 +627,23 @@ export default function Pekerjaan() {
   };
 
   const handleJenisChange = (newJenis) => {
-    const defaultItems = getDefaultWorkItemsForTask(newJenis, 100, masterKomisi);
-    const defaultTotal = calculateKomisiItemsTotal(defaultItems, masterKomisi);
-    setFormData((prev) => ({
-      ...prev,
-      jenis: newJenis,
-      komisi_items: defaultItems,
-      komisi_total: defaultTotal,
-    }));
+    if (!editingItem) {
+      setFormData((prev) => ({
+        ...prev,
+        jenis: newJenis,
+        komisi_items: [],
+        komisi_total: 0,
+      }));
+    } else {
+      const defaultItems = getDefaultWorkItemsForTask(newJenis, 100, masterKomisi);
+      const defaultTotal = calculateKomisiItemsTotal(defaultItems, masterKomisi);
+      setFormData((prev) => ({
+        ...prev,
+        jenis: newJenis,
+        komisi_items: defaultItems,
+        komisi_total: defaultTotal,
+      }));
+    }
   };
 
   const handleKomisiItemsChange = (newItems) => {
@@ -747,8 +758,6 @@ export default function Pekerjaan() {
 
   const handleAdd = (defaultJenis = "PEMASANGAN") => {
     setEditingItem(null);
-    const defaultItems = getDefaultWorkItemsForTask(defaultJenis, 100, masterKomisi);
-    const defaultTotal = calculateKomisiItemsTotal(defaultItems, masterKomisi);
     setFormData({
       tim: timData[0]?.nama || "",
       jenis: defaultJenis,
@@ -761,8 +770,8 @@ export default function Pekerjaan() {
       status: "WAITING LIST",
       tanggal: new Date().toISOString().split("T")[0],
       keterangan: "",
-      komisi_items: defaultItems,
-      komisi_total: defaultTotal,
+      komisi_items: [],
+      komisi_total: 0,
     });
     setShowModal(true);
   };
@@ -1833,14 +1842,51 @@ export default function Pekerjaan() {
                       </select>
                     </div>
 
-                    <WorkItemsChecklist
-                      jenis={formData.jenis}
-                      onChangeJenis={handleJenisChange}
-                      jenisList={jenisPekerjaan}
-                      value={formData.komisi_items || []}
-                      onChange={handleKomisiItemsChange}
-                      masterList={masterKomisi}
-                    />
+                    {/* Kelompok & Checklist Pekerjaan ODP */}
+                    {(!editingItem || (formData.status !== "MENUNGGU VALIDASI" && formData.status !== "SELESAI")) ? (
+                      <div className="space-y-2.5">
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5 flex items-center justify-between">
+                            <span className="flex items-center gap-1.5">
+                              <Layers className="w-3.5 h-3.5 text-purple-600" />
+                              JENIS PEKERJAAN <span className="text-red-500">*</span>
+                            </span>
+                          </label>
+                          <select
+                            value={formData.jenis}
+                            onChange={(e) => handleJenisChange(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none bg-white font-medium text-slate-800"
+                          >
+                            {jenisPekerjaan.map((j) => (
+                              <option key={j} value={j}>{j}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-2xl flex items-start gap-3 shadow-2xs">
+                          <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 text-blue-700 mt-0.5">
+                            <ClipboardCheck className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 text-xs">
+                            <div className="flex items-center gap-1.5 font-bold text-slate-800 mb-0.5">
+                              <span>Rincian Item & Material Dilaporkan Teknisi</span>
+                              <span className="text-[10px] font-extrabold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">SOP Lapangan</span>
+                            </div>
+                            <p className="text-slate-600 leading-relaxed text-[11px]">
+                              Admin tidak perlu mengisi checklist dan meter kabel di awal. Teknisi akan mencatat volume riil di lapangan saat menyelesaikan tugas, yang kemudian divalidasi oleh Supervisor.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <WorkItemsChecklist
+                        jenis={formData.jenis}
+                        onChangeJenis={handleJenisChange}
+                        jenisList={jenisPekerjaan}
+                        value={formData.komisi_items || []}
+                        onChange={handleKomisiItemsChange}
+                        masterList={masterKomisi}
+                      />
+                    )}
                   </div>
 
                   {/* Cascading ODC -> ODP */}
@@ -2013,15 +2059,51 @@ export default function Pekerjaan() {
                       </select>
                     </div>
 
-                    {/* Dropdown Kelompok & Checklist Pekerjaan */}
-                    <WorkItemsChecklist
-                      jenis={formData.jenis}
-                      onChangeJenis={handleJenisChange}
-                      jenisList={jenisPekerjaan}
-                      value={formData.komisi_items || []}
-                      onChange={handleKomisiItemsChange}
-                      masterList={masterKomisi}
-                    />
+                    {/* Kelompok & Checklist Pekerjaan */}
+                    {(!editingItem || (formData.status !== "MENUNGGU VALIDASI" && formData.status !== "SELESAI")) ? (
+                      <div className="space-y-2.5">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5 flex items-center justify-between">
+                            <span className="flex items-center gap-1.5">
+                              <Layers className="w-4 h-4 text-amber-600" />
+                              Jenis Pekerjaan <span className="text-red-500">*</span>
+                            </span>
+                          </label>
+                          <select
+                            value={formData.jenis}
+                            onChange={(e) => handleJenisChange(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none bg-white font-medium text-slate-800"
+                          >
+                            {jenisPekerjaan.map((j) => (
+                              <option key={j} value={j}>{j}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-2xl flex items-start gap-3 shadow-2xs">
+                          <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 text-blue-700 mt-0.5">
+                            <ClipboardCheck className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 text-xs">
+                            <div className="flex items-center gap-1.5 font-bold text-slate-800 mb-0.5">
+                              <span>Rincian Item & Meteran Kabel Dilaporkan Teknisi</span>
+                              <span className="text-[10px] font-extrabold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">SOP Lapangan</span>
+                            </div>
+                            <p className="text-slate-600 leading-relaxed text-[11px]">
+                              Admin/Operator tidak perlu mengisi checklist dan meter kabel di awal. Teknisi akan mencatat volume riil di lapangan (meter dropcore, pemakaian ONT, redaman OPM) saat menyelesaikan tugas, yang kemudian divalidasi oleh Supervisor.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <WorkItemsChecklist
+                        jenis={formData.jenis}
+                        onChangeJenis={handleJenisChange}
+                        jenisList={jenisPekerjaan}
+                        value={formData.komisi_items || []}
+                        onChange={handleKomisiItemsChange}
+                        masterList={masterKomisi}
+                      />
+                    )}
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
