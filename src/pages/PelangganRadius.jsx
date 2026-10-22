@@ -56,7 +56,6 @@ export default function PelangganRadius() {
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Modals State
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [deleteTargetCustomer, setDeleteTargetCustomer] = useState(null);
@@ -68,12 +67,6 @@ export default function PelangganRadius() {
     paket: "Home Fiber 30 Mbps",
     status: "AKTIF",
     ip_address: "-",
-  });
-  const [assignForm, setAssignForm] = useState({
-    jenis: "PEMASANGAN",
-    tim: "AZWAR - RIO",
-    tanggal: new Date().toISOString().split("T")[0],
-    keterangan: "",
   });
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -952,6 +945,18 @@ export default function PelangganRadius() {
           </div>
         </div>
       )}
+
+      {/* Modal Terpadu Penugasan Teknisi (SPK) */}
+      <DispatchTaskModal
+        isOpen={Boolean(selectedCustomer)}
+        onClose={() => setSelectedCustomer(null)}
+        initialData={selectedCustomer || {}}
+        onSave={handleSaveDispatch}
+        odpList={odpList}
+        pelangganList={pelangganList}
+        timList={timList}
+        taskList={pekerjaan}
+      />
 
       {/* Modal Konfirmasi Hapus Pelanggan */}
       <ConfirmModal

@@ -140,6 +140,7 @@ const jenisColors = {
   PERBAIKAN: { bg: "bg-orange-50", text: "text-orange-700", ring: "ring-orange-200", dot: "bg-orange-500" },
   PEMUTUSAN: { bg: "bg-red-50", text: "text-red-700", ring: "ring-red-200", dot: "bg-red-500" },
   "PERBAIKAN KHUSUS (ODP/ODC)": { bg: "bg-purple-50", text: "text-purple-700", ring: "ring-purple-200", dot: "bg-purple-500" },
+  RELOKASI: { bg: "bg-cyan-50", text: "text-cyan-700", ring: "ring-cyan-200", dot: "bg-cyan-500" },
 };
 
 function StatusBadge({ status }) {
@@ -163,6 +164,7 @@ function JenisBadge({ jenis }) {
     PERBAIKAN: "bg-orange-50 text-orange-700 ring-1 ring-orange-200",
     PEMUTUSAN: "bg-red-50 text-red-700 ring-1 ring-red-200",
     "PERBAIKAN KHUSUS (ODP/ODC)": "bg-purple-50 text-purple-700 ring-1 ring-purple-200",
+    RELOKASI: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200",
   };
   return (
     <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${styles[jenis] || "bg-gray-50 text-gray-700 ring-1 ring-gray-200"}`}>

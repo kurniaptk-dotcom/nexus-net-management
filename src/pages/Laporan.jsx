@@ -91,6 +91,7 @@ async function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timDat
   const perbaikanSelesai = pekerjaanData.filter((d) => d.jenis === "PERBAIKAN" && d.status === "SELESAI").length;
   const perbaikanKhususSelesai = pekerjaanData.filter((d) => d.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && d.status === "SELESAI").length;
   const pemutusanSelesai = pekerjaanData.filter((d) => d.jenis === "PEMUTUSAN" && d.status === "SELESAI").length;
+  const relokasiSelesai = pekerjaanData.filter((d) => d.jenis === "RELOKASI" && d.status === "SELESAI").length;
 
   const totalBebanKomisi = pekerjaanData
     .filter((d) => d.status === "SELESAI")
@@ -106,6 +107,7 @@ async function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timDat
     ["Perbaikan Selesai", perbaikanSelesai],
     ["Perbaikan Khusus (ODP/ODC) Selesai", perbaikanKhususSelesai],
     ["Pemutusan Selesai", pemutusanSelesai],
+    ["Relokasi Selesai", relokasiSelesai],
     ["Selesai Total", totalSelesai],
     ["Gagal Total", totalGagal],
     ["Total Beban Komisi Teknisi (Rp)", totalBebanKomisi],
@@ -129,6 +131,7 @@ async function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timDat
       "Perbaikan Selesai": timP.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length,
       "Perbaikan Khusus Selesai": timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length,
       "Pemutusan Selesai": timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length,
+      "Relokasi Selesai": timP.filter((p) => p.jenis === "RELOKASI" && p.status === "SELESAI").length,
       "Total Selesai": timSelesai.length,
       "Total Komisi (Rp)": komisiTim,
     };
@@ -319,6 +322,7 @@ export default function Laporan() {
       perbaikan: timP.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length,
       perbaikanKhusus: timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length,
       pemutusan: timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length,
+      relokasi: timP.filter((p) => p.jenis === "RELOKASI" && p.status === "SELESAI").length,
     };
   });
 
@@ -362,6 +366,7 @@ export default function Laporan() {
       "Perbaikan Selesai": timP.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length,
       "Perbaikan Khusus Selesai": timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length,
       "Pemutusan Selesai": timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length,
+      "Relokasi Selesai": timP.filter((p) => p.jenis === "RELOKASI" && p.status === "SELESAI").length,
       "Total Selesai": timSelesai.length,
       "Total Komisi (Rp)": getTeamKomisi(t.nama),
     };
@@ -542,6 +547,7 @@ export default function Laporan() {
               <Bar dataKey="perbaikan" fill="#F59E0B" name="Perbaikan" radius={[6, 6, 0, 0]} />
               <Bar dataKey="perbaikanKhusus" fill="#8B5CF6" name="Perbaikan Khusus" radius={[6, 6, 0, 0]} />
               <Bar dataKey="pemutusan" fill="#F97316" name="Pemutusan" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="relokasi" fill="#06B6D4" name="Relokasi" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

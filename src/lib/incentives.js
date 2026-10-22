@@ -117,6 +117,7 @@ export const DEFAULT_INCENTIVE_CONFIG = {
     PERBAIKAN: 5000,
     PEMUTUSAN: 5000,
     "PERBAIKAN KHUSUS (ODP/ODC)": 10000,
+    RELOKASI: 18000,
   },
   // Kualitas redaman dinonaktifkan sesuai arahan kebijakan manajemen
   qualityBonus: {

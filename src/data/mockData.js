@@ -122,6 +122,7 @@ export const jenisPekerjaan = [
   "PERBAIKAN",
   "PEMUTUSAN",
   "PERBAIKAN KHUSUS (ODP/ODC)",
+  "RELOKASI",
 ];
 
 export const sumberLeads = ["IKLAN", "AFFILIATE", "MARKETING"];
