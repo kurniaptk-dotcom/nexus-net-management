@@ -1132,37 +1132,14 @@ export default function Pekerjaan() {
               </button>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => {
                   setDispatchInitialData({ jenis: "PEMASANGAN" });
                   setDispatchModalOpen(true);
                 }}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-gradient-to-r from-[#0D1B4A] via-slate-900 to-black hover:from-slate-900 hover:to-black text-amber-400 font-extrabold px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm shadow-sm hover:shadow-md transition-all shrink-0 cursor-pointer active:scale-95"
-                title="Terbitkan Surat Perintah Kerja (SPK) Baru untuk Teknisi"
-              >
-                <HardHat className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>+ Terbitkan SPK</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDispatchInitialData({ jenis: "PERBAIKAN KHUSUS (ODP/ODC)" });
-                  setDispatchModalOpen(true);
-                }}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all truncate cursor-pointer active:scale-95"
-              >
-                <Wrench className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                <span>+ ODP/ODC</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDispatchInitialData({ jenis: "PEMASANGAN" });
-                  setDispatchModalOpen(true);
-                }}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-[#F59E0B] hover:bg-[#d97706] text-white px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all shrink-0 cursor-pointer active:scale-95"
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-[#F59E0B] hover:bg-[#d97706] text-white px-4 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:shadow-md transition-all shrink-0 cursor-pointer active:scale-95"
                 title="Tambah & Terbitkan SPK Pemasangan Baru"
               >
                 <Plus className="w-4 h-4 shrink-0" />
