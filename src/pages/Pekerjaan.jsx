@@ -65,7 +65,7 @@ import {
   formatRupiah,
 } from "../lib/incentives";
 import { syncCustomerOnTaskCompletion } from "../lib/customerPortLifecycle";
-import { generateSpkWaUrl, formatPhoneWa } from "../lib/spkGenerator";
+import { generateSpkWaUrl, formatSpkWaText, formatPhoneWa } from "../lib/spkGenerator";
 import { createWhatsAppUrl, getCustomerStatusUpdateWaTemplate } from "../lib/whatsapp";
 
 function notify(notif) {
@@ -186,6 +186,7 @@ function KanbanCard({
   teamWorkloadMap,
 }) {
   const [copied, setCopied] = useState(false);
+  const [copiedSpk, setCopiedSpk] = useState(false);
   const jc = jenisColors[item.jenis] || jenisColors.PEMASANGAN;
 
   const handleQuickCopy = (e) => {
@@ -402,12 +403,27 @@ function KanbanCard({
               onClick={(e) => {
                 e.stopPropagation();
                 onSendWaSpk(item);
+                setCopiedSpk(true);
+                setTimeout(() => setCopiedSpk(false), 2000);
               }}
-              className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 px-1.5 py-0.5 rounded-md transition-colors"
-              title="Kirim / Forward SPK WhatsApp ke Tim Teknisi"
+              className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
+                copiedSpk
+                  ? "bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs"
+                  : "text-slate-700 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300"
+              }`}
+              title="Salin Teks Lengkap SPK Format WhatsApp ke Clipboard"
             >
-              <MessageCircle className="w-3 h-3 text-emerald-600" />
-              <span>SPK</span>
+              {copiedSpk ? (
+                <>
+                  <Check className="w-3 h-3 text-emerald-600" />
+                  <span>Tersalin!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3 h-3 text-emerald-600" />
+                  <span>Salin SPK</span>
+                </>
+              )}
             </button>
           )}
           {onViewTimeline && (
@@ -563,11 +579,24 @@ export default function Pekerjaan() {
     }
   }, [showModal, showAddPemutusanModal]);
 
-  // Kirim WhatsApp SPK Langsung ke Tim Teknisi
+  // Salin Teks SPK Format WhatsApp ke Clipboard (alih-alih langsung membuka WhatsApp Web)
   const handleSendWaSpk = (task) => {
-    const targetTeam = timData.find((t) => t.nama === task.tim) || null;
-    const waUrl = generateSpkWaUrl(task, targetTeam?.telepon);
-    window.open(waUrl, "_blank");
+    const textToCopy = formatSpkWaText(task, task.spk_no);
+
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(textToCopy).catch((err) => {
+        console.error("Gagal menyalin SPK:", err);
+      });
+    }
+
+    notify({
+      id: Date.now(),
+      type: "SUCCESS",
+      title: "SPK Berhasil Disalin",
+      message: `Teks SPK #${task.spk_no || task.id} (${task.pelanggan || task.jenis}) berhasil disalin ke clipboard! Siap di-paste ke WhatsApp tim teknisi.`,
+      timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+      read: false,
+    });
   };
 
   // Konfirmasi Reschedule Tugas yang Terkendala / Gagal
@@ -1462,10 +1491,10 @@ export default function Pekerjaan() {
                         )}
                         <button
                           onClick={() => handleSendWaSpk(item)}
-                          className="min-w-[34px] min-h-[34px] p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-all flex items-center justify-center active:scale-95"
-                          title="Kirim / Forward SPK WhatsApp ke Tim Teknisi"
+                          className="min-w-[34px] min-h-[34px] p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-all flex items-center justify-center active:scale-95 cursor-pointer"
+                          title="Salin Teks Lengkap SPK Format WhatsApp ke Clipboard"
                         >
-                          <MessageCircle className="w-4 h-4 text-emerald-600" />
+                          <Copy className="w-4 h-4 text-emerald-600" />
                         </button>
                         {(item.status === "SELESAI" || item.evidence || item.foto_opm) && (
                           <button
@@ -1600,10 +1629,10 @@ export default function Pekerjaan() {
                             )}
                             <button
                               onClick={() => handleSendWaSpk(item)}
-                              className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
-                              title="Kirim / Forward SPK WhatsApp ke Tim Teknisi"
+                              className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors cursor-pointer"
+                              title="Salin Teks Lengkap SPK Format WhatsApp ke Clipboard"
                             >
-                              <MessageCircle className="w-4 h-4 text-emerald-600" />
+                              <Copy className="w-4 h-4 text-emerald-600" />
                             </button>
                             {(item.status === "SELESAI" || item.evidence || item.foto_opm) && (
                               <button
