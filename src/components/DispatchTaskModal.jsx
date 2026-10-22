@@ -44,7 +44,7 @@ import {
   getDefaultWorkItemsForTask,
   calculateKomisiItemsTotal,
 } from "../lib/incentives";
-import { initialPersonilList } from "../data/mockData";
+import { initialPersonilList, initialLeads } from "../data/mockData";
 
 export default function DispatchTaskModal({
   isOpen,
@@ -74,6 +74,17 @@ export default function DispatchTaskModal({
 
   const [masterKomisi] = usePersistState("xnet_master_komisi", KOMISI_PEKERJAAN_MASTER);
   const [personilList] = usePersistState("xnet_personil", initialPersonilList);
+  const [leadsData] = usePersistState("xnet_leads", initialLeads);
+
+  // Daftar calon pelanggan dari Leads (urutkan yang aktif/siap pasang lebih dulu)
+  const activeLeads = useMemo(() => {
+    if (!Array.isArray(leadsData)) return [];
+    return [...leadsData].sort((a, b) => {
+      if (a.status === "SELESAI" && b.status !== "SELESAI") return 1;
+      if (a.status !== "SELESAI" && b.status === "SELESAI") return -1;
+      return 0;
+    });
+  }, [leadsData]);
 
   // Form State
   const [form, setForm] = useState({
@@ -435,43 +446,96 @@ export default function DispatchTaskModal({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
                 <User className="w-4 h-4 text-[#0D1B4A]" />
-                <span>Data Pelanggan & Lokasi Kunjungan</span>
-              </div>
-              {Array.isArray(pelangganList) && pelangganList.length > 0 && (
-                <span className="text-[10px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Zap className="w-3 h-3 text-blue-600" />
-                  {pelangganList.length} Pelanggan Terdaftar
+                <span>
+                  {form.jenis === "PEMASANGAN" ? "Data Calon Pelanggan Baru (Leads)" : "Data Pelanggan & Lokasi Kunjungan"}
                 </span>
+              </div>
+              {form.jenis === "PEMASANGAN" ? (
+                activeLeads.length > 0 && (
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-200">
+                    <Zap className="w-3 h-3 text-amber-600" />
+                    {activeLeads.length} Calon Pelanggan (Leads)
+                  </span>
+                )
+              ) : (
+                Array.isArray(pelangganList) && pelangganList.length > 0 && (
+                  <span className="text-[10px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-blue-600" />
+                    {pelangganList.length} Pelanggan Terdaftar
+                  </span>
+                )
               )}
             </div>
 
-            {/* Quick Fill Dropdown dari Database Pelanggan */}
-            {Array.isArray(pelangganList) && pelangganList.length > 0 && (
-              <select
-                onChange={(e) => {
-                  const selectedId = e.target.value;
-                  if (!selectedId) return;
-                  const cust = pelangganList.find((p) => String(p.id_pelanggan || p.id) === String(selectedId));
-                  if (cust) {
-                    setForm((prev) => ({
-                      ...prev,
-                      pelanggan: cust.nama || prev.pelanggan,
-                      telepon: cust.telepon || cust.kontak || cust.no_wa || prev.telepon,
-                      alamat: cust.alamat || prev.alamat,
-                      odp: cust.odp || prev.odp,
-                      paket: cust.paket || prev.paket,
-                    }));
-                  }
-                }}
-                className="w-full px-3 py-1.5 bg-blue-50/80 hover:bg-blue-100/60 border border-blue-200/90 rounded-xl text-xs font-semibold text-blue-900 focus:bg-white focus:ring-2 focus:ring-blue-400 outline-none cursor-pointer"
-              >
-                <option value="">⚡ Pilih Cepat dari Database Pelanggan (Auto-Fill Alamat & ODP)...</option>
-                {pelangganList.map((p) => (
-                  <option key={p.id_pelanggan || p.id} value={p.id_pelanggan || p.id}>
-                    [{p.status || "AKTIF"}] {p.nama} {p.id_pelanggan ? `(${p.id_pelanggan})` : ""} · {p.odp || "Tanpa ODP"}
-                  </option>
-                ))}
-              </select>
+            {/* Quick Fill Dropdown: Dari Leads jika PEMASANGAN, dari Pelanggan jika Jenis Lain */}
+            {form.jenis === "PEMASANGAN" ? (
+              activeLeads.length > 0 && (
+                <select
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    if (!selectedId) return;
+                    const lead = activeLeads.find((l) => String(l.id) === String(selectedId));
+                    if (lead) {
+                      let odpName = lead.odp_terdekat || lead.odp || "";
+                      if (odpName && odpName.includes(" - ")) {
+                        odpName = odpName.split(" - ")[0].trim();
+                      }
+                      setForm((prev) => ({
+                        ...prev,
+                        pelanggan: lead.nama || prev.pelanggan,
+                        telepon: lead.telepon || lead.kontak || prev.telepon,
+                        alamat: lead.alamat || prev.alamat,
+                        shareloc: (lead.lat && lead.lng) ? `${lead.lat},${lead.lng}` : (lead.shareloc || prev.shareloc),
+                        odp: odpName || prev.odp,
+                        paket: lead.paket || prev.paket,
+                        keterangan: lead.keterangan_survey || lead.keterangan || prev.keterangan,
+                        sourceModule: "LEADS",
+                        sourceId: lead.id,
+                        jarak_odp: lead.jarak_odp || "",
+                        redaman: lead.redaman || "",
+                      }));
+                    }
+                  }}
+                  className="w-full px-3 py-1.5 bg-amber-50/80 hover:bg-amber-100/60 border border-amber-200 rounded-xl text-xs font-semibold text-amber-950 focus:bg-white focus:ring-2 focus:ring-amber-400 outline-none cursor-pointer"
+                >
+                  <option value="">⚡ Pilih Calon Pelanggan dari Modul Leads (Auto-Fill Alamat & ODP)...</option>
+                  {activeLeads.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      [{l.status || "LEAD"}] {l.nama} · {l.alamat ? (l.alamat.length > 40 ? l.alamat.slice(0, 40) + "..." : l.alamat) : "Tanpa Alamat"} ({l.odp_terdekat || "ODP Belum Dipilih"})
+                    </option>
+                  ))}
+                </select>
+              )
+            ) : (
+              Array.isArray(pelangganList) && pelangganList.length > 0 && (
+                <select
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    if (!selectedId) return;
+                    const cust = pelangganList.find((p) => String(p.id_pelanggan || p.id) === String(selectedId));
+                    if (cust) {
+                      setForm((prev) => ({
+                        ...prev,
+                        pelanggan: cust.nama || prev.pelanggan,
+                        telepon: cust.telepon || cust.kontak || cust.no_wa || prev.telepon,
+                        alamat: cust.alamat || prev.alamat,
+                        odp: cust.odp || prev.odp,
+                        paket: cust.paket || prev.paket,
+                        sourceModule: "RADIUS",
+                        sourceId: cust.id_pelanggan || cust.id,
+                      }));
+                    }
+                  }}
+                  className="w-full px-3 py-1.5 bg-blue-50/80 hover:bg-blue-100/60 border border-blue-200/90 rounded-xl text-xs font-semibold text-blue-900 focus:bg-white focus:ring-2 focus:ring-blue-400 outline-none cursor-pointer"
+                >
+                  <option value="">⚡ Pilih Cepat dari Database Pelanggan (Auto-Fill Alamat & ODP)...</option>
+                  {pelangganList.map((p) => (
+                    <option key={p.id_pelanggan || p.id} value={p.id_pelanggan || p.id}>
+                      [{p.status || "AKTIF"}] {p.nama} {p.id_pelanggan ? `(${p.id_pelanggan})` : ""} · {p.odp || "Tanpa ODP"}
+                    </option>
+                  ))}
+                </select>
+              )
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
