@@ -510,7 +510,7 @@ export default function TeknisiDashboard() {
   // Metrik Statistik
   const stats = useMemo(() => {
     const total = teamTasks.length;
-    const selesai = teamTasks.filter((t) => t.status === "SELESAI").length;
+    const selesai = teamTasks.filter((t) => t.status === "SELESAI" || t.status === "MENUNGGU VALIDASI").length;
     const waiting = teamTasks.filter((t) => t.status === "WAITING LIST").length;
     const dijadwalkan = teamTasks.filter((t) => t.status === "DIJADWALKAN").length;
     const gagal = teamTasks.filter((t) => t.status === "GAGAL").length;

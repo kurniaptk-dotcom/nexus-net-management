@@ -116,11 +116,14 @@ function TeamCard({ tim, pekerjaanData, masterKomisi, onEdit, onDelete }) {
   const perbaikanKhususSelesai = timPekerjaan.filter(
     (p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI"
   ).length;
+  const relokasiSelesai = timPekerjaan.filter(
+    (p) => p.jenis === "RELOKASI" && p.status === "SELESAI"
+  ).length;
   const pemutusanSelesai = timPekerjaan.filter(
     (p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI"
   ).length;
   const totalPekerjaan =
-    pemasanganSelesai + perbaikanSelesai + perbaikanKhususSelesai + pemutusanSelesai;
+    pemasanganSelesai + perbaikanSelesai + perbaikanKhususSelesai + relokasiSelesai + pemutusanSelesai;
   const totalMenungguValidasi = timPekerjaan.filter(
     (p) => p.status === "MENUNGGU VALIDASI"
   ).length;
@@ -211,11 +214,11 @@ function TeamCard({ tim, pekerjaanData, masterKomisi, onEdit, onDelete }) {
           </div>
         </div>
 
-        {/* Stats 4 Kolom */}
+        {/* Stats 5 Kolom */}
         <div className="p-3.5 sm:p-5">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 sm:mb-4">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
             <div className="text-center p-2 bg-blue-50 rounded-xl">
-              <p className="text-lg sm:text-xl font-black text-[#0D1B4A]">
+              <p className="text-base sm:text-lg font-black text-[#0D1B4A]">
                 {pemasanganSelesai}
               </p>
               <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider mt-0.5 truncate">
@@ -223,7 +226,7 @@ function TeamCard({ tim, pekerjaanData, masterKomisi, onEdit, onDelete }) {
               </p>
             </div>
             <div className="text-center p-2 bg-amber-50 rounded-xl">
-              <p className="text-lg sm:text-xl font-black text-[#F59E0B]">
+              <p className="text-base sm:text-lg font-black text-[#F59E0B]">
                 {perbaikanSelesai}
               </p>
               <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider mt-0.5 truncate">
@@ -231,15 +234,23 @@ function TeamCard({ tim, pekerjaanData, masterKomisi, onEdit, onDelete }) {
               </p>
             </div>
             <div className="text-center p-2 bg-purple-50 rounded-xl">
-              <p className="text-lg sm:text-xl font-black text-purple-700">
+              <p className="text-base sm:text-lg font-black text-purple-700">
                 {perbaikanKhususSelesai}
               </p>
               <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider mt-0.5 truncate">
                 ODP/ODC
               </p>
             </div>
+            <div className="text-center p-2 bg-cyan-50 rounded-xl">
+              <p className="text-base sm:text-lg font-black text-cyan-700">
+                {relokasiSelesai}
+              </p>
+              <p className="text-[9px] font-semibold text-cyan-700 uppercase tracking-wider mt-0.5 truncate">
+                Relokasi
+              </p>
+            </div>
             <div className="text-center p-2 bg-red-50 rounded-xl">
-              <p className="text-lg sm:text-xl font-black text-red-500">
+              <p className="text-base sm:text-lg font-black text-red-500">
                 {pemutusanSelesai}
               </p>
               <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider mt-0.5 truncate">
@@ -316,12 +327,15 @@ function PersonilCard({ personil, pekerjaanData, masterKomisi, timData, onEdit, 
   const perbaikanKhususSelesai = personilPekerjaan.filter(
     (p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI"
   ).length;
+  const relokasiSelesai = personilPekerjaan.filter(
+    (p) => p.jenis === "RELOKASI" && p.status === "SELESAI"
+  ).length;
   const pemutusanSelesai = personilPekerjaan.filter(
     (p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI"
   ).length;
 
   const totalSelesai =
-    pemasanganSelesai + perbaikanSelesai + perbaikanKhususSelesai + pemutusanSelesai;
+    pemasanganSelesai + perbaikanSelesai + perbaikanKhususSelesai + relokasiSelesai + pemutusanSelesai;
 
   // Evaluasi Kepatuhan Pelaporan Harian Maksimal Jam 9 Malam (Cut-Off 21:00 WIB)
   const cutoffStats = calculateTechnicianCutoffStats(personil, pekerjaanData, timData);
@@ -421,21 +435,25 @@ function PersonilCard({ personil, pekerjaanData, masterKomisi, timData, onEdit, 
 
         {/* Performa Rincian */}
         <div className="p-4 sm:p-5 space-y-3">
-          <div className="grid grid-cols-4 gap-1.5 text-center">
-            <div className="p-2 bg-blue-50/70 rounded-xl">
-              <span className="text-base font-black text-blue-900 block">{pemasanganSelesai}</span>
+          <div className="grid grid-cols-5 gap-1 text-center">
+            <div className="p-1.5 sm:p-2 bg-blue-50/70 rounded-xl">
+              <span className="text-sm sm:text-base font-black text-blue-900 block">{pemasanganSelesai}</span>
               <span className="text-[8px] font-bold text-blue-600 uppercase">Pasang</span>
             </div>
-            <div className="p-2 bg-amber-50/70 rounded-xl">
-              <span className="text-base font-black text-amber-900 block">{perbaikanSelesai}</span>
+            <div className="p-1.5 sm:p-2 bg-amber-50/70 rounded-xl">
+              <span className="text-sm sm:text-base font-black text-amber-900 block">{perbaikanSelesai}</span>
               <span className="text-[8px] font-bold text-amber-600 uppercase">Perbaikan</span>
             </div>
-            <div className="p-2 bg-purple-50/70 rounded-xl">
-              <span className="text-base font-black text-purple-900 block">{perbaikanKhususSelesai}</span>
+            <div className="p-1.5 sm:p-2 bg-purple-50/70 rounded-xl">
+              <span className="text-sm sm:text-base font-black text-purple-900 block">{perbaikanKhususSelesai}</span>
               <span className="text-[8px] font-bold text-purple-600 uppercase">ODP/ODC</span>
             </div>
-            <div className="p-2 bg-rose-50/70 rounded-xl">
-              <span className="text-base font-black text-rose-900 block">{pemutusanSelesai}</span>
+            <div className="p-1.5 sm:p-2 bg-cyan-50/70 rounded-xl">
+              <span className="text-sm sm:text-base font-black text-cyan-900 block">{relokasiSelesai}</span>
+              <span className="text-[8px] font-bold text-cyan-600 uppercase">Relokasi</span>
+            </div>
+            <div className="p-1.5 sm:p-2 bg-rose-50/70 rounded-xl">
+              <span className="text-sm sm:text-base font-black text-rose-900 block">{pemutusanSelesai}</span>
               <span className="text-[8px] font-bold text-rose-600 uppercase">Putus</span>
             </div>
           </div>

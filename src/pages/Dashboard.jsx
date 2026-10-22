@@ -35,6 +35,7 @@ import {
   Eye,
   EyeOff,
   Coins,
+  Navigation,
 } from "lucide-react";
 import {
   BarChart,
@@ -287,10 +288,11 @@ export default function Dashboard() {
   // Pekerjaan Stats
   const totalPekerjaan = filteredPekerjaan.length;
   const selesai = useMemo(() => filteredPekerjaan.filter((d) => d.status === "SELESAI").length, [filteredPekerjaan]);
+  const menungguValidasi = useMemo(() => filteredPekerjaan.filter((d) => d.status === "MENUNGGU VALIDASI").length, [filteredPekerjaan]);
   const waiting = useMemo(() => filteredPekerjaan.filter((d) => d.status === "WAITING LIST").length, [filteredPekerjaan]);
   const dijadwalkan = useMemo(() => filteredPekerjaan.filter((d) => d.status === "DIJADWALKAN").length, [filteredPekerjaan]);
   const gagal = useMemo(() => filteredPekerjaan.filter((d) => d.status === "GAGAL").length, [filteredPekerjaan]);
-  const completionRate = totalPekerjaan > 0 ? ((selesai / totalPekerjaan) * 100).toFixed(0) : "0";
+  const completionRate = totalPekerjaan > 0 ? (((selesai + menungguValidasi) / totalPekerjaan) * 100).toFixed(0) : "0";
 
   const totalBebanKomisi = useMemo(() => {
     return filteredPekerjaan
@@ -303,33 +305,36 @@ export default function Dashboard() {
     const calcJenis = (jenis) => {
       const items = filteredPekerjaan.filter((p) => p.jenis === jenis);
       const sel = items.filter((p) => p.status === "SELESAI").length;
+      const val = items.filter((p) => p.status === "MENUNGGU VALIDASI").length;
       const wait = items.filter((p) => p.status === "WAITING LIST").length;
       const dij = items.filter((p) => p.status === "DIJADWALKAN").length;
       const gag = items.filter((p) => p.status === "GAGAL").length;
       const tot = items.length;
-      const rate = tot > 0 ? Math.round((sel / tot) * 100) : 0;
+      const rate = tot > 0 ? Math.round(((sel + val) / tot) * 100) : 0;
       const userTerdampak = items.reduce((acc, curr) => acc + (Number(curr.userTerdampak) || 0), 0);
-      return { total: tot, selesai: sel, waiting: wait, dijadwalkan: dij, gagal: gag, rate, userTerdampak };
+      return { total: tot, selesai: sel, menungguValidasi: val, waiting: wait, dijadwalkan: dij, gagal: gag, rate, userTerdampak };
     };
 
     return {
       pemasangan: calcJenis("PEMASANGAN"),
       perbaikan: calcJenis("PERBAIKAN"),
       perbaikanKhusus: calcJenis("PERBAIKAN KHUSUS (ODP/ODC)"),
+      relokasi: calcJenis("RELOKASI"),
       pemutusan: calcJenis("PEMUTUSAN"),
     };
   }, [filteredPekerjaan]);
 
   const statusSummaryPercentages = useMemo(() => {
     const tot = filteredPekerjaan.length;
-    if (!tot) return { selesai: 0, waiting: 0, dijadwalkan: 0, gagal: 0 };
+    if (!tot) return { selesai: 0, menungguValidasi: 0, waiting: 0, dijadwalkan: 0, gagal: 0 };
     return {
       selesai: Math.round((selesai / tot) * 100),
+      menungguValidasi: Math.round((menungguValidasi / tot) * 100),
       waiting: Math.round((waiting / tot) * 100),
       dijadwalkan: Math.round((dijadwalkan / tot) * 100),
       gagal: Math.round((gagal / tot) * 100),
     };
-  }, [filteredPekerjaan.length, selesai, waiting, dijadwalkan, gagal]);
+  }, [filteredPekerjaan.length, selesai, menungguValidasi, waiting, dijadwalkan, gagal]);
 
   // Leads Stats
   const totalLeads = filteredLeads.length;
@@ -377,6 +382,7 @@ export default function Dashboard() {
         pemasangan: timP.filter((p) => p.jenis === "PEMASANGAN" && p.status !== "GAGAL").length,
         perbaikan: timP.filter((p) => p.jenis === "PERBAIKAN" && p.status !== "GAGAL").length,
         perbaikanKhusus: timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status !== "GAGAL").length,
+        relokasi: timP.filter((p) => p.jenis === "RELOKASI" && p.status !== "GAGAL").length,
         pemutusan: timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status !== "GAGAL").length,
         gagal: timP.filter((p) => p.status === "GAGAL").length,
       };
@@ -944,7 +950,11 @@ export default function Dashboard() {
           icon={Wrench}
           label="Total Pekerjaan"
           value={totalPekerjaan}
-          subtext={`${selesai} selesai · ${waiting} wait`}
+          subtext={
+            menungguValidasi > 0
+              ? `${selesai} selesai · ${menungguValidasi} validasi SPV`
+              : `${selesai} selesai · ${waiting} wait`
+          }
           changeType="up"
           bgColor="bg-[#0D1B4A]"
           href="/pekerjaan"
@@ -962,7 +972,11 @@ export default function Dashboard() {
           icon={CheckCircle}
           label="Tingkat Selesai"
           value={`${completionRate}%`}
-          subtext={`${selesai} dari ${totalPekerjaan} tuntas`}
+          subtext={
+            menungguValidasi > 0
+              ? `${selesai} tuntas · ${menungguValidasi} review`
+              : `${selesai} dari ${totalPekerjaan} tuntas`
+          }
           changeType="up"
           bgColor="bg-emerald-600"
           href="/pekerjaan"
@@ -1062,9 +1076,9 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* 4 Category Cards Grid (Enlarged 2x2, without Komposisi Status) */}
+          {/* 5 Category Cards Grid (Responsive, including Relokasi) */}
           {showDetailPekerjaan && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 animate-in fade-in duration-200 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 flex-1 animate-in fade-in duration-200 pt-1">
             {/* 1: Pemasangan Baru */}
             <Link
               to="/pekerjaan?search=PEMASANGAN"
@@ -1096,10 +1110,17 @@ export default function Dashboard() {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   {detailPekerjaan.pemasangan.selesai} Selesai
                 </span>
-                <span className="flex items-center gap-1 text-amber-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  {detailPekerjaan.pemasangan.waiting} Wait
-                </span>
+                {detailPekerjaan.pemasangan.menungguValidasi > 0 ? (
+                  <span className="flex items-center gap-1 text-purple-700 font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                    {detailPekerjaan.pemasangan.menungguValidasi} Validasi
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-amber-700">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    {detailPekerjaan.pemasangan.waiting} Wait
+                  </span>
+                )}
               </div>
             </Link>
 
@@ -1134,10 +1155,17 @@ export default function Dashboard() {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   {detailPekerjaan.perbaikan.selesai} Selesai
                 </span>
-                <span className="flex items-center gap-1 text-amber-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  {detailPekerjaan.perbaikan.waiting} Wait
-                </span>
+                {detailPekerjaan.perbaikan.menungguValidasi > 0 ? (
+                  <span className="flex items-center gap-1 text-purple-700 font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                    {detailPekerjaan.perbaikan.menungguValidasi} Validasi
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-amber-700">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    {detailPekerjaan.perbaikan.waiting} Wait
+                  </span>
+                )}
               </div>
             </Link>
 
@@ -1178,7 +1206,52 @@ export default function Dashboard() {
               </div>
             </Link>
 
-            {/* 4: Pemutusan Layanan */}
+            {/* 4: Relokasi Layanan */}
+            <Link
+              to="/pekerjaan?search=RELOKASI"
+              className="p-3 sm:p-3.5 rounded-xl bg-cyan-50/50 hover:bg-cyan-50/90 border border-cyan-100/90 hover:border-cyan-300 transition-all flex flex-col justify-between group"
+            >
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-cyan-950 group-hover:text-cyan-700 transition-colors">
+                    Relokasi Layanan
+                  </span>
+                  <div className="w-7 h-7 rounded-lg bg-cyan-600 text-white flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                    <Navigation className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline justify-between">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-black text-gray-900 tracking-tight">
+                      {detailPekerjaan.relokasi.total}
+                    </span>
+                    <span className="text-[11px] text-gray-400">tugas</span>
+                  </div>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-cyan-700 bg-cyan-100/80 px-1.5 py-0.5 rounded">
+                    {detailPekerjaan.relokasi.rate}% Selesai
+                  </span>
+                </div>
+              </div>
+              <div className="mt-2.5 pt-2 border-t border-cyan-100/70 text-[10px] sm:text-[11px] text-gray-600 flex items-center justify-between font-medium">
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  {detailPekerjaan.relokasi.selesai} Selesai
+                </span>
+                {detailPekerjaan.relokasi.menungguValidasi > 0 ? (
+                  <span className="flex items-center gap-1 text-purple-700 font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                    {detailPekerjaan.relokasi.menungguValidasi} Validasi
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-amber-700">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    {detailPekerjaan.relokasi.waiting} Wait
+                  </span>
+                )}
+              </div>
+            </Link>
+
+            {/* 5: Pemutusan Layanan */}
             <Link
               to="/pekerjaan?search=PEMUTUSAN"
               className="p-3 sm:p-3.5 rounded-xl bg-rose-50/50 hover:bg-rose-50/90 border border-rose-100/90 hover:border-rose-300 transition-all flex flex-col justify-between group"
@@ -1209,10 +1282,17 @@ export default function Dashboard() {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   {detailPekerjaan.pemutusan.selesai} Selesai
                 </span>
-                <span className="flex items-center gap-1 text-amber-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  {detailPekerjaan.pemutusan.waiting} Wait
-                </span>
+                {detailPekerjaan.pemutusan.menungguValidasi > 0 ? (
+                  <span className="flex items-center gap-1 text-purple-700 font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                    {detailPekerjaan.pemutusan.menungguValidasi} Validasi
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-amber-700">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    {detailPekerjaan.pemutusan.waiting} Wait
+                  </span>
+                )}
               </div>
             </Link>
           </div>
@@ -1634,6 +1714,7 @@ export default function Dashboard() {
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#0D1B4A]" /> Pemasangan</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" /> Perbaikan</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6]" /> Perbaikan Khusus (ODP/ODC)</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#06B6D4]" /> Relokasi</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#F97316]" /> Pemutusan</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" /> Gagal</span>
           </div>
@@ -1646,6 +1727,7 @@ export default function Dashboard() {
               <Bar dataKey="pemasangan" fill="#0D1B4A" name="Pemasangan" radius={[5, 5, 0, 0]} />
               <Bar dataKey="perbaikan" fill="#F59E0B" name="Perbaikan" radius={[5, 5, 0, 0]} />
               <Bar dataKey="perbaikanKhusus" fill="#8B5CF6" name="Perbaikan Khusus" radius={[5, 5, 0, 0]} />
+              <Bar dataKey="relokasi" fill="#06B6D4" name="Relokasi" radius={[5, 5, 0, 0]} />
               <Bar dataKey="pemutusan" fill="#F97316" name="Pemutusan" radius={[5, 5, 0, 0]} />
               <Bar dataKey="gagal" fill="#EF4444" name="Gagal" radius={[5, 5, 0, 0]} />
             </BarChart>

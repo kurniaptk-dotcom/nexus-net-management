@@ -599,8 +599,9 @@ export default function Laporan() {
             const pemasangan = timP.filter((p) => p.jenis === "PEMASANGAN" && p.status === "SELESAI").length;
             const perbaikan = timP.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length;
             const perbaikanKhusus = timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length;
+            const relokasi = timP.filter((p) => p.jenis === "RELOKASI" && p.status === "SELESAI").length;
             const pemutusan = timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length;
-            const total = pemasangan + perbaikan + perbaikanKhusus + pemutusan;
+            const total = pemasangan + perbaikan + perbaikanKhusus + relokasi + pemutusan;
             const timKomisi = getTeamKomisi(t.nama);
             return (
               <div key={t.id || t.nama} className="pt-3 first:pt-0 space-y-2">
@@ -610,7 +611,7 @@ export default function Laporan() {
                     {formatRupiah(timKomisi)}
                   </span>
                 </div>
-                <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
+                <div className="grid grid-cols-5 gap-1 text-center text-[10px]">
                   <div className="bg-blue-50/70 p-1.5 rounded-lg">
                     <span className="text-gray-400 block font-bold">Pasang</span>
                     <span className="font-black text-[#0D1B4A]">{pemasangan}</span>
@@ -622,6 +623,10 @@ export default function Laporan() {
                   <div className="bg-purple-50/70 p-1.5 rounded-lg">
                     <span className="text-gray-400 block font-bold">Khusus</span>
                     <span className="font-black text-[#8B5CF6]">{perbaikanKhusus}</span>
+                  </div>
+                  <div className="bg-cyan-50/70 p-1.5 rounded-lg">
+                    <span className="text-gray-400 block font-bold">Relokasi</span>
+                    <span className="font-black text-cyan-700">{relokasi}</span>
                   </div>
                   <div className="bg-orange-50/70 p-1.5 rounded-lg">
                     <span className="text-gray-400 block font-bold">Putus</span>
@@ -639,11 +644,12 @@ export default function Laporan() {
             <thead className="bg-gray-50/80">
               <tr>
                 <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Tim</th>
-                <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Pemasangan</th>
-                <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Perbaikan</th>
-                <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Perbaikan Khusus</th>
-                <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Pemutusan</th>
-                <th className="text-center px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Total Tugas</th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Pemasangan</th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Perbaikan</th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Perbaikan Khusus</th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Relokasi</th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Pemutusan</th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Total Tugas</th>
                 <th className="text-right px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Total Komisi</th>
               </tr>
             </thead>
@@ -653,17 +659,19 @@ export default function Laporan() {
                 const pemasangan = timP.filter((p) => p.jenis === "PEMASANGAN" && p.status === "SELESAI").length;
                 const perbaikan = timP.filter((p) => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length;
                 const perbaikanKhusus = timP.filter((p) => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && p.status === "SELESAI").length;
+                const relokasi = timP.filter((p) => p.jenis === "RELOKASI" && p.status === "SELESAI").length;
                 const pemutusan = timP.filter((p) => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length;
-                const total = pemasangan + perbaikan + perbaikanKhusus + pemutusan;
+                const total = pemasangan + perbaikan + perbaikanKhusus + relokasi + pemutusan;
                 const timKomisi = getTeamKomisi(t.nama);
                 return (
                   <tr key={t.id || t.nama} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-3 font-bold text-gray-800">{t.nama}</td>
-                    <td className="px-5 py-3 text-center text-[#0D1B4A] font-bold">{pemasangan}</td>
-                    <td className="px-5 py-3 text-center text-[#F59E0B] font-bold">{perbaikan}</td>
-                    <td className="px-5 py-3 text-center text-[#8B5CF6] font-bold">{perbaikanKhusus}</td>
-                    <td className="px-5 py-3 text-center text-[#F97316] font-bold">{pemutusan}</td>
-                    <td className="px-5 py-3 text-center">
+                    <td className="px-4 py-3 text-center text-[#0D1B4A] font-bold">{pemasangan}</td>
+                    <td className="px-4 py-3 text-center text-[#F59E0B] font-bold">{perbaikan}</td>
+                    <td className="px-4 py-3 text-center text-[#8B5CF6] font-bold">{perbaikanKhusus}</td>
+                    <td className="px-4 py-3 text-center text-cyan-600 font-bold">{relokasi}</td>
+                    <td className="px-4 py-3 text-center text-[#F97316] font-bold">{pemutusan}</td>
+                    <td className="px-4 py-3 text-center">
                       <span className="px-2.5 py-1 bg-gray-100 rounded-lg text-xs font-bold text-gray-800">{total}</span>
                     </td>
                     <td className="px-5 py-3 text-right">
