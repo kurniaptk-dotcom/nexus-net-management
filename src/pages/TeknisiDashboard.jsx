@@ -59,6 +59,8 @@ import {
   ChevronDown,
   ArrowUpRight,
   ArrowRight,
+  XCircle,
+  RefreshCw,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { usePersistState, useRealtimeStatus } from "../hooks/usePersistState";
@@ -91,6 +93,12 @@ import {
   getWibTimeParts,
   evaluateReportSubmissionTime,
 } from "../lib/reportCutoff";
+import {
+  getOfflineQueue,
+  addToOfflineQueue,
+  removeFromOfflineQueue,
+  processOfflineSyncQueue,
+} from "../lib/offlineSync";
 
 function parseRecordDate(dStr) {
   if (!dStr) return null;
@@ -242,8 +250,10 @@ export default function TeknisiDashboard() {
   const [showNocContactModal, setShowNocContactModal] = useState(false);
   const [showSopModal, setShowSopModal] = useState(false);
 
-  // Status Koneksi Jaringan & Sinkronisasi Offline Lapangan (PWA)
+  // Status Koneksi Jaringan & Sinkronisasi Offline Lapangan (PWA Anti-Blankspot)
   const { isOnline } = useRealtimeStatus();
+  const [offlineQueue, setOfflineQueue] = useState(() => getOfflineQueue());
+  const [isSyncingOffline, setIsSyncingOffline] = useState(false);
 
   // Dynamic Live Timer Cut-Off Pk 21:00 WIB (Interval Realtime)
   const [cutoffRemaining, setCutoffRemaining] = useState(() => getRemainingTimeToCutoff());
@@ -252,6 +262,17 @@ export default function TeknisiDashboard() {
     update();
     const timer = setInterval(update, 20000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Sinkronisasi status antrean offline dari storage event
+  useEffect(() => {
+    const handleQueueUpdated = (e) => {
+      setOfflineQueue(e.detail?.queue || getOfflineQueue());
+    };
+    window.addEventListener("xnet_offline_queue_updated", handleQueueUpdated);
+    return () => {
+      window.removeEventListener("xnet_offline_queue_updated", handleQueueUpdated);
+    };
   }, []);
 
   // Search & Filter Kolom Mobile
@@ -449,6 +470,11 @@ export default function TeknisiDashboard() {
     return pekerjaan.filter((p) => (p.tim || "").toUpperCase() === activeTeam.toUpperCase());
   }, [pekerjaan, activeTeam]);
 
+  // Tugas yang memerlukan revisi dari SPV (revisi_catatan && status !== 'SELESAI')
+  const revisionTasks = useMemo(() => {
+    return teamTasks.filter((t) => Boolean(t.revisi_catatan) && t.status !== "SELESAI");
+  }, [teamTasks]);
+
   // Perhitungan insentif otomatis tim aktif sesuai cut-off periode dompet
   const teamIncentives = useMemo(() => {
     return calculateTeamIncentives(walletFilteredTasks, activeTeam, incentiveConfig, masterKomisi);
@@ -618,6 +644,57 @@ export default function TeknisiDashboard() {
     return `${linePathD} L ${last.cx} 140 L ${first.cx} 140 Z`;
   }, [linePathD, lineChartPoints]);
 
+  // Handle Manual & Auto Sync Antrean Offline ke Server Supabase
+  const handleManualSyncOffline = async () => {
+    if (isSyncingOffline) return;
+    const current = getOfflineQueue();
+    if (current.length === 0) {
+      triggerToast("Tidak ada laporan tertunda di memori HP.", "info");
+      return;
+    }
+    setIsSyncingOffline(true);
+    triggerToast(`Sedang mensinkronkan ${current.length} laporan lapangan ke server...`, "info");
+    try {
+      const result = await processOfflineSyncQueue(current, {
+        uploadBundleFn: uploadTaskEvidenceBundle,
+        onSyncItemSuccess: async (item, syncedTask) => {
+          if (syncedTask) {
+            setPekerjaan((prev) =>
+              prev.map((t) => (t.id === item.taskId ? syncedTask : t))
+            );
+            if (syncedTask.status === "SELESAI") {
+              syncCustomerOnTaskCompletion(syncedTask, pelangganList, setPelangganList);
+            }
+          }
+        },
+      });
+      setOfflineQueue(result.remainingQueue);
+      if (result.syncedCount > 0) {
+        triggerToast(`⚡ Berhasil mensinkronkan ${result.syncedCount} laporan lapangan ke server!`, "success");
+      }
+      if (result.failedCount > 0) {
+        triggerToast(`${result.failedCount} laporan belum terkirim. Akan dicoba lagi otomatis saat sinyal lebih stabil.`, "warning");
+      }
+    } catch (err) {
+      console.error("Gagal sinkronisasi offline:", err);
+      triggerToast("Gagal sinkronisasi: " + err.message, "error");
+    } finally {
+      setIsSyncingOffline(false);
+    }
+  };
+
+  // Trigger otomatis sinkronisasi saat browser kembali online
+  useEffect(() => {
+    const handleOnlineTrigger = () => {
+      const current = getOfflineQueue();
+      if (current.length > 0) {
+        handleManualSyncOffline();
+      }
+    };
+    window.addEventListener("online", handleOnlineTrigger);
+    return () => window.removeEventListener("online", handleOnlineTrigger);
+  }, []);
+
   // Handle Mark In-Progress (Mulai Jalan / Dikerjakan)
   const handleStartTask = (task) => {
     const nowIso = new Date().toISOString();
@@ -720,14 +797,6 @@ export default function TeknisiDashboard() {
         cutoff_label: cutoffEval.label,
       };
 
-      // 1. Upload foto bukti ke Supabase Storage (dengan graceful offline/local fallback)
-      let finalEvidence = rawEvidence;
-      try {
-        finalEvidence = await uploadTaskEvidenceBundle(rawEvidence, selectedTask.id);
-      } catch (uploadErr) {
-        console.warn("Storage upload exception, fallback to local data:", uploadErr);
-      }
-
       // Hitung komisi riil tugas ini berdasarkan rincian item pekerjaan
       const totalKomisi = (completionWorkItems || []).reduce((acc, it) => {
         const rate = incentiveConfig?.itemRates?.[it.id] !== undefined
@@ -742,6 +811,90 @@ export default function TeknisiDashboard() {
         .join(", ");
 
       const targetStatus = isSupervisor ? "SELESAI" : "MENUNGGU VALIDASI";
+      const isDeviceOffline = !isOnline || (typeof navigator !== "undefined" && !navigator.onLine);
+
+      // JIKA PERANGKAT DALAM MODE OFFLINE (AREA BLANKSPOT)
+      if (isDeviceOffline) {
+        const offlineTask = {
+          ...selectedTask,
+          status: targetStatus,
+          redaman: completionForm.redaman,
+          sn_modem: completionForm.serialNumber,
+          odp: selectedOdpForTask || selectedTask.odp,
+          foto_bukti_utama: finalPhoto,
+          foto_opm: finalPhoto,
+          foto_dropcore: finalPhoto,
+          foto_modem: finalPhoto,
+          waktu_lapor: nowIso,
+          waktu_selesai: targetStatus === "SELESAI" ? nowIso : selectedTask.waktu_selesai,
+          cutoff_status: cutoffEval.status,
+          cutoff_label: cutoffEval.label,
+          is_offline_draft: true,
+          offline_queued_at: nowIso,
+          revisi_catatan: null, // Clear revisi flag upon resubmission
+          evidence: {
+            ...rawEvidence,
+            foto_bukti_utama: finalPhoto,
+            waktu_lapor: nowIso,
+            cutoff_status: cutoffEval.status,
+            cutoff_label: cutoffEval.label,
+          },
+          timeline: [
+            ...(Array.isArray(selectedTask.timeline) ? selectedTask.timeline : []),
+            {
+              timestamp: nowIso,
+              formattedTime: new Date(nowIso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+              action: "Laporan Disimpan di Memori HP (Mode Offline)",
+              actor: "Teknisi Lapangan",
+              color: "amber",
+              notes: `Laporan disimpan lokal karena sinyal minim (${cutoffEval.label}). Akan otomatis terkirim saat sinyal pulih.`,
+            },
+          ],
+          komisi_items: completionWorkItems,
+          komisi_total: totalKomisi,
+          keterangan: [extraDetails, itemsSummaryStr ? `Rincian: ${itemsSummaryStr}` : ""].filter(Boolean).join(" | ") || "Laporan 1 foto pengerjaan lapangan (Draft Offline).",
+        };
+
+        addToOfflineQueue({
+          type: "COMPLETE_TASK",
+          taskId: selectedTask.id,
+          taskData: offlineTask,
+          evidenceBundle: rawEvidence,
+          customerName: selectedTask.pelanggan,
+          jenis: selectedTask.jenis,
+        });
+
+        setPekerjaan((prev) =>
+          prev.map((t) => (t.id === selectedTask.id ? offlineTask : t))
+        );
+
+        triggerToast(
+          `📶 Mode Offline (Blankspot): Laporan "${selectedTask.pelanggan}" aman tersimpan di HP. Otomatis dikirim saat sinyal 4G pulih.`,
+          "info"
+        );
+
+        setSelectedTask(null);
+        setCompletionWorkItems([]);
+        setCompletionForm({
+          redaman: "-19.5",
+          serialNumber: "",
+          odp: "",
+          catatan: "",
+          fotoBuktiUtama: null,
+          fotoOpm: null,
+          fotoDropcore: null,
+          fotoModem: null,
+        });
+        return;
+      }
+
+      // JIKA ONLINE: Upload foto bukti ke Supabase Storage (dengan graceful offline/local fallback)
+      let finalEvidence = rawEvidence;
+      try {
+        finalEvidence = await uploadTaskEvidenceBundle(rawEvidence, selectedTask.id);
+      } catch (uploadErr) {
+        console.warn("Storage upload exception, fallback to local data:", uploadErr);
+      }
 
       const finalTask = {
         ...selectedTask,
@@ -757,6 +910,8 @@ export default function TeknisiDashboard() {
         waktu_selesai: targetStatus === "SELESAI" ? nowIso : selectedTask.waktu_selesai,
         cutoff_status: cutoffEval.status,
         cutoff_label: cutoffEval.label,
+        is_offline_draft: false,
+        revisi_catatan: null, // Clear revisi flag upon resubmission
         evidence: {
           ...finalEvidence,
           foto_bukti_utama: finalPhoto,
@@ -817,13 +972,51 @@ export default function TeknisiDashboard() {
     }
   };
 
-  // Handle Submit Kendala (GAGAL)
+  // Handle Submit Kendala (GAGAL) dengan Dukungan Mode Offline
   const handleKendalaSubmit = (e) => {
     e.preventDefault();
     if (!kendalaTask) return;
 
     const nowIso = new Date().toISOString();
     const reason = `[KENDALA] ${kendalaForm.alasan}${kendalaForm.catatan ? " - " + kendalaForm.catatan : ""}`;
+    const isDeviceOffline = !isOnline || (typeof navigator !== "undefined" && !navigator.onLine);
+
+    if (isDeviceOffline) {
+      const offlineKendalaTask = {
+        ...kendalaTask,
+        status: "GAGAL",
+        keterangan: reason,
+        is_offline_draft: true,
+        timeline: [
+          ...(Array.isArray(kendalaTask.timeline) ? kendalaTask.timeline : []),
+          {
+            timestamp: nowIso,
+            formattedTime: new Date(nowIso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+            action: "Laporan Kendala Lapangan (Mode Offline)",
+            actor: "Teknisi Lapangan",
+            color: "rose",
+            notes: `Kendala disimpan di HP: ${kendalaForm.alasan}${kendalaForm.catatan ? ` - ${kendalaForm.catatan}` : ""}. Menunggu sinyal untuk sinkronisasi ke CS.`,
+          },
+        ],
+      };
+
+      addToOfflineQueue({
+        type: "KENDALA_TASK",
+        taskId: kendalaTask.id,
+        reason,
+        customerName: kendalaTask.pelanggan,
+        jenis: kendalaTask.jenis,
+      });
+
+      setPekerjaan((prev) =>
+        prev.map((t) => (t.id === kendalaTask.id ? offlineKendalaTask : t))
+      );
+
+      triggerToast(`📶 Mode Offline: Kendala pada "${kendalaTask.pelanggan}" tersimpan di HP. Otomatis dikirim saat sinyal pulih.`, "info");
+      setKendalaTask(null);
+      setKendalaForm({ alasan: "Pelanggan tidak ada di rumah / kosong", catatan: "" });
+      return;
+    }
 
     setPekerjaan((prev) =>
       prev.map((t) =>
@@ -832,6 +1025,7 @@ export default function TeknisiDashboard() {
               ...t,
               status: "GAGAL",
               keterangan: reason,
+              is_offline_draft: false,
               timeline: [
                 ...(Array.isArray(t.timeline) ? t.timeline : []),
                 {
@@ -1042,6 +1236,14 @@ export default function TeknisiDashboard() {
               </span>
             )}
 
+            {/* Draft Offline (Menunggu Sinyal) Badge */}
+            {task.is_offline_draft && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 animate-pulse" title="Tersimpan di memori HP, menunggu sinyal stabil">
+                <Signal className="w-3 h-3 text-amber-700" />
+                <span>Draft Lokal (Offline)</span>
+              </span>
+            )}
+
             {/* In-Progress / Sedang Dikerjakan Badge */}
             {task.is_started && !isCompleted && (
               <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
@@ -1103,17 +1305,50 @@ export default function TeknisiDashboard() {
 
         {/* Catatan Revisi dari SPV jika ada */}
         {task.revisi_catatan && task.status !== "SELESAI" && (
-          <div className="p-3 bg-rose-50 border border-rose-200/90 rounded-2xl space-y-1">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-900">
-              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-              <span>Perlu Revisi Dari Supervisor:</span>
+          <div className="p-3 bg-rose-50 border border-rose-200/90 rounded-2xl space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-900">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>Perlu Revisi Dari Supervisor:</span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-200 text-rose-900">
+                Revisi
+              </span>
             </div>
-            <p className="text-xs text-rose-700 leading-relaxed font-medium">
-              {task.revisi_catatan}
+            <p className="text-xs text-rose-700 leading-relaxed font-medium bg-white/80 p-2 rounded-xl border border-rose-200">
+              "{task.revisi_catatan}"
             </p>
-            <p className="text-[10px] text-rose-500 font-medium">
-              Silakan ambil ulang 1 foto bukti / perbaiki redaman lalu kirim ulang laporan.
-            </p>
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-[10px] text-rose-600 font-medium">
+                Ambil ulang foto / perbarui redaman lalu kirim ulang laporan.
+              </p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedTask(task);
+                  setSelectedOdpForTask(task.odp || "");
+                  const defaultItems = Array.isArray(task.komisi_items) && task.komisi_items.length > 0
+                    ? task.komisi_items
+                    : getDefaultWorkItemsForTask(task.jenis, 100, masterKomisi);
+                  setCompletionWorkItems(defaultItems);
+                  setCompletionForm({
+                    redaman: task.redaman || "-19.5",
+                    serialNumber: task.sn_modem || "",
+                    odp: task.odp || "",
+                    catatan: task.keterangan || "",
+                    fotoBuktiUtama: task.foto_bukti_utama || null,
+                    fotoOpm: task.foto_opm || null,
+                    fotoDropcore: task.foto_dropcore || null,
+                    fotoModem: task.foto_modem || null,
+                  });
+                }}
+                className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Form Revisi</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -1289,21 +1524,118 @@ export default function TeknisiDashboard() {
         <Toast message={toast.message} type={toast.type} onClose={() => setToast((prev) => ({ ...prev, show: false }))} />
       )}
 
-      {/* Visual Offline Mode Banner (PWA Field Optimized) */}
+      {/* SPV Revision Request Banner (High Priority) */}
+      {revisionTasks.length > 0 && (
+        <div className="bg-gradient-to-r from-rose-600 via-rose-700 to-amber-700 text-white p-4 rounded-2xl shadow-lg border border-rose-300/40 space-y-2.5 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-amber-300" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black tracking-wide flex items-center gap-2">
+                  <span>Perhatian: Ada {revisionTasks.length} Tiket Memerlukan Revisi dari SPV</span>
+                </h4>
+                <p className="text-[11px] text-rose-100">
+                  Supervisor meminta perbaikan bukti foto atau data redaman sebelum komisi pekerjaan disahkan.
+                </p>
+              </div>
+            </div>
+            <span className="shrink-0 text-[10px] font-black uppercase px-2.5 py-1 bg-black/30 text-amber-200 rounded-full border border-white/20 font-mono">
+              Revisi SPV
+            </span>
+          </div>
+
+          <div className="space-y-1.5 pt-1">
+            {revisionTasks.map((rt) => (
+              <div key={rt.id} className="bg-white/10 backdrop-blur-xs p-3 rounded-xl border border-white/15 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-extrabold text-white">{rt.pelanggan}</span>
+                    <span className="text-amber-300 text-[11px] font-bold">({rt.jenis} - {rt.odp || "ODP"})</span>
+                  </div>
+                  <p className="text-[11px] text-rose-100 mt-0.5 italic">
+                    Catatan SPV: "{rt.revisi_catatan}"
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTask(rt);
+                    setSelectedOdpForTask(rt.odp || "");
+                    const defaultItems = Array.isArray(rt.komisi_items) && rt.komisi_items.length > 0
+                      ? rt.komisi_items
+                      : getDefaultWorkItemsForTask(rt.jenis, 100, masterKomisi);
+                    setCompletionWorkItems(defaultItems);
+                    setCompletionForm({
+                      redaman: rt.redaman || "-19.5",
+                      serialNumber: rt.sn_modem || "",
+                      odp: rt.odp || "",
+                      catatan: rt.keterangan || "",
+                      fotoBuktiUtama: rt.foto_bukti_utama || null,
+                      fotoOpm: rt.foto_opm || null,
+                      fotoDropcore: rt.foto_dropcore || null,
+                      fotoModem: rt.foto_modem || null,
+                    });
+                  }}
+                  className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-[#0D1B4A] rounded-xl text-xs font-black shadow-xs shrink-0 self-start sm:self-auto cursor-pointer flex items-center gap-1.5 transition-all"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Buka Form Revisi</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Visual Offline Mode Banner (PWA Field Optimized - Blankspot Resiliency) */}
       {!isOnline && (
-        <div className="sticky top-2 z-40 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white px-4 py-2.5 rounded-2xl shadow-lg border border-amber-300/40 flex items-center justify-between gap-3 animate-in slide-in-from-top duration-300">
+        <div className="sticky top-2 z-40 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white px-4 py-3 rounded-2xl shadow-lg border border-amber-300/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in slide-in-from-top duration-300">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
               <WifiOff className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="text-xs font-black tracking-wide">Mode Offline Lapangan Aktif</p>
-              <p className="text-[11px] text-amber-100">Koneksi internet terputus. Anda tetap bisa input & simpan foto laporan. Sistem akan otomatis sinkron ke server begitu kembali online.</p>
+              <p className="text-xs font-black tracking-wide">
+                Mode Offline Lapangan Aktif (Anti-Blankspot)
+              </p>
+              <p className="text-[11px] text-amber-100">
+                Sinyal terputus. Laporan & bukti foto tersimpan di memori HP ({offlineQueue.length} draft tersimpan). Akan otomatis terkirim begitu kembali online.
+              </p>
             </div>
           </div>
           <span className="shrink-0 text-[10px] font-black uppercase px-2.5 py-1 bg-black/25 text-amber-200 rounded-full border border-white/20 font-mono">
-            Tersimpan Lokal
+            {offlineQueue.length} Draft di HP
           </span>
+        </div>
+      )}
+
+      {/* Auto-Sync Banner when Signal Reconnected and Queue Has Items */}
+      {isOnline && offlineQueue.length > 0 && (
+        <div className="sticky top-2 z-40 bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 text-white px-4 py-3 rounded-2xl shadow-lg border border-blue-300/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <Signal className="w-4 h-4 text-emerald-300" />
+            </div>
+            <div>
+              <p className="text-xs font-black tracking-wide">
+                Sinyal Pulih! Ada {offlineQueue.length} Laporan Menunggu Sinkronisasi
+              </p>
+              <p className="text-[11px] text-blue-100">
+                Laporan pekerjaan lapangan yang disimpan offline siap dikirim ke database & SPV.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={isSyncingOffline}
+            onClick={handleManualSyncOffline}
+            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 disabled:opacity-60 text-white rounded-xl text-xs font-black shadow-sm shrink-0 self-end sm:self-auto cursor-pointer flex items-center gap-1.5 transition-all"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncingOffline ? "animate-spin" : ""}`} />
+            <span>{isSyncingOffline ? "Sedang Mengirim..." : "⚡ Sinkronkan Sekarang"}</span>
+          </button>
         </div>
       )}
 
@@ -1381,24 +1713,51 @@ export default function TeknisiDashboard() {
           </button>
         </div>
 
-        {/* Search Bar Right */}
-        {viewMode !== "ODP_TOOL" && viewMode !== "WALLET" && (
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari pekerjaan, pelanggan, atau alamat..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] outline-none shadow-2xs"
-            />
-            {search && (
-              <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        )}
+        {/* Status Koneksi Realtime / Offline Pill & Search Bar */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {!isOnline ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs shrink-0" title="Koneksi terputus - Mode offline aktif">
+              <WifiOff className="w-3.5 h-3.5 text-amber-700" />
+              <span>Offline ({offlineQueue.length} Draft)</span>
+            </span>
+          ) : offlineQueue.length > 0 ? (
+            <button
+              type="button"
+              disabled={isSyncingOffline}
+              onClick={handleManualSyncOffline}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-blue-100 hover:bg-blue-200 text-blue-900 border border-blue-300 shadow-2xs cursor-pointer shrink-0 transition-all active:scale-95"
+              title="Klik untuk mensinkronkan laporan yang tersimpan saat offline"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-blue-700 ${isSyncingOffline ? "animate-spin" : ""}`} />
+              <span>{isSyncingOffline ? "Mengirim..." : `${offlineQueue.length} Draft (Sync)`}</span>
+            </button>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs shrink-0" title="Terhubung secara realtime ke Cloud">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="hidden sm:inline">Online (Realtime)</span>
+              <span className="sm:hidden">Online</span>
+            </span>
+          )}
+
+          {/* Search Bar Right */}
+          {viewMode !== "ODP_TOOL" && viewMode !== "WALLET" && (
+            <div className="relative flex-1 sm:w-64">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Cari tugas / pelanggan..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] outline-none shadow-2xs"
+              />
+              {search && (
+                <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ========================================================================= */}
@@ -2995,6 +3354,24 @@ export default function TeknisiDashboard() {
                   </p>
                 </div>
               </div>
+
+              {/* SPV Revision Instruction Banner */}
+              {selectedTask.revisi_catatan && selectedTask.status !== "SELESAI" && (
+                <div className="p-3.5 bg-rose-50 border-2 border-rose-300 rounded-2xl text-xs text-rose-900 flex items-start gap-2.5 animate-in fade-in">
+                  <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center shrink-0 text-rose-600 mt-0.5">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-black text-rose-950 text-xs">Instruksi Revisi dari Supervisor (SPV):</p>
+                    <p className="text-[11px] text-rose-900 mt-1 font-semibold leading-relaxed bg-white/90 p-2.5 rounded-xl border border-rose-200">
+                      "{selectedTask.revisi_catatan}"
+                    </p>
+                    <p className="text-[10px] text-rose-600 mt-1 font-medium">
+                      Silakan ambil ulang foto bukti fisik atau perbarui nilai redaman/SN di bawah ini sesuai arahan SPV.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {selectedTask.jenis === "PEMUTUSAN" ? (
                 <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-900 space-y-1.5">

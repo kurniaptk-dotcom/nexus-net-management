@@ -312,6 +312,17 @@ function KanbanCard({
           </span>
         </div>
       )}
+      {item.is_offline_draft && (
+        <div className="mb-2 p-2 bg-amber-50 border border-amber-300 rounded-xl flex items-center justify-between text-[11px] text-amber-900 font-bold">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+            <span>Draft Lapangan (Menunggu Sinyal Teknisi)</span>
+          </span>
+          <span className="text-[10px] bg-amber-200/90 text-amber-900 px-1.5 py-0.5 rounded-md font-extrabold">
+            Offline PWA
+          </span>
+        </div>
+      )}
       {item.revisi_catatan && item.status !== "SELESAI" && (
         <div className="mb-2 p-2 bg-rose-50 border border-rose-200 rounded-xl text-[11px] text-rose-900 font-semibold">
           <div className="flex items-center gap-1 font-bold text-rose-700">

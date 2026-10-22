@@ -539,5 +539,105 @@ test("SPK Generator - Customer Time Slot Commitment (janji_jam)", () => {
   assert.ok(text.includes("Hubungi pelanggan sebelum meluncur"));
 });
 
+test("Offline Mode & Auto-Sync Engine - Queue management and zero data loss synchronization", async () => {
+  const {
+    getOfflineQueue,
+    saveOfflineQueue,
+    addToOfflineQueue,
+    removeFromOfflineQueue,
+    clearOfflineQueue,
+    processOfflineSyncQueue,
+  } = await import("../src/lib/offlineSync.js");
+
+  // Mock localStorage & window environment for Node.js test runner
+  const storageMap = new Map();
+  global.localStorage = {
+    getItem: (key) => storageMap.get(key) || null,
+    setItem: (key, val) => storageMap.set(key, String(val)),
+    removeItem: (key) => storageMap.delete(key),
+    clear: () => storageMap.clear(),
+  };
+  global.window = {
+    localStorage: global.localStorage,
+    dispatchEvent: () => true,
+  };
+
+  clearOfflineQueue();
+  assert.equal(getOfflineQueue().length, 0);
+
+  // 1. Add complete task to offline queue
+  const mockTask = {
+    id: 888,
+    pelanggan: "Bpk. Rahmat Lapangan",
+    jenis: "PEMASANGAN",
+    status: "MENUNGGU VALIDASI",
+    redaman: "-19.2",
+    sn_modem: "ZTEGC888999",
+    is_offline_draft: true,
+  };
+
+  const entry = addToOfflineQueue({
+    type: "COMPLETE_TASK",
+    taskId: mockTask.id,
+    taskData: mockTask,
+    evidenceBundle: {
+      foto_bukti_utama: "data:image/jpeg;base64,mockphoto123",
+      redaman: "-19.2",
+    },
+    customerName: mockTask.pelanggan,
+    jenis: mockTask.jenis,
+  });
+
+  assert.ok(entry.id);
+  assert.equal(entry.taskId, 888);
+  assert.equal(entry.status, "PENDING");
+  assert.equal(getOfflineQueue().length, 1);
+
+  // 2. Add kendala task to offline queue
+  addToOfflineQueue({
+    type: "KENDALA_TASK",
+    taskId: 999,
+    reason: "[KENDALA] Pelanggan tidak ada di rumah",
+    customerName: "Ibu Sinta",
+    jenis: "PERBAIKAN",
+  });
+
+  assert.equal(getOfflineQueue().length, 2);
+
+  // 3. Deduplication: updating task 888 should not create a duplicate
+  addToOfflineQueue({
+    type: "COMPLETE_TASK",
+    taskId: 888,
+    taskData: { ...mockTask, redaman: "-18.9" },
+    customerName: mockTask.pelanggan,
+  });
+  assert.equal(getOfflineQueue().length, 2);
+
+  // 4. Process and auto-sync queue
+  const syncedItems = [];
+  const result = await processOfflineSyncQueue(getOfflineQueue(), {
+    uploadBundleFn: async (bundle, taskId) => ({
+      ...bundle,
+      foto_bukti_utama: `https://storage.supabase.co/evidence/task_${taskId}.jpg`,
+    }),
+    onSyncItemSuccess: async (item, syncedTask) => {
+      syncedItems.push(syncedTask || item);
+    },
+  });
+
+  assert.equal(result.syncedCount, 2);
+  assert.equal(result.failedCount, 0);
+  assert.equal(result.remainingQueue.length, 0);
+  assert.equal(getOfflineQueue().length, 0);
+
+  // Verify synced task had is_offline_draft cleared to false
+  const syncedComplete = syncedItems.find((s) => s.id === 888);
+  assert.ok(syncedComplete);
+  assert.equal(syncedComplete.is_offline_draft, false);
+  assert.equal(syncedComplete.foto_bukti_utama, "https://storage.supabase.co/evidence/task_888.jpg");
+  assert.ok(syncedComplete.synced_at);
+});
+
+
 
 
