@@ -705,6 +705,108 @@ test("Simplified SPK Dispatch & Field Technician Reporting Lifecycle", async () 
   assert.equal(approvedTask.validated_by, "Supervisor NOC");
 });
 
+test("Specialized SPK Formats - generates custom WhatsApp instructions for all 5 job types", () => {
+  // 1. PEMASANGAN BARU (PSB)
+  const psbTask = {
+    id: 1001,
+    jenis: "PEMASANGAN",
+    prioritas: "NORMAL",
+    tim: "AZWAR - RIO",
+    pelanggan: "Bpk. Rahmad",
+    telepon: "081234567890",
+    alamat: "Jl. Merdeka No. 10",
+    odp: "ODP 1.1",
+    port: "2",
+    paket: "Home Fiber 30 Mbps",
+    jarak_odp: "85",
+  };
+  const psbText = formatSpkWaText(psbTask, "SPK/PSB/20261022/1001");
+  assert.ok(psbText.includes("PEMASANGAN BARU (PSB)"));
+  assert.ok(psbText.includes("Bpk. Rahmad"));
+  assert.ok(psbText.includes("Home Fiber 30 Mbps"));
+  assert.ok(psbText.includes("Est. Dropcore:* ~85 Meter"));
+
+  // 2. PEMUTUSAN (DISMANTLE)
+  const disTask = {
+    id: 1002,
+    jenis: "PEMUTUSAN",
+    prioritas: "NORMAL",
+    tim: "DONI - FEBRI",
+    pelanggan: "Ibu Siti Aminah",
+    telepon: "085299887766",
+    alamat: "Gg. Melati 3",
+    odp: "ODP 2.3",
+    port: "4",
+    alasan_pemutusan: "Menunggak Tagihan > 2 Bulan",
+    perangkat_ditarik: ["Modem ONT (Cek Serial Number)", "Adaptor Power Original", "Kabel Patchcord Fiber"],
+  };
+  const disText = formatSpkWaText(disTask, "SPK/DIS/20261022/1002");
+  assert.ok(disText.includes("PEMUTUSAN (DISMANTLE)"));
+  assert.ok(disText.includes("Alasan Pemutusan:* *Menunggak Tagihan > 2 Bulan*"));
+  assert.ok(disText.includes("Perangkat Ditarik:* Modem ONT"));
+  assert.ok(disText.includes("Port ODP Dibebaskan:* *ODP 2.3* (Port: 4)"));
+  assert.ok(disText.includes("Tarik modem ONT dan adaptor secara lengkap"));
+
+  // 3. PERBAIKAN (TROUBLESHOOT)
+  const rprTask = {
+    id: 1003,
+    jenis: "PERBAIKAN",
+    prioritas: "URGENT",
+    tim: "AZWAR - RIO",
+    pelanggan: "Toko Harapan Jaya",
+    telepon: "081377889900",
+    alamat: "Komp. Pertokoan Blok B2",
+    odp: "ODP 1.4",
+    port: "1",
+    kategori_gangguan: "Lampu LOS Merah (Kabel Putus / Redaman Anjlok)",
+  };
+  const rprText = formatSpkWaText(rprTask, "SPK/RPR/20261022/1003");
+  assert.ok(rprText.includes("PERBAIKAN GANGGUAN (TROUBLESHOOT)"));
+  assert.ok(rprText.includes("Gejala Gangguan:* *Lampu LOS Merah (Kabel Putus / Redaman Anjlok)*"));
+  assert.ok(rprText.includes("ODP Terhubung:* *ODP 1.4* (Port: 1)"));
+
+  // 4. PERBAIKAN KHUSUS (ODP/ODC) (INFRASTRUCTURE)
+  const splTask = {
+    id: 1004,
+    jenis: "PERBAIKAN KHUSUS (ODP/ODC)",
+    prioritas: "TINGGI",
+    tim: "BAMBANG - EKO",
+    odc: "ODC-01",
+    odp: "ODP 1.2",
+    user_terdampak: "8",
+    jenis_gangguan_odp: "Splitter Pasif Rusak / Redaman Port Drop",
+    keterangan: "Ganti splitter 1:8 dan ukur redaman input ODP.",
+  };
+  const splText = formatSpkWaText(splTask, "SPK/SPL/20261022/1004");
+  assert.ok(splText.includes("PERBAIKAN KHUSUS DISTRIBUSI (ODP/ODC)"));
+  assert.ok(splText.includes("Titik Jaringan:* ODC *ODC-01* · ODP *ODP 1.2*"));
+  assert.ok(splText.includes("Estimasi User Terdampak:* ~8 Pelanggan"));
+  assert.ok(splText.includes("Jenis Masalah:* *Splitter Pasif Rusak / Redaman Port Drop*"));
+  assert.ok(splText.includes("Gunakan fusion splicer standar low loss"));
+
+  // 5. RELOKASI (REL)
+  const relTask = {
+    id: 1005,
+    jenis: "RELOKASI",
+    prioritas: "NORMAL",
+    tim: "AZWAR - RIO",
+    pelanggan: "Bpk. Hendra Gunawan",
+    telepon: "082155667788",
+    alamat: "Jl. Veteran No. 45",
+    odp: "ODP 1.1",
+    alamat_baru: "Jl. Purnama Komplek Nirwana C1",
+    odp_baru: "ODP 3.2",
+    port_baru: "3",
+    keterangan: "Tarik kabel baru sekitar 65 meter.",
+  };
+  const relText = formatSpkWaText(relTask, "SPK/REL/20261022/1005");
+  assert.ok(relText.includes("RELOKASI"));
+  assert.ok(relText.includes("Bpk. Hendra Gunawan"));
+  assert.ok(relText.includes("Titik Asal (Cabut):* Jl. Veteran No. 45 (ODP: ODP 1.1)"));
+  assert.ok(relText.includes("Titik Tujuan (Pasang):* Jl. Purnama Komplek Nirwana C1 (ODP Baru: *ODP 3.2* Port: 3)"));
+  assert.ok(relText.includes("Cabut port lama di ODP asal dengan aman"));
+});
+
 
 
 

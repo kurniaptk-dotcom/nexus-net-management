@@ -24,6 +24,7 @@ import {
   Info,
   ClipboardCheck,
   Zap,
+  Check,
 } from "lucide-react";
 import {
   TASK_TYPES,
@@ -106,6 +107,21 @@ export default function DispatchTaskModal({
     komisi_items: [],
     komisi_total: 0,
     janji_jam: "",
+    // Field spesialisasi tiap jenis
+    alasan_pemutusan: "Menunggak Tagihan > 2 Bulan",
+    perangkat_ditarik: [
+      "Modem ONT (Cek Serial Number)",
+      "Adaptor Power Original",
+      "Kabel Patchcord Fiber",
+      "Cabut Dropcore dari ODP Tiang",
+    ],
+    kategori_gangguan: "Lampu LOS Merah (Kabel Putus / Redaman Anjlok)",
+    jenis_gangguan_odp: "Splitter Pasif Rusak / Redaman Port Drop",
+    odc: "",
+    user_terdampak: "",
+    alamat_baru: "",
+    odp_baru: "",
+    port_baru: "",
   });
 
   const [copiedWa, setCopiedWa] = useState(false);
@@ -133,7 +149,7 @@ export default function DispatchTaskModal({
 
       setForm({
         jenis: detectedJenis,
-        prioritas: initialData.prioritas || (detectedJenis === "PERBAIKAN" ? "TINGGI" : "NORMAL"),
+        prioritas: initialData.prioritas || (detectedJenis === "PERBAIKAN" || detectedJenis === "PERBAIKAN KHUSUS (ODP/ODC)" ? "TINGGI" : "NORMAL"),
         tim: initialData.tim || availableTeams[0]?.nama || "AZWAR - RIO",
         tanggal: initialData.tanggal || new Date().toISOString().split("T")[0],
         sesi: initialData.sesi || "Pagi (08:30 - 12:00 WIB)",
@@ -152,6 +168,23 @@ export default function DispatchTaskModal({
         redaman: initialData.redaman || "",
         komisi_items: initialWorkItems,
         komisi_total: initialWorkTotal,
+        // Field terspesialisasi
+        alasan_pemutusan: initialData.alasan_pemutusan || "Menunggak Tagihan > 2 Bulan",
+        perangkat_ditarik: Array.isArray(initialData.perangkat_ditarik) && initialData.perangkat_ditarik.length > 0
+          ? initialData.perangkat_ditarik
+          : [
+              "Modem ONT (Cek Serial Number)",
+              "Adaptor Power Original",
+              "Kabel Patchcord Fiber",
+              "Cabut Dropcore dari ODP Tiang",
+            ],
+        kategori_gangguan: initialData.kategori_gangguan || "Lampu LOS Merah (Kabel Putus / Redaman Anjlok)",
+        jenis_gangguan_odp: initialData.jenis_gangguan_odp || "Splitter Pasif Rusak / Redaman Port Drop",
+        odc: initialData.odc || "",
+        user_terdampak: initialData.user_terdampak || "",
+        alamat_baru: initialData.alamat_baru || "",
+        odp_baru: initialData.odp_baru || "",
+        port_baru: initialData.port_baru || "",
       });
     }
   }, [isOpen, initialData, availableTeams, enrichedOdps, masterKomisi]);
@@ -182,6 +215,40 @@ export default function DispatchTaskModal({
     if (!form.odp || !form.port) return { isConflict: false };
     return checkPortCollision(form.odp, form.port, enrichedOdps, pelangganList);
   }, [form.odp, form.port, enrichedOdps, pelangganList]);
+
+  // Daftar ODC unik dari enrichedOdps
+  const odcList = useMemo(() => {
+    const set = new Set();
+    enrichedOdps.forEach((o) => {
+      if (o.odc) set.add(o.odc);
+    });
+    return Array.from(set).sort();
+  }, [enrichedOdps]);
+
+  // Daftar ODP terfilter berdasarkan ODC (jika ODC dipilih)
+  const odpListFilteredByOdc = useMemo(() => {
+    if (!form.odc) return enrichedOdps;
+    return enrichedOdps.filter((o) => o.odc === form.odc);
+  }, [enrichedOdps, form.odc]);
+
+  // Port map & info untuk ODP Baru (pada Relokasi)
+  const newOdpPortMap = useMemo(() => {
+    const targetOdp = form.odp_baru || form.odp;
+    if (!targetOdp) return [];
+    return getOdpPortMap(targetOdp, enrichedOdps, pelangganList);
+  }, [form.odp_baru, form.odp, enrichedOdps, pelangganList]);
+
+  // Toggle checklist perangkat yang ditarik (pada Pemutusan)
+  const togglePerangkatDitarik = (item) => {
+    setForm((prev) => {
+      const current = Array.isArray(prev.perangkat_ditarik) ? prev.perangkat_ditarik : [];
+      if (current.includes(item)) {
+        return { ...prev, perangkat_ditarik: current.filter((x) => x !== item) };
+      } else {
+        return { ...prev, perangkat_ditarik: [...current, item] };
+      }
+    });
+  };
 
   // Dapatkan nomor telepon tim / teknisi terpilih
   const selectedTeamObj = useMemo(() => {
@@ -247,9 +314,21 @@ export default function DispatchTaskModal({
   };
 
   const handleSubmit = (sendWaDirectly = false) => {
-    const trimmedPelanggan = (form.pelanggan || "").trim();
-    if (!trimmedPelanggan) {
-      showToast("Silakan masukkan nama pelanggan / tujuan pekerjaan.", "warning");
+    let trimmedPelanggan = (form.pelanggan || "").trim();
+
+    if (form.jenis === "PERBAIKAN KHUSUS (ODP/ODC)") {
+      if (!trimmedPelanggan) {
+        trimmedPelanggan = `Perbaikan Jaringan ${form.odp || form.odc || "Distribusi"}`;
+      }
+    } else {
+      if (!trimmedPelanggan) {
+        showToast("Silakan masukkan nama pelanggan / tujuan pekerjaan.", "warning");
+        return;
+      }
+    }
+
+    if (form.jenis === "RELOKASI" && !form.alamat_baru?.trim()) {
+      showToast("Silakan masukkan alamat tujuan baru untuk relokasi.", "warning");
       return;
     }
 
@@ -330,6 +409,890 @@ export default function DispatchTaskModal({
     onClose();
   };
 
+  // ==========================================
+  // 1. RENDER FORM: PEMASANGAN (PSB)
+  // ==========================================
+  const renderPsbForm = () => (
+    <div className="space-y-4">
+      {/* Data Calon Pelanggan (Leads) */}
+      <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+            <User className="w-4 h-4 text-[#0D1B4A]" />
+            <span>Data Calon Pelanggan Baru (Modul Leads)</span>
+          </div>
+          {activeLeads.length > 0 && (
+            <span className="text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-200">
+              <Zap className="w-3 h-3 text-amber-600" />
+              {activeLeads.length} Calon Pelanggan (Leads)
+            </span>
+          )}
+        </div>
+
+        {/* Quick Fill Dropdown dari Leads */}
+        {activeLeads.length > 0 && (
+          <select
+            onChange={(e) => {
+              const selectedId = e.target.value;
+              if (!selectedId) return;
+              const lead = activeLeads.find((l) => String(l.id) === String(selectedId));
+              if (lead) {
+                let odpName = lead.odp_terdekat || lead.odp || "";
+                if (odpName && odpName.includes(" - ")) {
+                  odpName = odpName.split(" - ")[0].trim();
+                }
+                setForm((prev) => ({
+                  ...prev,
+                  pelanggan: lead.nama || prev.pelanggan,
+                  telepon: lead.telepon || lead.kontak || prev.telepon,
+                  alamat: lead.alamat || prev.alamat,
+                  shareloc: (lead.lat && lead.lng) ? `${lead.lat},${lead.lng}` : (lead.shareloc || prev.shareloc),
+                  odp: odpName || prev.odp,
+                  paket: lead.paket || prev.paket,
+                  keterangan: lead.keterangan_survey || lead.keterangan || prev.keterangan,
+                  sourceModule: "LEADS",
+                  sourceId: lead.id,
+                  jarak_odp: lead.jarak_odp || "",
+                  redaman: lead.redaman || "",
+                }));
+              }
+            }}
+            className="w-full px-3 py-1.5 bg-amber-50/80 hover:bg-amber-100/60 border border-amber-200 rounded-xl text-xs font-semibold text-amber-950 focus:bg-white focus:ring-2 focus:ring-amber-400 outline-none cursor-pointer"
+          >
+            <option value="">⚡ Pilih Calon Pelanggan dari Modul Leads (Auto-Fill Alamat & ODP)...</option>
+            {activeLeads.map((l) => (
+              <option key={l.id} value={l.id}>
+                [{l.status || "LEAD"}] {l.nama} · {l.alamat ? (l.alamat.length > 40 ? l.alamat.slice(0, 40) + "..." : l.alamat) : "Tanpa Alamat"} ({l.odp_terdekat || "ODP Belum Dipilih"})
+              </option>
+            ))}
+          </select>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Nama Calon Pelanggan <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.pelanggan}
+              onChange={(e) => setForm({ ...form, pelanggan: e.target.value })}
+              placeholder="Contoh: Bpk. Kurnia / Toko Berkah"
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Nomor WhatsApp Calon Pelanggan <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative">
+              <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={form.telepon}
+                onChange={(e) => setForm({ ...form, telepon: e.target.value })}
+                placeholder="081234567890"
+                className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-600 mb-1">
+            Alamat Lengkap Pemasangan
+          </label>
+          <div className="relative">
+            <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={form.alamat}
+              onChange={(e) => setForm({ ...form, alamat: e.target.value })}
+              placeholder="Jl. Perintis Kemerdekaan No. 12 (Samping Masjid)"
+              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+            />
+          </div>
+        </div>
+
+        {form.shareloc && (
+          <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between text-xs text-blue-900">
+            <span className="truncate pr-2">📍 Peta/Shareloc: {form.shareloc}</span>
+            <a
+              href={form.shareloc.startsWith("http") ? form.shareloc : `https://maps.google.com/?q=${form.shareloc}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 font-bold text-blue-700 hover:underline shrink-0"
+            >
+              <span>Buka Peta</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-600 mb-1">
+            Paket Langganan Internet
+          </label>
+          <select
+            value={form.paket}
+            onChange={(e) => setForm({ ...form, paket: e.target.value })}
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+          >
+            <option value="Home Fiber 20 Mbps">Home Fiber 20 Mbps</option>
+            <option value="Home Fiber 30 Mbps">Home Fiber 30 Mbps</option>
+            <option value="Home Fiber 50 Mbps">Home Fiber 50 Mbps</option>
+            <option value="Home Fiber 100 Mbps">Home Fiber 100 Mbps</option>
+            <option value="Bisnis Dedicated 50 Mbps">Bisnis Dedicated 50 Mbps</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Titik ODP & Kapasitas Port */}
+      <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+            <Network className="w-4 h-4 text-purple-600" />
+            <span>Titik ODP & Alokasi Port Jaringan</span>
+          </div>
+          {selectedOdpInfo && (
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                selectedOdpInfo.port_is_full
+                  ? "bg-rose-100 text-rose-800 border border-rose-300"
+                  : "bg-emerald-100 text-emerald-800 border border-emerald-300"
+              }`}
+            >
+              {selectedOdpInfo.port_is_full
+                ? "⛔ ODP PENUH"
+                : `Sisa ${selectedOdpInfo.port_sisa || 0} dari ${selectedOdpInfo.port_kapasitas || 8} Port`}
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Pilih ODP Target <span className="text-rose-500">*</span>
+            </label>
+            <select
+              value={form.odp}
+              onChange={(e) => setForm({ ...form, odp: e.target.value })}
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+            >
+              {enrichedOdps.map((o) => (
+                <option key={o.id || o.nama} value={o.nama}>
+                  {o.nama} ({o.odc || "ODC"} · {o.port_is_full ? "PENUH" : `Sisa ${o.port_sisa} Port`})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Nomor Port ODP (Opsional / Ditentukan Teknisi)
+            </label>
+            <select
+              value={form.port}
+              onChange={(e) => setForm({ ...form, port: e.target.value })}
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
+            >
+              <option value="">-- Ditentukan Teknisi di Lapangan --</option>
+              {portMap.map((p) => (
+                <option key={p.portNumber} value={p.portNumber}>
+                  Port {p.portNumber} {p.isOccupied ? `(Terisi: ${p.customerName})` : "(Kosong)"}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {selectedOdpInfo && selectedOdpInfo.port_is_full && (
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">PERINGATAN: ODP {form.odp} Sudah Penuh!</p>
+              <p className="text-[11px] text-rose-700 mt-0.5">
+                Semua {selectedOdpInfo.port_kapasitas || 8} port sudah digunakan pelanggan aktif.
+                Pemasangan baru di tiang ini berisiko tabrakan port kecuali splitter diganti atau dialihkan ke ODP terdekat lainnya.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {collisionCheck.isConflict && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Port {form.port} Sudah Terisi!</p>
+              <p className="text-[11px] text-amber-800 mt-0.5">
+                Port ini sedang terpakai oleh pelanggan <b>{collisionCheck.conflictingCustomer}</b>.
+                Pilih port yang masih berstatus (Kosong) untuk menghindari putusnya koneksi pelanggan lain.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // ==========================================
+  // 2. RENDER FORM: PEMUTUSAN (DISMANTLE)
+  // ==========================================
+  const renderDismantleForm = () => (
+    <div className="p-4 bg-rose-50/40 rounded-2xl border border-rose-200/80 space-y-3.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-rose-950">
+          <XCircle className="w-4 h-4 text-rose-600" />
+          <span>Data Pelanggan &amp; Pemutusan Layanan (Dismantle)</span>
+        </div>
+        {Array.isArray(pelangganList) && pelangganList.length > 0 && (
+          <span className="text-[10px] font-bold text-rose-800 bg-rose-100/90 px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-rose-200">
+            <User className="w-3 h-3 text-rose-600" />
+            {pelangganList.length} Pelanggan Terdaftar
+          </span>
+        )}
+      </div>
+
+      {/* Quick Select dari Pelanggan Eksisting */}
+      {Array.isArray(pelangganList) && pelangganList.length > 0 && (
+        <select
+          onChange={(e) => {
+            const selectedId = e.target.value;
+            if (!selectedId) return;
+            const cust = pelangganList.find((p) => String(p.id_pelanggan || p.id) === String(selectedId));
+            if (cust) {
+              setForm((prev) => ({
+                ...prev,
+                pelanggan: cust.nama || prev.pelanggan,
+                telepon: cust.telepon || cust.kontak || cust.no_wa || prev.telepon,
+                alamat: cust.alamat || prev.alamat,
+                odp: cust.odp || prev.odp,
+                port: cust.port || prev.port,
+                sourceModule: "RADIUS",
+                sourceId: cust.id_pelanggan || cust.id,
+              }));
+            }
+          }}
+          className="w-full px-3 py-1.5 bg-white border border-rose-300 rounded-xl text-xs font-semibold text-rose-950 focus:ring-2 focus:ring-rose-500 outline-none cursor-pointer"
+        >
+          <option value="">⚡ Pilih Pelanggan Aktif yang Akan Diputus (Auto-Fill Alamat & ODP)...</option>
+          {pelangganList.map((p) => (
+            <option key={p.id_pelanggan || p.id} value={p.id_pelanggan || p.id}>
+              [{p.status || "AKTIF"}] {p.nama} {p.id_pelanggan ? `(${p.id_pelanggan})` : ""} · {p.odp || "Tanpa ODP"} {p.port ? `(Port ${p.port})` : ""}
+            </option>
+          ))}
+        </select>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Nama Pelanggan <span className="text-rose-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={form.pelanggan}
+            onChange={(e) => setForm({ ...form, pelanggan: e.target.value })}
+            placeholder="Nama Pelanggan"
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-rose-500 outline-none"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Nomor Telepon / WhatsApp <span className="text-rose-500">*</span>
+          </label>
+          <div className="relative">
+            <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={form.telepon}
+              onChange={(e) => setForm({ ...form, telepon: e.target.value })}
+              placeholder="081234567890"
+              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-rose-500 outline-none"
+              required
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-slate-700 mb-1">
+          Alamat Rumah / Lokasi Penarikan
+        </label>
+        <div className="relative">
+          <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <input
+            type="text"
+            value={form.alamat}
+            onChange={(e) => setForm({ ...form, alamat: e.target.value })}
+            placeholder="Alamat lengkap rumah pelanggan"
+            className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-rose-500 outline-none"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Alasan Pemutusan Layanan <span className="text-rose-500">*</span>
+          </label>
+          <select
+            value={form.alasan_pemutusan}
+            onChange={(e) => setForm({ ...form, alasan_pemutusan: e.target.value })}
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-rose-500 outline-none"
+          >
+            <option value="Menunggak Tagihan > 2 Bulan">Menunggak Tagihan &gt; 2 Bulan</option>
+            <option value="Permintaan Pelanggan Sendiri (Berhenti)">Permintaan Pelanggan Sendiri (Berhenti)</option>
+            <option value="Pindah Alamat ke Luar Area Coverage">Pindah Alamat ke Luar Area Coverage</option>
+            <option value="Komplain Layanan / Tidak Puas">Komplain Layanan / Tidak Puas</option>
+            <option value="Rumah Kosong / Pelanggan Pindah Tanpa Kabar">Rumah Kosong / Pelanggan Pindah Tanpa Kabar</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            ODP &amp; Port yang Akan Dibebaskan
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              value={form.odp}
+              onChange={(e) => setForm({ ...form, odp: e.target.value })}
+              className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-rose-500 outline-none"
+            >
+              {enrichedOdps.map((o) => (
+                <option key={o.id || o.nama} value={o.nama}>{o.nama}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={form.port ? `Port ${form.port}` : ""}
+              onChange={(e) => setForm({ ...form, port: e.target.value.replace(/[^0-9]/g, "") })}
+              placeholder="No Port (1-8)"
+              className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-rose-500 outline-none"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Checklist Perangkat yang Wajib Ditarik */}
+      <div>
+        <label className="block text-xs font-bold text-rose-950 uppercase tracking-wider mb-1.5">
+          Checklist Perangkat Wajib Ditarik Teknisi:
+        </label>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {[
+            "Modem ONT (Cek Serial Number)",
+            "Adaptor Power Original",
+            "Kabel Patchcord Fiber",
+            "Cabut Dropcore dari ODP Tiang",
+          ].map((item) => {
+            const isChecked = Array.isArray(form.perangkat_ditarik) && form.perangkat_ditarik.includes(item);
+            return (
+              <button
+                key={item}
+                type="button"
+                onClick={() => togglePerangkatDitarik(item)}
+                className={`p-2 rounded-xl text-left text-xs font-semibold border transition-all cursor-pointer flex items-center gap-2 ${
+                  isChecked
+                    ? "bg-rose-100/90 border-rose-300 text-rose-950 shadow-2xs"
+                    : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border ${isChecked ? "bg-rose-600 border-rose-600 text-white" : "border-slate-300 bg-white"}`}>
+                  {isChecked && <Check className="w-3 h-3" />}
+                </div>
+                <span className="text-[11px] leading-tight truncate">{item}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="p-3 bg-rose-100/70 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-start gap-2">
+        <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+        <p className="text-[11px] leading-relaxed">
+          <b>Siklus Port:</b> Setelah teknisi menyelesaikan tugas ini dan mencabut konektor di tiang, <b>1 port pada {form.odp || "ODP"} otomatis dibebaskan</b> dan status pelanggan diubah menjadi <b>PUTUS</b>.
+        </p>
+      </div>
+    </div>
+  );
+
+  // ==========================================
+  // 3. RENDER FORM: PERBAIKAN (RPR)
+  // ==========================================
+  const renderTroubleshootForm = () => (
+    <div className="p-4 bg-amber-50/40 rounded-2xl border border-amber-200/80 space-y-3.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
+          <Wrench className="w-4 h-4 text-amber-600" />
+          <span>Data Pelanggan &amp; Laporan Gangguan (Troubleshoot)</span>
+        </div>
+        {Array.isArray(pelangganList) && pelangganList.length > 0 && (
+          <span className="text-[10px] font-bold text-amber-800 bg-amber-100/90 px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-amber-200">
+            <User className="w-3 h-3 text-amber-600" />
+            {pelangganList.length} Pelanggan Terdaftar
+          </span>
+        )}
+      </div>
+
+      {/* Quick Select dari Pelanggan Eksisting */}
+      {Array.isArray(pelangganList) && pelangganList.length > 0 && (
+        <select
+          onChange={(e) => {
+            const selectedId = e.target.value;
+            if (!selectedId) return;
+            const cust = pelangganList.find((p) => String(p.id_pelanggan || p.id) === String(selectedId));
+            if (cust) {
+              setForm((prev) => ({
+                ...prev,
+                pelanggan: cust.nama || prev.pelanggan,
+                telepon: cust.telepon || cust.kontak || cust.no_wa || prev.telepon,
+                alamat: cust.alamat || prev.alamat,
+                odp: cust.odp || prev.odp,
+                port: cust.port || prev.port,
+                sourceModule: "GANGGUAN",
+                sourceId: cust.id_pelanggan || cust.id,
+              }));
+            }
+          }}
+          className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-semibold text-amber-950 focus:ring-2 focus:ring-amber-500 outline-none cursor-pointer"
+        >
+          <option value="">⚡ Pilih Pelanggan Pelapor Gangguan (Auto-Fill Alamat & ODP)...</option>
+          {pelangganList.map((p) => (
+            <option key={p.id_pelanggan || p.id} value={p.id_pelanggan || p.id}>
+              [{p.status || "AKTIF"}] {p.nama} {p.id_pelanggan ? `(${p.id_pelanggan})` : ""} · {p.odp || "Tanpa ODP"} {p.port ? `(Port ${p.port})` : ""}
+            </option>
+          ))}
+        </select>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Nama Pelanggan / Pelapor <span className="text-rose-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={form.pelanggan}
+            onChange={(e) => setForm({ ...form, pelanggan: e.target.value })}
+            placeholder="Nama Pelanggan"
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Nomor WhatsApp Pelanggan <span className="text-rose-500">*</span>
+          </label>
+          <div className="relative">
+            <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={form.telepon}
+              onChange={(e) => setForm({ ...form, telepon: e.target.value })}
+              placeholder="081234567890"
+              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+              required
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-slate-700 mb-1">
+          Alamat Rumah Pelanggan
+        </label>
+        <div className="relative">
+          <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <input
+            type="text"
+            value={form.alamat}
+            onChange={(e) => setForm({ ...form, alamat: e.target.value })}
+            placeholder="Alamat lengkap rumah pelanggan"
+            className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Gejala / Kategori Gangguan <span className="text-rose-500">*</span>
+          </label>
+          <select
+            value={form.kategori_gangguan}
+            onChange={(e) => setForm({ ...form, kategori_gangguan: e.target.value })}
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+          >
+            <option value="Lampu LOS Merah (Kabel Putus / Redaman Anjlok)">🔴 Lampu LOS Merah (Kabel Putus / Redaman Anjlok)</option>
+            <option value="Redaman Drop / Koneksi Sering RTO & Lambat">📉 Redaman Drop / Koneksi Sering RTO &amp; Lambat</option>
+            <option value="Modem ONT Mati Total / Adaptor Rusak">🔌 Modem ONT Mati Total / Adaptor Rusak</option>
+            <option value="WiFi Error / Sinyal Tidak Terdeteksi">📶 WiFi Error / Sinyal Tidak Terdeteksi</option>
+            <option value="No Browsing (IP Tidak Didapat)">🌐 No Browsing (IP Tidak Didapat)</option>
+            <option value="Pindah Titik Modem di Dalam Rumah">🏠 Pindah Titik Modem di Dalam Rumah</option>
+            <option value="Lainnya">⚠️ Lainnya</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            ODP &amp; Port Terhubung Saat Ini
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              value={form.odp}
+              onChange={(e) => setForm({ ...form, odp: e.target.value })}
+              className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none"
+            >
+              {enrichedOdps.map((o) => (
+                <option key={o.id || o.nama} value={o.nama}>{o.nama}</option>
+              ))}
+            </select>
+            <select
+              value={form.port}
+              onChange={(e) => setForm({ ...form, port: e.target.value })}
+              className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none"
+            >
+              <option value="">Port Bebas</option>
+              {portMap.map((p) => (
+                <option key={p.portNumber} value={p.portNumber}>
+                  Port {p.portNumber} {p.isOccupied ? `(${p.customerName})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-3 bg-amber-100/70 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2">
+        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+        <p className="text-[11px] leading-relaxed">
+          <b>SOP Perbaikan:</b> Pastikan teknisi membawa <b>Optical Power Meter (OPM)</b> dan <b>Visual Fault Locator (VFL / senter laser)</b> untuk memeriksa titik tekukan/putus kabel.
+        </p>
+      </div>
+    </div>
+  );
+
+  // ==========================================
+  // 4. RENDER FORM: PERBAIKAN KHUSUS (ODP/ODC)
+  // ==========================================
+  const renderDistributionForm = () => (
+    <div className="p-4 bg-purple-50/40 rounded-2xl border border-purple-200/80 space-y-3.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-purple-950">
+          <Network className="w-4 h-4 text-purple-600" />
+          <span>Infrastruktur Jaringan Distribusi (ODC &amp; ODP)</span>
+        </div>
+        <span className="text-[10px] font-bold text-purple-800 bg-purple-100 px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-purple-200">
+          <Zap className="w-3 h-3 text-purple-600" />
+          Perbaikan Khusus Distribusi
+        </span>
+      </div>
+
+      {/* Cascading ODC & ODP Selector */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Pilih Klaster / ODC Induk
+          </label>
+          <select
+            value={form.odc}
+            onChange={(e) => {
+              const newOdc = e.target.value;
+              const matchingOdps = newOdc ? enrichedOdps.filter((o) => o.odc === newOdc) : enrichedOdps;
+              setForm((prev) => ({
+                ...prev,
+                odc: newOdc,
+                odp: matchingOdps[0]?.nama || prev.odp,
+              }));
+            }}
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-purple-500 outline-none cursor-pointer"
+          >
+            <option value="">Semua ODC / Bebas</option>
+            {odcList.map((odcName) => (
+              <option key={odcName} value={odcName}>{odcName}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Titik ODP Sasaran <span className="text-rose-500">*</span>
+          </label>
+          <select
+            value={form.odp}
+            onChange={(e) => {
+              const selectedOdpName = e.target.value;
+              const target = enrichedOdps.find((o) => o.nama === selectedOdpName);
+              setForm((prev) => ({
+                ...prev,
+                odp: selectedOdpName,
+                odc: target?.odc || prev.odc,
+                alamat: target?.alamat || prev.alamat,
+              }));
+            }}
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-purple-500 outline-none cursor-pointer"
+          >
+            {odpListFilteredByOdc.map((o) => (
+              <option key={o.id || o.nama} value={o.nama}>
+                {o.nama} ({o.odc || "ODC"} · {o.port_terpakai || 0}/{o.port_kapasitas || 8} User)
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Jenis Kerusakan / Masalah Distribusi <span className="text-rose-500">*</span>
+          </label>
+          <select
+            value={form.jenis_gangguan_odp}
+            onChange={(e) => setForm({ ...form, jenis_gangguan_odp: e.target.value })}
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-purple-500 outline-none cursor-pointer"
+          >
+            <option value="Splitter Pasif Rusak / Redaman Port Drop">Splitter Pasif Rusak / Redaman Port Drop</option>
+            <option value="Kabel Feeder / Distribusi Putus (Tersangkut/Pohon)">Kabel Feeder / Distribusi Putus (Tersangkut/Pohon)</option>
+            <option value="Boks ODP Rusak / Pintu Pecah / Kemasukan Air">Boks ODP Rusak / Pintu Pecah / Kemasukan Air</option>
+            <option value="Perapian Tiang / Kabel Sembrawut / Tiang Roboh">Perapian Tiang / Kabel Sembrawut / Tiang Roboh</option>
+            <option value="Splicing Ulang Core FOSC / Distribusi">Splicing Ulang Core FOSC / Distribusi</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Estimasi User Terdampak
+          </label>
+          <input
+            type="text"
+            value={form.user_terdampak}
+            onChange={(e) => setForm({ ...form, user_terdampak: e.target.value })}
+            placeholder="Contoh: 8 Pelanggan (1 ODP Penuh)"
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-purple-500 outline-none"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-slate-700 mb-1">
+          Lokasi / Patokan Tiang ODP
+        </label>
+        <div className="relative">
+          <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <input
+            type="text"
+            value={form.alamat}
+            onChange={(e) => setForm({ ...form, alamat: e.target.value })}
+            placeholder="Contoh: Tiang depan Masjid Al-Ikhlas, samping tiang PLN No. 42"
+            className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-purple-500 outline-none"
+          />
+        </div>
+      </div>
+
+      <div className="p-3 bg-purple-100/70 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-start gap-2">
+        <Info className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+        <p className="text-[11px] leading-relaxed">
+          <b>Peralatan Wajib:</b> Pekerjaan infrastruktur ODP/ODC membutuhkan <b>Fusion Splicer</b>, <b>Protection Sleeve</b>, <b>Kabel Feeder/Splitter Cadangan</b>, dan tangga tiang standar K3.
+        </p>
+      </div>
+    </div>
+  );
+
+  // ==========================================
+  // 5. RENDER FORM: RELOKASI (REL)
+  // ==========================================
+  const renderRelocationForm = () => (
+    <div className="p-4 bg-cyan-50/40 rounded-2xl border border-cyan-200/80 space-y-3.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-950">
+          <Navigation className="w-4 h-4 text-cyan-600" />
+          <span>Data Pelanggan &amp; Relokasi Alamat (Pindah Rumah)</span>
+        </div>
+        {Array.isArray(pelangganList) && pelangganList.length > 0 && (
+          <span className="text-[10px] font-bold text-cyan-800 bg-cyan-100/90 px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-cyan-200">
+            <User className="w-3 h-3 text-cyan-600" />
+            {pelangganList.length} Pelanggan Terdaftar
+          </span>
+        )}
+      </div>
+
+      {/* Quick Select dari Pelanggan Eksisting */}
+      {Array.isArray(pelangganList) && pelangganList.length > 0 && (
+        <select
+          onChange={(e) => {
+            const selectedId = e.target.value;
+            if (!selectedId) return;
+            const cust = pelangganList.find((p) => String(p.id_pelanggan || p.id) === String(selectedId));
+            if (cust) {
+              setForm((prev) => ({
+                ...prev,
+                pelanggan: cust.nama || prev.pelanggan,
+                telepon: cust.telepon || cust.kontak || cust.no_wa || prev.telepon,
+                alamat: cust.alamat || prev.alamat,
+                odp: cust.odp || prev.odp,
+                port: cust.port || prev.port,
+                paket: cust.paket || prev.paket,
+                sourceModule: "RADIUS",
+                sourceId: cust.id_pelanggan || cust.id,
+              }));
+            }
+          }}
+          className="w-full px-3 py-1.5 bg-white border border-cyan-300 rounded-xl text-xs font-semibold text-cyan-950 focus:ring-2 focus:ring-cyan-500 outline-none cursor-pointer"
+        >
+          <option value="">⚡ Pilih Pelanggan Eksisting yang Akan Relokasi (Auto-Fill Alamat & ODP Lama)...</option>
+          {pelangganList.map((p) => (
+            <option key={p.id_pelanggan || p.id} value={p.id_pelanggan || p.id}>
+              [{p.status || "AKTIF"}] {p.nama} {p.id_pelanggan ? `(${p.id_pelanggan})` : ""} · ODP Asal: {p.odp || "Tanpa ODP"} {p.port ? `(Port ${p.port})` : ""}
+            </option>
+          ))}
+        </select>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Nama Pelanggan <span className="text-rose-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={form.pelanggan}
+            onChange={(e) => setForm({ ...form, pelanggan: e.target.value })}
+            placeholder="Nama Pelanggan"
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-cyan-500 outline-none"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Nomor WhatsApp Pelanggan <span className="text-rose-500">*</span>
+          </label>
+          <div className="relative">
+            <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={form.telepon}
+              onChange={(e) => setForm({ ...form, telepon: e.target.value })}
+              placeholder="081234567890"
+              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-cyan-500 outline-none"
+              required
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 2 Kolom Bersebelahan: Titik Asal (Cabut) vs Titik Baru (Pasang) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Titik Asal (Lama) */}
+        <div className="p-3 bg-white rounded-xl border border-rose-200 shadow-2xs space-y-2">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700 border-b border-rose-100 pb-1">
+            <XCircle className="w-3.5 h-3.5" />
+            <span>1. Titik Asal (Dismantle &amp; Cabut)</span>
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Alamat Lama</label>
+            <input
+              type="text"
+              value={form.alamat}
+              onChange={(e) => setForm({ ...form, alamat: e.target.value })}
+              placeholder="Alamat rumah lama"
+              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">ODP Asal</label>
+              <select
+                value={form.odp}
+                onChange={(e) => setForm({ ...form, odp: e.target.value })}
+                className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
+              >
+                {enrichedOdps.map((o) => (
+                  <option key={o.id || o.nama} value={o.nama}>{o.nama}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Port Dicabut</label>
+              <input
+                type="text"
+                value={form.port ? `Port ${form.port}` : ""}
+                onChange={(e) => setForm({ ...form, port: e.target.value.replace(/[^0-9]/g, "") })}
+                placeholder="No Port"
+                className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Titik Tujuan Baru (Pasang) */}
+        <div className="p-3 bg-white rounded-xl border border-emerald-200 shadow-2xs space-y-2">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 border-b border-emerald-100 pb-1">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>2. Titik Baru (Pasang Kembali)</span>
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">
+              Alamat Baru <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.alamat_baru}
+              onChange={(e) => setForm({ ...form, alamat_baru: e.target.value })}
+              placeholder="Alamat rumah baru pelanggan"
+              className="w-full px-2.5 py-1.5 bg-emerald-50/40 border border-emerald-200 rounded-lg text-xs font-medium"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">ODP Target Baru</label>
+              <select
+                value={form.odp_baru || form.odp}
+                onChange={(e) => setForm({ ...form, odp_baru: e.target.value })}
+                className="w-full px-2 py-1.5 bg-emerald-50/40 border border-emerald-200 rounded-lg text-xs font-semibold"
+              >
+                <option value="">Pilih ODP Baru...</option>
+                {enrichedOdps.map((o) => (
+                  <option key={o.id || o.nama} value={o.nama}>
+                    {o.nama} ({o.port_is_full ? "PENUH" : `Sisa ${o.port_sisa}`})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Port Baru</label>
+              <select
+                value={form.port_baru}
+                onChange={(e) => setForm({ ...form, port_baru: e.target.value })}
+                className="w-full px-2 py-1.5 bg-emerald-50/40 border border-emerald-200 rounded-lg text-xs font-semibold"
+              >
+                <option value="">Bebas / Lapangan</option>
+                {newOdpPortMap.map((p) => (
+                  <option key={p.portNumber} value={p.portNumber}>
+                    Port {p.portNumber} {p.isOccupied ? "(Terisi)" : "(Kosong)"}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-3 bg-cyan-100/70 border border-cyan-200 rounded-xl text-xs text-cyan-900 flex items-start gap-2">
+        <Navigation className="w-4 h-4 text-cyan-600 shrink-0 mt-0.5" />
+        <p className="text-[11px] leading-relaxed">
+          <b>Alur Kerja Teknisi:</b> Cabut konektor dari ODP lama, bawa modem ke rumah baru, lakukan penarikan dropcore ke ODP baru, dan ukur redaman akhir sebelum serah terima ke pelanggan.
+        </p>
+      </div>
+    </div>
+  );
+
   return (
     <div
       onClick={onClose}
@@ -409,6 +1372,7 @@ export default function DispatchTaskModal({
                         jenis: type.key,
                         komisi_items: [],
                         komisi_total: 0,
+                        prioritas: (type.key === "PERBAIKAN" || type.key === "PERBAIKAN KHUSUS (ODP/ODC)") ? "TINGGI" : prev.prioritas,
                       }));
                       setSpkNo(generateSpkNumber(type.key, initialData.sourceId || Date.now()));
                     }}
@@ -441,265 +1405,25 @@ export default function DispatchTaskModal({
             </p>
           </div>
 
-          {/* 2. Informasi Pelanggan & Lokasi */}
-          <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                <User className="w-4 h-4 text-[#0D1B4A]" />
-                <span>
-                  {form.jenis === "PEMASANGAN" ? "Data Calon Pelanggan Baru (Leads)" : "Data Pelanggan & Lokasi Kunjungan"}
-                </span>
-              </div>
-              {form.jenis === "PEMASANGAN" ? (
-                activeLeads.length > 0 && (
-                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-200">
-                    <Zap className="w-3 h-3 text-amber-600" />
-                    {activeLeads.length} Calon Pelanggan (Leads)
-                  </span>
-                )
-              ) : (
-                Array.isArray(pelangganList) && pelangganList.length > 0 && (
-                  <span className="text-[10px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <Zap className="w-3 h-3 text-blue-600" />
-                    {pelangganList.length} Pelanggan Terdaftar
-                  </span>
-                )
-              )}
-            </div>
-
-            {/* Quick Fill Dropdown: Dari Leads jika PEMASANGAN, dari Pelanggan jika Jenis Lain */}
-            {form.jenis === "PEMASANGAN" ? (
-              activeLeads.length > 0 && (
-                <select
-                  onChange={(e) => {
-                    const selectedId = e.target.value;
-                    if (!selectedId) return;
-                    const lead = activeLeads.find((l) => String(l.id) === String(selectedId));
-                    if (lead) {
-                      let odpName = lead.odp_terdekat || lead.odp || "";
-                      if (odpName && odpName.includes(" - ")) {
-                        odpName = odpName.split(" - ")[0].trim();
-                      }
-                      setForm((prev) => ({
-                        ...prev,
-                        pelanggan: lead.nama || prev.pelanggan,
-                        telepon: lead.telepon || lead.kontak || prev.telepon,
-                        alamat: lead.alamat || prev.alamat,
-                        shareloc: (lead.lat && lead.lng) ? `${lead.lat},${lead.lng}` : (lead.shareloc || prev.shareloc),
-                        odp: odpName || prev.odp,
-                        paket: lead.paket || prev.paket,
-                        keterangan: lead.keterangan_survey || lead.keterangan || prev.keterangan,
-                        sourceModule: "LEADS",
-                        sourceId: lead.id,
-                        jarak_odp: lead.jarak_odp || "",
-                        redaman: lead.redaman || "",
-                      }));
-                    }
-                  }}
-                  className="w-full px-3 py-1.5 bg-amber-50/80 hover:bg-amber-100/60 border border-amber-200 rounded-xl text-xs font-semibold text-amber-950 focus:bg-white focus:ring-2 focus:ring-amber-400 outline-none cursor-pointer"
-                >
-                  <option value="">⚡ Pilih Calon Pelanggan dari Modul Leads (Auto-Fill Alamat & ODP)...</option>
-                  {activeLeads.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      [{l.status || "LEAD"}] {l.nama} · {l.alamat ? (l.alamat.length > 40 ? l.alamat.slice(0, 40) + "..." : l.alamat) : "Tanpa Alamat"} ({l.odp_terdekat || "ODP Belum Dipilih"})
-                    </option>
-                  ))}
-                </select>
-              )
-            ) : (
-              Array.isArray(pelangganList) && pelangganList.length > 0 && (
-                <select
-                  onChange={(e) => {
-                    const selectedId = e.target.value;
-                    if (!selectedId) return;
-                    const cust = pelangganList.find((p) => String(p.id_pelanggan || p.id) === String(selectedId));
-                    if (cust) {
-                      setForm((prev) => ({
-                        ...prev,
-                        pelanggan: cust.nama || prev.pelanggan,
-                        telepon: cust.telepon || cust.kontak || cust.no_wa || prev.telepon,
-                        alamat: cust.alamat || prev.alamat,
-                        odp: cust.odp || prev.odp,
-                        paket: cust.paket || prev.paket,
-                        sourceModule: "RADIUS",
-                        sourceId: cust.id_pelanggan || cust.id,
-                      }));
-                    }
-                  }}
-                  className="w-full px-3 py-1.5 bg-blue-50/80 hover:bg-blue-100/60 border border-blue-200/90 rounded-xl text-xs font-semibold text-blue-900 focus:bg-white focus:ring-2 focus:ring-blue-400 outline-none cursor-pointer"
-                >
-                  <option value="">⚡ Pilih Cepat dari Database Pelanggan (Auto-Fill Alamat & ODP)...</option>
-                  {pelangganList.map((p) => (
-                    <option key={p.id_pelanggan || p.id} value={p.id_pelanggan || p.id}>
-                      [{p.status || "AKTIF"}] {p.nama} {p.id_pelanggan ? `(${p.id_pelanggan})` : ""} · {p.odp || "Tanpa ODP"}
-                    </option>
-                  ))}
-                </select>
-              )
-            )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Nama Pelanggan / Pelapor <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.pelanggan}
-                  onChange={(e) => setForm({ ...form, pelanggan: e.target.value })}
-                  placeholder="Contoh: Bpk. Kurnia / Toko Berkah"
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Nomor Telepon / WhatsApp <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    value={form.telepon}
-                    onChange={(e) => setForm({ ...form, telepon: e.target.value })}
-                    placeholder="081234567890"
-                    className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">
-                Alamat Lengkap / Patokan Rumah
+          {/* 2. Form Terspesialisasi Berdasarkan Jenis Penugasan */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                2. Detail Form Khusus &amp; Parameter Lapangan <span className="text-rose-500">*</span>
               </label>
-              <div className="relative">
-                <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={form.alamat}
-                  onChange={(e) => setForm({ ...form, alamat: e.target.value })}
-                  placeholder="Jl. Perintis Kemerdekaan No. 12 (Samping Masjid)"
-                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-                />
-              </div>
+              <span className="text-[11px] font-semibold text-slate-400 hidden sm:inline">
+                Disesuaikan otomatis untuk alur {form.jenis}
+              </span>
             </div>
 
-            {form.shareloc && (
-              <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between text-xs text-blue-900">
-                <span className="truncate pr-2">📍 Peta/Shareloc: {form.shareloc}</span>
-                <a
-                  href={form.shareloc.startsWith("http") ? form.shareloc : `https://maps.google.com/?q=${form.shareloc}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 font-bold text-blue-700 hover:underline shrink-0"
-                >
-                  <span>Buka Peta</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            )}
+            {form.jenis === "PEMASANGAN" && renderPsbForm()}
+            {form.jenis === "PEMUTUSAN" && renderDismantleForm()}
+            {form.jenis === "PERBAIKAN" && renderTroubleshootForm()}
+            {form.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" && renderDistributionForm()}
+            {form.jenis === "RELOKASI" && renderRelocationForm()}
           </div>
 
-          {/* 3. Jaringan: ODP & Pengecekan Kapasitas Port */}
-          <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                <Network className="w-4 h-4 text-purple-600" />
-                <span>Titik ODP & Alokasi Port Jaringan</span>
-              </div>
-              {selectedOdpInfo && (
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    selectedOdpInfo.port_is_full
-                      ? "bg-rose-100 text-rose-800 border border-rose-300"
-                      : "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                  }`}
-                >
-                  {selectedOdpInfo.port_is_full
-                    ? "⛔ ODP PENUH"
-                    : `Sisa ${selectedOdpInfo.port_sisa || 0} dari ${selectedOdpInfo.port_kapasitas || 8} Port`}
-                </span>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Pilih ODP Target <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={form.odp}
-                  onChange={(e) => setForm({ ...form, odp: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-                >
-                  {enrichedOdps.map((o) => (
-                    <option key={o.id || o.nama} value={o.nama}>
-                      {o.nama} ({o.odc || "ODC"} · {o.port_is_full ? "PENUH" : `Sisa ${o.port_sisa} Port`})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Nomor Port ODP {form.jenis === "PEMUTUSAN" ? "(Yang Akan Dilepas)" : "(Opsional / Bebas)"}
-                </label>
-                <select
-                  value={form.port}
-                  onChange={(e) => setForm({ ...form, port: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
-                >
-                  <option value="">-- Ditentukan Teknisi di Lapangan --</option>
-                  {portMap.map((p) => (
-                    <option key={p.portNumber} value={p.portNumber}>
-                      Port {p.portNumber} {p.isOccupied ? `(Terisi: ${p.customerName})` : "(Kosong)"}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Peringatan ODP Penuh Jika Jenis Pemasangan Baru */}
-            {form.jenis === "PEMASANGAN" && selectedOdpInfo && selectedOdpInfo.port_is_full && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold">PERINGATAN: ODP {form.odp} Sudah Penuh!</p>
-                  <p className="text-[11px] text-rose-700 mt-0.5">
-                    Semua {selectedOdpInfo.port_kapasitas || 8} port sudah digunakan pelanggan aktif.
-                    Pemasangan baru di tiang ini berisiko tabrakan port kecuali splitter diganti atau dialihkan ke ODP terdekat lainnya.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Peringatan Tabrakan Port Fisik */}
-            {collisionCheck.isConflict && form.jenis === "PEMASANGAN" && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold">Port {form.port} Sudah Terisi!</p>
-                  <p className="text-[11px] text-amber-800 mt-0.5">
-                    Port ini sedang terpakai oleh pelanggan <b>{collisionCheck.conflictingCustomer}</b>.
-                    Pilih port yang masih berstatus (Kosong) untuk menghindari putusnya koneksi pelanggan lain.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Keterangan Pemutusan Port */}
-            {form.jenis === "PEMUTUSAN" && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-start gap-2">
-                <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                <p className="text-[11px] leading-relaxed">
-                  Setelah teknisi menyelesaikan tugas ini dan mencabut konektor di tiang, <b>1 port pada {form.odp} otomatis dibebaskan</b> dan status pelanggan diubah menjadi <b>PUTUS</b>.
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* 4. Pemilihan Tim, Tanggal, Sesi & Prioritas */}
+          {/* 3. Pemilihan Tim, Tanggal, Sesi & Prioritas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Tim Teknisi */}
             <div>
@@ -865,10 +1589,10 @@ export default function DispatchTaskModal({
             </div>
           </div>
 
-          {/* 5. Catatan & Instruksi Khusus */}
+          {/* 4. Catatan & Instruksi Khusus */}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-              Catatan & Instruksi Khusus Lapangan
+              4. Catatan & Instruksi Khusus Lapangan
             </label>
             <textarea
               rows={2}
@@ -879,13 +1603,17 @@ export default function DispatchTaskModal({
                   ? "Contoh: Bawa formulir pengembalian modem ONT, pastikan adaptor dan kabel patchcord ditarik."
                   : form.jenis === "PERBAIKAN"
                   ? "Contoh: Laporan LOS kabel putus terkena dahan pohon di dekat tiang listrik."
+                  : form.jenis === "PERBAIKAN KHUSUS (ODP/ODC)"
+                  ? "Contoh: Splicing ulang core distribusi di tiang depan ruko."
+                  : form.jenis === "RELOKASI"
+                  ? "Contoh: Pelanggan pindah rumah di blok sebelah, kabel lama dicabut."
                   : "Contoh: Pelanggan minta dipasang sore jam 16:00, perkiraan kabel 85 meter."
               }
               className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0D1B4A] outline-none"
             />
           </div>
 
-          {/* 6. Pratinjau Teks WhatsApp SPK (Collapsible) */}
+          {/* 5. Pratinjau Teks WhatsApp SPK (Collapsible) */}
           <div className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50">
             <button
               type="button"
