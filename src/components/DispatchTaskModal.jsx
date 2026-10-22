@@ -313,7 +313,7 @@ export default function DispatchTaskModal({
     setTimeout(() => setCopiedWa(false), 2500);
   };
 
-  const handleSubmit = (sendWaDirectly = false) => {
+  const handleSubmit = (action = "copy") => {
     let trimmedPelanggan = (form.pelanggan || "").trim();
 
     if (form.jenis === "PERBAIKAN KHUSUS (ODP/ODC)") {
@@ -385,7 +385,7 @@ export default function DispatchTaskModal({
         : calculateKomisiItemsTotal(form.komisi_items || [], masterKomisi),
     };
 
-    onSave(payload, sendWaDirectly);
+    onSave(payload, action === "wa" || action === true);
 
     try {
       const currentRaw = localStorage.getItem("xnet_pekerjaan");
@@ -401,9 +401,20 @@ export default function DispatchTaskModal({
       console.warn("[DISPATCH SYNC EVENT]", e);
     }
 
-    if (sendWaDirectly) {
+    if (action === "copy") {
+      const textToCopy = formatSpkWaText({ ...payload, spk_no: spkNo }, spkNo);
+      try {
+        navigator.clipboard?.writeText(textToCopy);
+      } catch (err) {
+        console.warn("[CLIPBOARD COPY ERROR]", err);
+      }
+      showToast(`✅ SPK ${spkNo} disimpan & teks berhasil disalin ke clipboard!`, "success");
+    } else if (action === "wa" || action === true) {
       const waUrl = generateSpkWaUrl(payload, selectedTeamObj?.telepon, spkNo);
       window.open(waUrl, "_blank");
+      showToast(`SPK ${spkNo} disimpan & membuka WhatsApp...`, "info");
+    } else {
+      showToast(`✅ SPK ${spkNo} berhasil disimpan ke antrean kanban!`, "success");
     }
 
     onClose();
@@ -1638,10 +1649,14 @@ export default function DispatchTaskModal({
                   <button
                     type="button"
                     onClick={handleCopyWa}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all cursor-pointer ${
+                      copiedWa
+                        ? "bg-emerald-600 text-white border border-emerald-600"
+                        : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"
+                    }`}
                   >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>{copiedWa ? "Tersalin!" : "Salin Teks SPK"}</span>
+                    {copiedWa ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedWa ? "Teks SPK Tersalin!" : "Salin Teks SPK"}</span>
                   </button>
                 </div>
               </div>
@@ -1666,18 +1681,26 @@ export default function DispatchTaskModal({
             </button>
             <button
               type="button"
-              onClick={() => handleSubmit(false)}
+              onClick={() => handleSubmit("save")}
               className="col-span-1 sm:flex-none px-4 py-2.5 min-h-[42px] rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
             >
               Simpan Saja
             </button>
             <button
               type="button"
-              onClick={() => handleSubmit(true)}
-              className="col-span-2 sm:col-span-1 sm:flex-none px-4 py-2.5 min-h-[42px] rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
+              onClick={() => handleSubmit("copy")}
+              className="col-span-2 sm:col-span-1 sm:flex-none px-4 py-2.5 min-h-[42px] rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-black flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
             >
-              <Send className="w-3.5 h-3.5 shrink-0" />
-              <span>Simpan & Kirim SPK WhatsApp</span>
+              <Copy className="w-4 h-4 shrink-0" />
+              <span>Simpan &amp; Salin SPK</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSubmit("wa")}
+              title="Kirim dan buka langsung via WhatsApp Web"
+              className="hidden sm:inline-flex items-center justify-center p-2.5 min-h-[42px] rounded-xl border border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-xs font-bold transition-colors cursor-pointer"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-600" />
             </button>
           </div>
         </div>

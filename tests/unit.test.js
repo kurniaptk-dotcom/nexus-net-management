@@ -807,6 +807,22 @@ test("Specialized SPK Formats - generates custom WhatsApp instructions for all 5
   assert.ok(relText.includes("Cabut port lama di ODP asal dengan aman"));
 });
 
+test("SPK Generator - includes aesthetic borders and direct customer WhatsApp click link", () => {
+  const task = {
+    id: 999,
+    jenis: "PEMASANGAN",
+    pelanggan: "Bpk. Andi",
+    telepon: "081234567890",
+    alamat: "Jl. Khatulistiwa No. 1",
+    odp: "ODP 1.1",
+    port: "1",
+  };
+  const text = formatSpkWaText(task, "SPK/PSB/20261022/0999");
+  assert.ok(text.includes("━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+  assert.ok(text.includes("https://wa.me/6281234567890"));
+  assert.ok(text.includes("NEXUS FIBER BROADBAND NETWORK"));
+});
+
 
 
 

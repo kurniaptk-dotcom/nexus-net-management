@@ -147,69 +147,106 @@ export function formatSpkWaText(task, spkNo = "") {
   if (!task) return "";
   const typeConfig = TASK_TYPES[task.jenis] || TASK_TYPES.PEMASANGAN;
   const noSpk = spkNo || task.spk_no || generateSpkNumber(task.jenis, task.id);
-  const prioritasLabel = task.prioritas === "URGENT" ? "🚨 DARURAT / URGENT (LOS)" : task.prioritas === "TINGGI" ? "⚡ TINGGI" : "NORMAL";
+  const prioritasLabel =
+    task.prioritas === "URGENT"
+      ? "🚨 DARURAT / URGENT (LOS)"
+      : task.prioritas === "TINGGI"
+      ? "⚡ PRIORITAS TINGGI"
+      : "🟢 NORMAL";
+
+  const customerPhoneClean = task.telepon ? formatPhoneWa(task.telepon) : "";
+  const customerWaLink = customerPhoneClean ? ` (https://wa.me/${customerPhoneClean})` : "";
 
   const lines = [
     `📋 *SURAT PERINTAH KERJA (SPK) LAPANGAN*`,
-    `*NEXUS FIBER NETWORK OPERATION*`,
-    `================================`,
-    `🆔 *No. SPK:* \`${noSpk}\``,
-    `📌 *Jenis Tugas:* *${typeConfig.label.toUpperCase()}*`,
-    `⚡ *Prioritas:* ${prioritasLabel}`,
-    `👷 *Tim Ditugaskan:* *${task.tim || "-"}*`,
+    `🏢 *NEXUS FIBER BROADBAND NETWORK*`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `🆔 *No. SPK       :* \`${noSpk}\``,
+    `📌 *Jenis Tugas   :* *${typeConfig.label.toUpperCase()}*`,
+    `⚡ *Prioritas     :* ${prioritasLabel}`,
+    `👷 *Tim Pelaksana :* *${task.tim || "-"}*`,
     `📅 *Target Tanggal:* ${task.tanggal || "-"}`,
-    task.sesi ? `⏰ *Sesi Waktu:* ${task.sesi}` : null,
-    task.janji_jam ? `🎯 *KOMITMEN JANJI TEMU:* *${task.janji_jam}* (⚠️ Hubungi pelanggan sebelum meluncur)` : null,
-    ...(task.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" ? [
-      `--------------------------------`,
-      `🏗️ *Titik Jaringan:* ODC *${task.odc || "-"}* · ODP *${task.odp || "-"}*`,
-      task.user_terdampak || task.userTerdampak ? `👥 *Estimasi User Terdampak:* ~${task.user_terdampak || task.userTerdampak} Pelanggan` : null,
-      task.jenis_gangguan_odp ? `🔧 *Jenis Masalah:* *${task.jenis_gangguan_odp}*` : null,
-      task.keterangan ? `📝 *Instruksi Teknis:* ${task.keterangan}` : null,
-    ] : task.jenis === "RELOKASI" ? [
-      `--------------------------------`,
-      `👤 *Nama Pelanggan:* ${task.pelanggan || "-"}`,
-      `📱 *Kontak Pelanggan:* ${task.telepon || "-"}`,
-      `🏠 *Titik Asal (Cabut):* ${task.alamat || "-"} (ODP: ${task.odp || "-"})`,
-      `🚚 *Titik Tujuan (Pasang):* ${task.alamat_baru || "-"} (ODP Baru: *${task.odp_baru || "-"}* ${task.port_baru ? `Port: ${task.port_baru}` : ""})`,
-      task.keterangan ? `📝 *Instruksi Khusus:* ${task.keterangan}` : null,
-    ] : task.jenis === "PEMUTUSAN" ? [
-      `--------------------------------`,
-      `👤 *Nama Pelanggan:* ${task.pelanggan || "-"}`,
-      `📱 *Kontak Pelanggan:* ${task.telepon || "-"}`,
-      `📍 *Alamat:* ${task.alamat || "-"}`,
-      task.alasan_pemutusan ? `❌ *Alasan Pemutusan:* *${task.alasan_pemutusan}*` : null,
-      task.perangkat_ditarik ? `📦 *Perangkat Ditarik:* ${Array.isArray(task.perangkat_ditarik) ? task.perangkat_ditarik.join(", ") : task.perangkat_ditarik}` : null,
-      `🔌 *Port ODP Dibebaskan:* *${task.odp || "-"}* ${task.port ? `(Port: ${task.port})` : ""}`,
-      task.keterangan ? `📝 *Instruksi Khusus:* ${task.keterangan}` : null,
-    ] : task.jenis === "PERBAIKAN" ? [
-      `--------------------------------`,
-      `👤 *Nama Pelanggan:* ${task.pelanggan || "-"}`,
-      `📱 *Kontak Pelanggan:* ${task.telepon || "-"}`,
-      `📍 *Alamat:* ${task.alamat || "-"}`,
-      task.kategori_gangguan ? `⚠️ *Gejala Gangguan:* *${task.kategori_gangguan}*` : null,
-      `📶 *ODP Terhubung:* *${task.odp || "-"}* ${task.port ? `(Port: ${task.port})` : ""}`,
-      task.keterangan ? `📝 *Instruksi Khusus:* ${task.keterangan}` : null,
-    ] : [
-      `--------------------------------`,
-      `👤 *Nama Pelanggan:* ${task.pelanggan || "-"}`,
-      `📱 *Kontak Pelanggan:* ${task.telepon || "-"}`,
-      `📍 *Alamat:* ${task.alamat || "-"}`,
-      task.shareloc ? `🗺️ *Lokasi GPS/Peta:* ${task.shareloc}` : null,
-      `--------------------------------`,
-      `📶 *ODP Target:* *${task.odp || "-"}* ${task.port ? `(Port: ${task.port})` : ""}`,
-      task.jarak_odp ? `📏 *Est. Dropcore:* ~${task.jarak_odp} Meter` : null,
-      task.paket ? `📦 *Paket Layanan:* ${task.paket}` : null,
-      task.keterangan ? `📝 *Instruksi Khusus:* ${task.keterangan}` : null,
-    ]),
-    Array.isArray(task.komisi_items) && task.komisi_items.length > 0 ? [
-      `--------------------------------`,
-      `💰 *LINGKUP PEKERJAAN & KOMISI:*`,
-      ...task.komisi_items.map((it) => `• ${it.nama}: ${it.qty} ${it.satuan}`),
-      `*Est. Komisi: Rp ${(task.komisi_total || 0).toLocaleString("id-ID")}*`,
-    ].join("\n") : null,
-    `================================`,
-    `⚠️ *SOP TEKNISI NEXUS:*`,
+    task.sesi ? `⏰ *Sesi Kunjungan:* ${task.sesi}` : null,
+    task.janji_jam
+      ? `🎯 *KOMITMEN JANJI TEMU:* *${task.janji_jam}* (⚠️ Hubungi pelanggan sebelum meluncur)`
+      : null,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    ...(task.jenis === "PERBAIKAN KHUSUS (ODP/ODC)"
+      ? [
+          `🏗️ *TITIK INFRASTRUKTUR JARINGAN*`,
+          `• *Titik Jaringan:* ODC *${task.odc || "-"}* · ODP *${task.odp || "-"}*`,
+          task.user_terdampak || task.userTerdampak
+            ? `• *Estimasi User Terdampak:* ~${task.user_terdampak || task.userTerdampak} Pelanggan`
+            : null,
+          task.jenis_gangguan_odp
+            ? `• *Jenis Masalah:* *${task.jenis_gangguan_odp}*`
+            : null,
+          task.alamat ? `• *Lokasi/Patokan :* ${task.alamat}` : null,
+          task.keterangan ? `• *Instruksi Teknis:* ${task.keterangan}` : null,
+        ]
+      : task.jenis === "RELOKASI"
+      ? [
+          `👤 *DATA PELANGGAN & RELOKASI*`,
+          `• *Nama Pelanggan:* ${task.pelanggan || "-"}`,
+          `• *Kontak Pelanggan:* ${task.telepon || "-"}${customerWaLink}`,
+          `• *Titik Asal (Cabut):* ${task.alamat || "-"} (ODP: ${task.odp || "-"})`,
+          `• *Titik Tujuan (Pasang):* ${task.alamat_baru || "-"} (ODP Baru: *${task.odp_baru || "-"}* ${task.port_baru ? `Port: ${task.port_baru}` : ""})`,
+          task.keterangan ? `• *Instruksi Khusus:* ${task.keterangan}` : null,
+        ]
+      : task.jenis === "PEMUTUSAN"
+      ? [
+          `👤 *DATA PELANGGAN & PEMUTUSAN*`,
+          `• *Nama Pelanggan:* ${task.pelanggan || "-"}`,
+          `• *Kontak Pelanggan:* ${task.telepon || "-"}${customerWaLink}`,
+          `• *Alamat Rumah :* ${task.alamat || "-"}`,
+          task.alasan_pemutusan
+            ? `• ❌ *Alasan Pemutusan:* *${task.alasan_pemutusan}*`
+            : null,
+          task.perangkat_ditarik
+            ? `• 📦 *Perangkat Ditarik:* ${
+                Array.isArray(task.perangkat_ditarik)
+                  ? task.perangkat_ditarik.join(", ")
+                  : task.perangkat_ditarik
+              }`
+            : null,
+          `• 🔌 *Port ODP Dibebaskan:* *${task.odp || "-"}* ${task.port ? `(Port: ${task.port})` : ""}`,
+          task.keterangan ? `• *Instruksi Khusus:* ${task.keterangan}` : null,
+        ]
+      : task.jenis === "PERBAIKAN"
+      ? [
+          `👤 *DATA PELANGGAN & GANGGUAN*`,
+          `• *Nama Pelanggan:* ${task.pelanggan || "-"}`,
+          `• *Kontak Pelanggan:* ${task.telepon || "-"}${customerWaLink}`,
+          `• *Alamat Rumah :* ${task.alamat || "-"}`,
+          task.kategori_gangguan
+            ? `• ⚠️ *Gejala Gangguan:* *${task.kategori_gangguan}*`
+            : null,
+          `• 📶 *ODP Terhubung:* *${task.odp || "-"}* ${task.port ? `(Port: ${task.port})` : ""}`,
+          task.keterangan ? `• *Instruksi Khusus:* ${task.keterangan}` : null,
+        ]
+      : [
+          `👤 *DATA CALON PELANGGAN BARU*`,
+          `• *Nama Pelanggan:* ${task.pelanggan || "-"}`,
+          `• *Kontak Pelanggan:* ${task.telepon || "-"}${customerWaLink}`,
+          `• *Alamat Rumah :* ${task.alamat || "-"}`,
+          task.shareloc ? `• 🗺️ *Peta/Shareloc:* ${task.shareloc}` : null,
+          `--------------------------------`,
+          `📶 *DETAIL JARINGAN & LAYANAN*`,
+          `• *ODP Target:* *${task.odp || "-"}* ${task.port ? `(Port: ${task.port})` : ""}`,
+          task.jarak_odp ? `• 📏 *Est. Dropcore:* ~${task.jarak_odp} Meter` : null,
+          task.paket ? `• 📦 *Paket Layanan:* ${task.paket}` : null,
+          task.keterangan ? `• *Instruksi Khusus:* ${task.keterangan}` : null,
+        ]),
+    Array.isArray(task.komisi_items) && task.komisi_items.length > 0
+      ? [
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+          `💰 *LINGKUP PEKERJAAN & KOMISI:*`,
+          ...task.komisi_items.map((it) => `• ${it.nama}: ${it.qty} ${it.satuan}`),
+          `*Est. Total Komisi: Rp ${(task.komisi_total || 0).toLocaleString("id-ID")}*`,
+        ].join("\n")
+      : null,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `⚠️ *SOP WAJIB TEKNISI NEXUS:*`,
     task.jenis === "PEMUTUSAN"
       ? `1. Tarik modem ONT dan adaptor secara lengkap.\n2. Lepaskan konektor patchcord dari port ODP.\n3. Foto nomor seri modem & port ODP yang dibebaskan.`
       : task.jenis === "PERBAIKAN KHUSUS (ODP/ODC)"
@@ -217,8 +254,8 @@ export function formatSpkWaText(task, spkNo = "") {
       : task.jenis === "RELOKASI"
       ? `1. Cabut port lama di ODP asal dengan aman.\n2. Lakukan penarikan dropcore ke ODP baru yang ditentukan.\n3. Ukur redaman di lokasi baru dan pastikan internet aktif.`
       : `1. Pastikan redaman OPM berada di range prima (-15 s/d -22 dBm).\n2. Upload 1 Foto Bukti Utama pengerjaan lapangan (modem aktif / OPM).\n3. Pasang konektor SC/UPC dengan rapi dan terlindung.`,
-    ``,
-    `_Pesan otomatis dari Sistem Manajemen Operasional XNET._`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `_Pesan otomatis Sistem Manajemen Operasional Nexus XNET_`,
   ];
 
   return lines.filter(Boolean).join("\n");
