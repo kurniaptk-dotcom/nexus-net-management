@@ -1,15 +1,89 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Edit2, Trash2, Target, Phone, MapPin, Calendar, Globe, Radio, ExternalLink, Zap, MessageCircle, Loader2, Share2, Check, HardHat, Send, AlertTriangle } from "lucide-react";
-import { leadsList, sumberLeads, odpOdcList, initialPelangganRadius, initialTimData } from "../data/mockData";
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  Target,
+  Phone,
+  MapPin,
+  Calendar,
+  Globe,
+  Radio,
+  ExternalLink,
+  Zap,
+  MessageCircle,
+  Loader2,
+  Share2,
+  Check,
+  HardHat,
+  Send,
+  AlertTriangle,
+  LayoutGrid,
+  List,
+  Wifi,
+  Navigation,
+} from "lucide-react";
+import {
+  leadsList,
+  sumberLeads,
+  odpOdcList,
+  initialPelangganRadius,
+  initialTimData,
+} from "../data/mockData";
 import { generateLeadsNotification } from "../store/notificationStore";
 import { usePersistState } from "../hooks/usePersistState";
-import { parseShareLocation, findNearestOdpFromList, generateSurveyWhatsAppMessage } from "../lib/surveySimulation";
+import {
+  parseShareLocation,
+  findNearestOdpFromList,
+  generateSurveyWhatsAppMessage,
+} from "../lib/surveySimulation";
 import DispatchTaskModal from "../components/DispatchTaskModal";
 import ConfirmModal from "../components/ConfirmModal";
 import { formatPhoneWa } from "../lib/spkGenerator";
 import { showToast } from "../lib/toast";
 import { createWhatsAppUrl, getLeadSurveyWaTemplate } from "../lib/whatsapp";
+
+export const PAKET_OPTIONS = [
+  "Home Fiber 20 Mbps",
+  "Home Fiber 30 Mbps",
+  "Home Fiber 50 Mbps",
+  "Home Fiber 100 Mbps",
+  "Bisnis Dedicated 50 Mbps",
+  "Bisnis Dedicated 100 Mbps",
+];
+
+function getFeasibilityInfo(dist) {
+  if (dist === null || dist === undefined || dist === "") return null;
+  const num = Number(dist);
+  if (isNaN(num)) return null;
+  if (num <= 150) {
+    return {
+      status: "FEASIBLE",
+      label: "Feasible",
+      badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-300",
+      dotClass: "bg-emerald-500",
+      desc: "Jarak aman (Standar dropcore gratis)",
+    };
+  }
+  if (num <= 250) {
+    return {
+      status: "WARNING",
+      label: "Kabel Ekstra",
+      badgeClass: "bg-amber-50 text-amber-800 border-amber-300",
+      dotClass: "bg-amber-500",
+      desc: `Melebihi 150m (+~${num - 150}m dropcore)`,
+    };
+  }
+  return {
+    status: "UNFEASIBLE",
+    label: "Jarak Jauh",
+    badgeClass: "bg-rose-50 text-rose-800 border-rose-300",
+    dotClass: "bg-rose-500",
+    desc: "Di atas 250m, rawan redaman tinggi / butuh tiang",
+  };
+}
 
 function notify(notif) {
   if (window.__addNotification) window.__addNotification(notif);
@@ -44,7 +118,7 @@ function SumberBadge({ sumber }) {
   );
 }
 
-const statusOptions = ["BARU", "KONTAK", "SIAP SPK (OP)", "DIJADWALKAN", "SELESAI"];
+const statusOptions = ["BARU", "KONTAK", "DIJADWALKAN", "SELESAI", "BATAL"];
 
 export default function Leads() {
   const navigate = useNavigate();
@@ -56,6 +130,8 @@ export default function Leads() {
 
   const [search, setSearch] = useState("");
   const [filterSumber, setFilterSumber] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [viewMode, setViewMode] = useState("grid");
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deleteTargetLead, setDeleteTargetLead] = useState(null);
@@ -73,11 +149,12 @@ export default function Leads() {
       pelanggan: item.nama,
       telepon: item.telepon,
       alamat: item.alamat,
+      paket: item.paket || "Home Fiber 30 Mbps",
       shareloc: item.shareloc || (item.lat && item.lng ? `${item.lat}, ${item.lng}` : ""),
       odp: item.odp_terdekat || "",
       jarak_odp: item.jarak_odp || "",
       redaman: item.redaman || "",
-      keterangan: item.keterangan_survey || `Pemasangan Baru (PSB) via Leads ${item.sumber}`,
+      keterangan: item.keterangan_survey || `Pemasangan Baru (PSB) via Leads ${item.sumber} · Paket: ${item.paket || "Home Fiber 30 Mbps"}`,
     });
   };
 
@@ -111,35 +188,11 @@ export default function Leads() {
     setDispatchLead(null);
   };
 
-  const handleKirimDataKeOp = (item) => {
-    setData((prev) =>
-      prev.map((lead) =>
-        lead.id === item.id
-          ? {
-              ...lead,
-              status: "SIAP SPK (OP)",
-              keterangan_survey: lead.keterangan_survey
-                ? `${lead.keterangan_survey} · Data diteruskan ke OP`
-                : "Hasil survey ODP valid, data dikirim ke OP untuk penugasan teknisi.",
-            }
-          : lead
-      )
-    );
-    showToast(`Data survey "${item.nama}" berhasil dikirim ke OP untuk penugasan SPK!`, "success");
-    notify({
-      id: Date.now(),
-      type: "SUCCESS",
-      title: "Data Lead Dikirim ke OP",
-      message: `Data calon pelanggan "${item.nama}" siap diterbitkan SPK ke Tim Teknisi Lapangan.`,
-      timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-      read: false,
-    });
-  };
-
   const [formData, setFormData] = useState({
     nama: "",
     sumber: "IKLAN",
     status: "BARU",
+    paket: "Home Fiber 30 Mbps",
     tanggal: "",
     telepon: "",
     alamat: "",
@@ -153,23 +206,42 @@ export default function Leads() {
     keterangan_survey: "",
   });
 
-  const filtered = data.filter((item) => {
-    const q = (search || "").toLowerCase().trim();
-    const matchSearch =
-      !q ||
-      (item.nama && item.nama.toLowerCase().includes(q)) ||
-      (item.telepon && String(item.telepon).toLowerCase().includes(q)) ||
-      (item.alamat && item.alamat.toLowerCase().includes(q));
-    const matchSumber = filterSumber === "ALL" || item.sumber === filterSumber;
-    return matchSearch && matchSumber;
-  });
+  const filtered = useMemo(() => {
+    return data.filter((item) => {
+      const q = (search || "").toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        (item.nama && item.nama.toLowerCase().includes(q)) ||
+        (item.telepon && String(item.telepon).toLowerCase().includes(q)) ||
+        (item.alamat && item.alamat.toLowerCase().includes(q)) ||
+        (item.odp_terdekat && item.odp_terdekat.toLowerCase().includes(q)) ||
+        (item.paket && item.paket.toLowerCase().includes(q));
 
-  const stats = {
-    total: data.length,
-    baru: data.filter((d) => d.status === "BARU").length,
-    proses: data.filter((d) => ["KONTAK", "DIJADWALKAN"].includes(d.status)).length,
-    selesai: data.filter((d) => d.status === "SELESAI").length,
-  };
+      const matchSumber = filterSumber === "ALL" || item.sumber === filterSumber;
+
+      let matchStatus = true;
+      if (filterStatus === "BARU") {
+        matchStatus = item.status === "BARU";
+      } else if (filterStatus === "PROSES") {
+        matchStatus = ["KONTAK", "SIAP SPK (OP)", "DIJADWALKAN"].includes(item.status);
+      } else if (filterStatus === "SELESAI") {
+        matchStatus = item.status === "SELESAI";
+      } else if (filterStatus !== "ALL") {
+        matchStatus = item.status === filterStatus;
+      }
+
+      return matchSearch && matchSumber && matchStatus;
+    });
+  }, [data, search, filterSumber, filterStatus]);
+
+  const stats = useMemo(() => {
+    return {
+      total: data.length,
+      baru: data.filter((d) => d.status === "BARU").length,
+      proses: data.filter((d) => ["KONTAK", "SIAP SPK (OP)", "DIJADWALKAN"].includes(d.status)).length,
+      selesai: data.filter((d) => d.status === "SELESAI").length,
+    };
+  }, [data]);
 
   const handleAdd = () => {
     setEditingItem(null);
@@ -179,6 +251,7 @@ export default function Leads() {
       nama: "",
       sumber: "IKLAN",
       status: "BARU",
+      paket: "Home Fiber 30 Mbps",
       tanggal: new Date().toISOString().split("T")[0],
       telepon: "",
       alamat: "",
@@ -202,6 +275,7 @@ export default function Leads() {
       nama: item.nama || "",
       sumber: item.sumber || "IKLAN",
       status: item.status || "BARU",
+      paket: item.paket || "Home Fiber 30 Mbps",
       tanggal: item.tanggal || "",
       telepon: item.telepon || "",
       alamat: item.alamat || "",
@@ -334,6 +408,7 @@ export default function Leads() {
       ...formData,
       nama: cleanNama,
       telepon: cleanTelepon,
+      paket: formData.paket || "Home Fiber 30 Mbps",
       alamat: (formData.alamat || "").trim(),
       shareloc: (formData.shareloc || "").trim(),
       keterangan_survey: (formData.keterangan_survey || "").trim(),
@@ -352,6 +427,7 @@ export default function Leads() {
 
   return (
     <div className="space-y-6">
+      {/* Header Utama */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Leads</h1>
@@ -368,201 +444,542 @@ export default function Leads() {
           </button>
           <button
             onClick={handleAdd}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] active:scale-95 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold hover:shadow-md transition-all cursor-pointer"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-[#F59E0B] hover:bg-[#d97706] active:scale-95 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:shadow-md transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" /> <span>Tambah Lead</span>
           </button>
         </div>
       </div>
 
+      {/* 4 Clickable Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
         {[
-          { label: "Total Leads", value: stats.total, bg: "bg-white" },
-          { label: "Baru", value: stats.baru, bg: "bg-blue-50" },
-          { label: "Proses", value: stats.proses, bg: "bg-amber-50" },
-          { label: "Selesai", value: stats.selesai, bg: "bg-emerald-50" },
-        ].map((s) => (
-          <div key={s.label} className={`${s.bg} rounded-2xl p-3.5 sm:p-4 border border-gray-100`}>
-            <p className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider">{s.label}</p>
-            <p className="text-xl sm:text-2xl font-extrabold text-gray-900 mt-0.5 sm:mt-1">{s.value}</p>
-          </div>
-        ))}
+          { id: "ALL", label: "Total Leads", value: stats.total, bg: "bg-white", activeRing: "ring-2 ring-[#0D1B4A] shadow-md border-[#0D1B4A]" },
+          { id: "BARU", label: "Baru", value: stats.baru, bg: "bg-blue-50/70", activeRing: "ring-2 ring-blue-500 shadow-md border-blue-400" },
+          { id: "PROSES", label: "Proses (Dijadwalkan)", value: stats.proses, bg: "bg-amber-50/70", activeRing: "ring-2 ring-amber-500 shadow-md border-amber-400" },
+          { id: "SELESAI", label: "Selesai (Terpasang)", value: stats.selesai, bg: "bg-emerald-50/70", activeRing: "ring-2 ring-emerald-500 shadow-md border-emerald-400" },
+        ].map((s) => {
+          const isSelected = filterStatus === s.id;
+          return (
+            <button
+              key={s.label}
+              type="button"
+              onClick={() => setFilterStatus(filterStatus === s.id && s.id !== "ALL" ? "ALL" : s.id)}
+              className={`${s.bg} text-left rounded-2xl p-3.5 sm:p-4 border border-gray-100 transition-all cursor-pointer active:scale-95 ${
+                isSelected ? s.activeRing : "hover:border-slate-300"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider">{s.label}</p>
+                {isSelected && (
+                  <span className="w-2 h-2 rounded-full bg-[#0D1B4A] animate-pulse" />
+                )}
+              </div>
+              <p className="text-xl sm:text-2xl font-extrabold text-gray-900 mt-0.5 sm:mt-1">{s.value}</p>
+            </button>
+          );
+        })}
       </div>
 
+      {/* Search & Filter Bar */}
       <div className="bg-white rounded-2xl p-3 sm:p-4 border border-gray-100 shadow-sm flex flex-col sm:flex-row gap-2.5 sm:gap-3">
         <div className="flex-1 relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" placeholder="Cari nama / telepon / alamat / ODP..." value={search} onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-[#F59E0B] outline-none" />
+          <input
+            type="text"
+            placeholder="Cari nama / telepon / alamat / ODP / paket..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-[#F59E0B] outline-none"
+          />
         </div>
-        <select value={filterSumber} onChange={(e) => setFilterSumber(e.target.value)}
-          className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm font-medium focus:bg-white focus:ring-2 focus:ring-[#F59E0B] outline-none">
-          <option value="ALL">Semua Sumber</option>
-          {sumberLeads.map((s) => <option key={s} value={s}>{s}</option>)}
+
+        {/* Filter Status Dropdown */}
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm font-medium focus:bg-white focus:ring-2 focus:ring-[#F59E0B] outline-none cursor-pointer"
+        >
+          <option value="ALL">Semua Status</option>
+          <option value="BARU">Status: Baru</option>
+          <option value="PROSES">Status: Proses (Kontak / SPK)</option>
+          <option value="DIJADWALKAN">Status: Dijadwalkan</option>
+          <option value="SELESAI">Status: Selesai Pasang</option>
+          <option value="BATAL">Status: Batal / Not Feasible</option>
         </select>
+
+        {/* Filter Sumber Dropdown */}
+        <select
+          value={filterSumber}
+          onChange={(e) => setFilterSumber(e.target.value)}
+          className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm font-medium focus:bg-white focus:ring-2 focus:ring-[#F59E0B] outline-none cursor-pointer"
+        >
+          <option value="ALL">Semua Sumber</option>
+          {sumberLeads.map((s) => (
+            <option key={s} value={s}>
+              Sumber: {s}
+            </option>
+          ))}
+        </select>
+
+        {/* View Mode Switcher (Grid vs Table) */}
+        <div className="flex items-center gap-1 border border-gray-200 bg-gray-50 p-1 rounded-xl self-end sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setViewMode("grid")}
+            className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              viewMode === "grid" ? "bg-white text-gray-900 shadow-2xs" : "text-gray-400 hover:text-gray-700"
+            }`}
+            title="Tampilan Grid Kartu"
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("table")}
+            className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              viewMode === "table" ? "bg-white text-gray-900 shadow-2xs" : "text-gray-400 hover:text-gray-700"
+            }`}
+            title="Tampilan Tabel Ringkas"
+          >
+            <List className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-        {filtered.map((item) => (
-          <div key={item.id} className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 hover:shadow-lg hover:shadow-gray-200/50 transition-all group flex flex-col justify-between">
-            <div>
-              <div className="flex items-start justify-between mb-3 gap-2">
-                <div className="min-w-0">
-                  <h3 className="font-bold text-gray-800 text-sm sm:text-base truncate">{item.nama}</h3>
-                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                    <SumberBadge sumber={item.sumber} />
-                    <StatusBadge status={item.status} />
+      {/* Main Content: Table View vs Grid View */}
+      {viewMode === "table" ? (
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-slate-50/80 text-slate-500 uppercase text-[10px] font-bold border-b border-gray-100 tracking-wider">
+                <tr>
+                  <th className="py-3 px-4">Calon Pelanggan</th>
+                  <th className="py-3 px-4">Kontak & Alamat</th>
+                  <th className="py-3 px-4">Paket Diminati</th>
+                  <th className="py-3 px-4">Feasibility ODP</th>
+                  <th className="py-3 px-4">Status & Sumber</th>
+                  <th className="py-3 px-4 text-center">Aksi Cepat</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.map((item) => {
+                  const feas = getFeasibilityInfo(item.jarak_odp);
+                  return (
+                    <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-3 px-4 font-bold text-slate-900">
+                        <div>
+                          <span>{item.nama}</span>
+                          <p className="text-[10px] font-mono text-slate-400 font-normal">{item.tanggal || "-"}</p>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-slate-600">
+                        <div className="flex items-center gap-1.5 font-mono text-xs">
+                          <Phone className="w-3 h-3 text-slate-400" />
+                          <span>{item.telepon || "-"}</span>
+                        </div>
+                        <p className="text-xs text-slate-500 truncate max-w-[200px] mt-0.5">{item.alamat || "-"}</p>
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-slate-800">
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
+                          <Wifi className="w-3 h-3" />
+                          <span>{item.paket || "Home Fiber 30 Mbps"}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        {item.odp_terdekat ? (
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                              <Radio className="w-3 h-3 text-blue-500" />
+                              <span>{item.odp_terdekat}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] font-mono font-bold text-slate-600">~{item.jarak_odp || 0}m</span>
+                              {feas && (
+                                <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border ${feas.badgeClass}`}>
+                                  {feas.label}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            Belum Cek ODP
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <StatusBadge status={item.status} />
+                          <SumberBadge sumber={item.sumber} />
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="inline-flex items-center gap-1.5">
+                          {item.telepon && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const url = createWhatsAppUrl(item.telepon, getLeadSurveyWaTemplate(item));
+                                if (url) window.open(url, "_blank");
+                              }}
+                              className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 cursor-pointer"
+                              title="Chat WhatsApp"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const query = new URLSearchParams({
+                                coverage: "1",
+                                leadId: item.id,
+                                alamat: item.alamat || "",
+                                nama: item.nama || "",
+                              });
+                              if (item.lat && item.lng) {
+                                query.append("lat", item.lat);
+                                query.append("lng", item.lng);
+                              }
+                              navigate(`/odp?${query.toString()}`);
+                            }}
+                            className="p-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 cursor-pointer"
+                            title="Peta Satelit Earth"
+                          >
+                            <Globe className="w-3.5 h-3.5" />
+                          </button>
+                          {item.status === "SELESAI" ? (
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/pelanggan?search=${encodeURIComponent(item.nama)}`)}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold text-xs hover:bg-emerald-100 cursor-pointer"
+                              title="Lihat Data Pelanggan Aktif"
+                            >
+                              Pelanggan ↗
+                            </button>
+                          ) : item.status === "DIJADWALKAN" ? (
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/pekerjaan?search=${encodeURIComponent(item.spk_no || item.nama)}`)}
+                              className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-300 font-bold text-xs hover:bg-blue-100 cursor-pointer"
+                              title="Lihat Tiket SPK di Modul Pekerjaan"
+                            >
+                              SPK ↗
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDispatch(item)}
+                              className="px-2.5 py-1 rounded-lg bg-[#0D1B4A] hover:bg-slate-900 text-amber-400 font-extrabold text-xs shadow-2xs cursor-pointer flex items-center gap-1 active:scale-95 transition-all"
+                              title="Terbitkan SPK Pasang Baru"
+                            >
+                              <Zap className="w-3 h-3 text-amber-400" />
+                              <span>Tugaskan</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(item)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer"
+                            title="Edit Lead"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(item)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                            title="Hapus Lead"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        /* Grid Cards View */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+          {filtered.map((item) => (
+            <div
+              key={item.id}
+              className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 hover:shadow-lg hover:shadow-gray-200/50 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                {/* Header Kartu */}
+                <div className="flex items-start justify-between mb-3 gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-gray-800 text-sm sm:text-base truncate">{item.nama}</h3>
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                      <SumberBadge sumber={item.sumber} />
+                      <StatusBadge status={item.status} />
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button
+                      onClick={() => handleEdit(item)}
+                      className="min-w-[34px] min-h-[34px] p-2 rounded-xl hover:bg-blue-50 text-gray-400 hover:text-blue-600 bg-gray-50 flex items-center justify-center active:scale-95 transition-all cursor-pointer"
+                      title="Edit Lead"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item)}
+                      className="min-w-[34px] min-h-[34px] p-2 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 bg-gray-50 flex items-center justify-center cursor-pointer active:scale-95 transition-all"
+                      title="Hapus Lead"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex gap-1.5 shrink-0">
-                  <button onClick={() => handleEdit(item)} className="min-w-[34px] min-h-[34px] p-2 rounded-xl hover:bg-blue-50 text-gray-400 hover:text-blue-600 bg-gray-50 flex items-center justify-center active:scale-95 transition-all" title="Edit Lead">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => handleDelete(item)} className="min-w-[34px] min-h-[34px] p-2 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 bg-gray-50 flex items-center justify-center cursor-pointer active:scale-95 transition-all" title="Hapus Lead">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+
+                {/* Detail Kontak & Alamat */}
+                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-gray-600">
+                  <div className="flex items-center gap-2.5">
+                    <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span className="font-mono">{item.telepon || "-"}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span className="truncate">{item.alamat || "-"}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span>{item.tanggal || "-"}</span>
+                  </div>
+
+                  {/* Paket Internet Diminati */}
+                  <div className="flex items-center gap-2.5">
+                    <Wifi className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                    <span className="font-semibold text-slate-800">{item.paket || "Home Fiber 30 Mbps"}</span>
+                  </div>
+
+                  {/* Boks Feasibility ODP Terdekat */}
+                  {item.odp_terdekat && (() => {
+                    const feas = getFeasibilityInfo(item.jarak_odp);
+                    return (
+                      <div className="mt-2.5 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2 text-xs shadow-2xs">
+                        <div className="flex items-center justify-between gap-1 flex-wrap">
+                          <div className="flex items-center gap-1.5">
+                            <Radio className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
+                            <span className="font-bold text-slate-900 truncate max-w-[140px]">{item.odp_terdekat}</span>
+                          </div>
+                          {feas && (
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${feas.badgeClass}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${feas.dotClass}`} />
+                              {feas.label}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-gray-500 pt-1.5 border-t border-slate-200/60">
+                          <span>Dropcore: <strong className="text-slate-800">~{item.jarak_odp || 0}m</strong></span>
+                          {item.redaman && (
+                            <span>Prediksi: <strong className="text-amber-700">{item.redaman}</strong></span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
-              <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-gray-600">
-                <div className="flex items-center gap-2.5"><Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" /><span>{item.telepon || "-"}</span></div>
-                <div className="flex items-center gap-2.5"><MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" /><span className="truncate">{item.alamat || "-"}</span></div>
-                <div className="flex items-center gap-2.5"><Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" /><span>{item.tanggal || "-"}</span></div>
 
-                {/* Status ODP Terdekat jika ada */}
-                {item.odp_terdekat && (
-                  <div className="mt-2.5 p-2.5 rounded-2xl bg-emerald-50/90 border border-emerald-200/90 space-y-1.5 text-xs shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-                        <span className="font-bold text-emerald-950 truncate max-w-[150px]">{item.odp_terdekat}</span>
-                      </div>
-                      <span className="font-mono text-emerald-800 font-extrabold bg-white px-2 py-0.5 rounded-lg border border-emerald-200 shadow-2xs">
-                        ~{item.jarak_odp || 0}m dropcore
-                      </span>
-                    </div>
-                    {item.redaman && (
-                      <div className="flex items-center justify-between text-[11px] text-gray-500 pt-1 border-t border-emerald-200/60">
-                        <span>Prediksi Redaman:</span>
-                        <span className="font-bold text-amber-700">{item.redaman}</span>
-                      </div>
-                    )}
+              {/* Quick Actions Footer (2-Row Structured Layout: Rapi, Seragam & Bebas Jitter) */}
+              <div className="mt-3.5 pt-3 border-t border-gray-100 space-y-2">
+                {/* Baris 1: Tool Penunjang & Chat (50:50) */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const query = new URLSearchParams({
+                        coverage: "1",
+                        leadId: item.id,
+                        alamat: item.alamat || "",
+                        nama: item.nama || "",
+                      });
+                      if (item.lat && item.lng) {
+                        query.append("lat", item.lat);
+                        query.append("lng", item.lng);
+                      }
+                      navigate(`/odp?${query.toString()}`);
+                    }}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                      item.odp_terdekat
+                        ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200"
+                        : "bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300"
+                    }`}
+                    title="Buka peta Google Earth untuk menganalisis jarak ke ODP terdekat"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate">{item.odp_terdekat ? "Peta Earth" : "Cek ODP"}</span>
+                  </button>
+
+                  {item.telepon ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = createWhatsAppUrl(item.telepon, getLeadSurveyWaTemplate(item));
+                        if (url) window.open(url, "_blank");
+                      }}
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
+                      title="Kirim Pesan Follow-Up / Survey WhatsApp"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">WhatsApp</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-medium cursor-not-allowed"
+                    >
+                      <Phone className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">No Telepon</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Baris 2: Aksi Siklus Hidup Utama (Full Width Adaptif Sesuai Status) */}
+                {item.status === "SELESAI" ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/pelanggan?search=${encodeURIComponent(item.nama)}`)}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-extrabold rounded-xl text-xs transition-all active:scale-95 cursor-pointer"
+                    title="Pelanggan sudah aktif. Klik untuk lihat data pelanggan di Radius"
+                  >
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate">✓ Pelanggan Aktif di Radius ↗</span>
+                  </button>
+                ) : item.status === "DIJADWALKAN" ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/pekerjaan?search=${encodeURIComponent(item.spk_no || item.nama)}`)}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 font-extrabold rounded-xl text-xs transition-all active:scale-95 cursor-pointer"
+                    title="SPK sudah terbit. Klik untuk memantau pengerjaan teknisi di modul Pekerjaan"
+                  >
+                    <HardHat className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span className="truncate">
+                      📅 {item.spk_no ? `#${item.spk_no.split("/").pop()} · ${item.tim || "Teknisi"}` : "Terjadwal di Pekerjaan"} ↗
+                    </span>
+                  </button>
+                ) : item.status === "BATAL" ? (
+                  <div className="w-full py-2 px-3 text-center bg-gray-100 text-gray-500 rounded-xl text-xs font-semibold border border-gray-200">
+                    Dibatalkan / Not Feasible
                   </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenDispatch(item)}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-gradient-to-r from-[#0D1B4A] to-slate-800 hover:from-slate-900 hover:to-black text-amber-400 font-black rounded-xl text-xs shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                    title="Terbitkan Surat Perintah Kerja (SPK) Pemasangan Baru ke Teknisi Lapangan"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="truncate">⚡ Terbitkan SPK Pasang Baru</span>
+                  </button>
                 )}
               </div>
             </div>
+          ))}
 
-            {/* Quick Actions: Simulasi Google Earth, WhatsApp, & Dispatch SPK */}
-            <div className="mt-3.5 pt-3 border-t border-gray-100 flex items-center gap-1.5 flex-wrap">
+          {filtered.length === 0 && (
+            <div className="col-span-full py-12 px-4 text-center bg-white rounded-3xl border border-dashed border-slate-200 shadow-2xs space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-2xs">
+                <Search className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900">Tidak ada lead yang cocok</h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                  {search ? `Tidak ditemukan calon pelanggan untuk kata kunci "${search}".` : "Tidak ada lead untuk filter status/sumber yang dipilih."}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => {
-                  const query = new URLSearchParams({
-                    coverage: "1",
-                    leadId: item.id,
-                    alamat: item.alamat || "",
-                    nama: item.nama || "",
-                  });
-                  if (item.lat && item.lng) {
-                    query.append("lat", item.lat);
-                    query.append("lng", item.lng);
-                  }
-                  navigate(`/odp?${query.toString()}`);
+                  setSearch("");
+                  setFilterSumber("ALL");
+                  setFilterStatus("ALL");
                 }}
-                className={`flex-1 min-w-[120px] flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
-                  item.odp_terdekat
-                    ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200"
-                    : "bg-gradient-to-r from-amber-500/10 to-amber-500/20 hover:from-amber-500/20 hover:to-amber-500/30 text-amber-900 border border-amber-300"
-                }`}
-                title="Buka peta Google Earth untuk menganalisis jarak ke ODP terdekat"
+                className="px-4 py-2 bg-[#0D1B4A] hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer active:scale-95"
               >
-                <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">{item.odp_terdekat ? "Peta Earth" : "Cek ODP"}</span>
+                Reset Semua Filter
               </button>
-
-              {/* Tombol Kirim Data ke OP */}
-              {item.status !== "DIJADWALKAN" && item.status !== "SELESAI" && (
-                <button
-                  type="button"
-                  onClick={() => handleKirimDataKeOp(item)}
-                  className={`flex-1 min-w-[110px] flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer ${
-                    item.status === "SIAP SPK (OP)"
-                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                      : "bg-amber-100/90 hover:bg-amber-200 text-amber-900 border border-amber-300"
-                  }`}
-                  title="Kirim data survey ke bagian Operasional (OP) untuk penerbitan SPK"
-                >
-                  <Send className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                  <span className="truncate">{item.status === "SIAP SPK (OP)" ? "Data di OP ✓" : "Kirim ke OP"}</span>
-                </button>
-              )}
-
-              {/* Tombol One-Click Dispatch SPK Teknisi */}
-              <button
-                type="button"
-                onClick={() => handleOpenDispatch(item)}
-                className="flex-1 min-w-[110px] flex items-center justify-center gap-1.5 py-2 px-2.5 bg-gradient-to-r from-[#0D1B4A] to-slate-800 hover:from-slate-900 hover:to-black text-amber-400 font-extrabold rounded-xl text-xs shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
-                title="Tugaskan Tim Teknisi Lapangan (Pasang Baru / PSB)"
-              >
-                <HardHat className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="truncate">Tugaskan SPK</span>
-              </button>
-
-              {item.telepon && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const url = createWhatsAppUrl(item.telepon, getLeadSurveyWaTemplate(item));
-                    if (url) window.open(url, "_blank");
-                  }}
-                  className="min-w-[36px] min-h-[36px] p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer shrink-0 flex items-center justify-center"
-                  title="Kirim Pesan Survey WhatsApp"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                </button>
-              )}
             </div>
-          </div>
-        ))}
-      </div>
-
-      {filtered.length === 0 && (
-        <div className="text-center py-12 text-gray-400">
-          <Target className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="font-medium text-sm">Tidak ada data leads</p>
+          )}
         </div>
       )}
 
+      {/* Modal Tambah / Edit Lead */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95">
-            {/* Mobile Drag Indicator Handle */}
-            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 sm:hidden" />
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-base sm:text-lg font-bold text-gray-900">{editingItem ? "Edit Lead" : "Tambah Lead Baru"}</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 p-2 rounded-lg">✕</button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">{editingItem ? "Edit Lead" : "Tambah Lead"}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Nama</label>
-                <input type="text" value={formData.nama} onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none" required />
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Nama Lengkap</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Anton Wijaya"
+                  value={formData.nama}
+                  onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none"
+                />
               </div>
+
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Sumber</label>
-                  <select value={formData.sumber} onChange={(e) => setFormData({ ...formData, sumber: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none">
-                    {sumberLeads.map((s) => <option key={s} value={s}>{s}</option>)}
+                  <select
+                    value={formData.sumber}
+                    onChange={(e) => setFormData({ ...formData, sumber: e.target.value })}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none cursor-pointer"
+                  >
+                    {sumberLeads.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Status</label>
-                  <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none">
-                    {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none cursor-pointer"
+                  >
+                    {statusOptions.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
+
+              {/* Pilihan Paket Berlangganan */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Paket Internet yang Diminati
+                </label>
+                <select
+                  value={formData.paket || "Home Fiber 30 Mbps"}
+                  onChange={(e) => setFormData({ ...formData, paket: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-[#F59E0B] outline-none bg-white cursor-pointer"
+                >
+                  {PAKET_OPTIONS.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">Telepon (WhatsApp)</label>
@@ -594,10 +1011,15 @@ export default function Leads() {
                   </div>
                 )}
               </div>
+
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Alamat</label>
-                <input type="text" value={formData.alamat} onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none" />
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Alamat Pemasangan</label>
+                <input
+                  type="text"
+                  value={formData.alamat}
+                  onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none"
+                />
               </div>
 
               {/* Data ODP & Feasibility Survey (Simulasi Sharelokasi) */}
@@ -711,10 +1133,15 @@ export default function Leads() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Tanggal</label>
-                <input type="date" value={formData.tanggal} onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none" />
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Tanggal Pendaftaran</label>
+                <input
+                  type="date"
+                  value={formData.tanggal}
+                  onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none"
+                />
               </div>
+
               <div className="flex items-center justify-between gap-2.5 pt-2 flex-wrap">
                 {formData.nama && (
                   <button
@@ -733,8 +1160,19 @@ export default function Leads() {
                   </button>
                 )}
                 <div className="flex gap-2.5 ml-auto">
-                  <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Batal</button>
-                  <button type="submit" className="px-5 py-2.5 text-xs sm:text-sm font-semibold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl shadow-sm hover:shadow-md transition-all">Simpan</button>
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 text-xs sm:text-sm font-bold bg-[#F59E0B] hover:bg-[#d97706] text-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer"
+                  >
+                    Simpan
+                  </button>
                 </div>
               </div>
             </form>
