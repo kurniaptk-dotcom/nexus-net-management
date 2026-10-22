@@ -131,8 +131,8 @@ export default function DispatchTaskModal({
   useEffect(() => {
     if (isOpen) {
       const detectedJenis = initialData.jenis || (initialData.sourceModule === "GANGGUAN" ? "PERBAIKAN" : "PEMASANGAN");
-      const generatedNo = generateSpkNumber(detectedJenis, initialData.sourceId || Date.now());
-      setSpkNo(generatedNo);
+      const existingNo = initialData.spk_no || generateSpkNumber(detectedJenis, initialData.sourceId || Date.now());
+      setSpkNo(existingNo);
 
       // Cari ODP awal (bisa dari ODP terdekat survey atau ODP pelanggan eksisting)
       let initialOdpName = initialData.odp || initialData.odp_terdekat || "";
@@ -355,8 +355,8 @@ export default function DispatchTaskModal({
       janji_jam: (form.janji_jam || "").trim(),
       id: initialData.id || Date.now(),
       spk_no: spkNo,
-      status: "WAITING LIST",
-      created_at: new Date().toISOString(),
+      status: initialData.status || "WAITING LIST",
+      created_at: initialData.created_at || new Date().toISOString(),
       timeline: Array.isArray(initialData.timeline) && initialData.timeline.length > 0
         ? [
             ...initialData.timeline,
@@ -364,7 +364,7 @@ export default function DispatchTaskModal({
               timestamp: new Date().toISOString(),
               action: "SPK Diperbarui",
               actor: "CS / Dispatcher",
-              status: "WAITING LIST",
+              status: initialData.status || "WAITING LIST",
               color: "blue",
               notes: `Jadwal: ${form.tanggal || "-"} (${form.sesi || "Reguler"}${form.janji_jam ? ` - Janji: ${form.janji_jam}` : ""}). Ditugaskan ke ${form.tim}.`,
             },
@@ -1327,7 +1327,7 @@ export default function DispatchTaskModal({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-extrabold text-base text-white">
-                  Surat Perintah Kerja (SPK) Lapangan
+                  {initialData?.isEdit || initialData?.id ? "Edit Surat Perintah Kerja (SPK)" : "Surat Perintah Kerja (SPK) Lapangan"}
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-black bg-amber-400 text-slate-950">
                   {spkNo}
@@ -1692,7 +1692,7 @@ export default function DispatchTaskModal({
               className="col-span-2 sm:col-span-1 sm:flex-none px-4 py-2.5 min-h-[42px] rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-black flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
             >
               <Copy className="w-4 h-4 shrink-0" />
-              <span>Simpan &amp; Salin SPK</span>
+              <span>{initialData?.isEdit || initialData?.id ? "Simpan Perubahan & Salin SPK" : "Simpan & Salin SPK"}</span>
             </button>
             <button
               type="button"

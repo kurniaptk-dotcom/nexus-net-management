@@ -185,31 +185,8 @@ function KanbanCard({
   onNotifyCustomerWa,
   teamWorkloadMap,
 }) {
-  const [copied, setCopied] = useState(false);
   const [copiedSpk, setCopiedSpk] = useState(false);
   const jc = jenisColors[item.jenis] || jenisColors.PEMASANGAN;
-
-  const handleQuickCopy = (e) => {
-    e.stopPropagation();
-    const summary = [
-      `📋 SPK: ${item.spk_no || `#${item.id}`} (${item.jenis})`,
-      `👤 Pelanggan: ${item.pelanggan || "-"}`,
-      `📞 Telp: ${item.telepon || "-"}`,
-      `📍 Alamat: ${item.alamat || "-"}`,
-      `🌐 ODP: ${item.odp || "-"} ${item.port ? `(Port ${item.port})` : ""}`,
-      `👷 Tim: ${item.tim || "-"}`,
-      `📅 Jadwal: ${item.tanggal || "-"} ${item.sesi ? `(${item.sesi})` : ""}`,
-      item.janji_jam ? `🎯 Janji Jam: ${item.janji_jam}` : "",
-      item.keterangan ? `📝 Catatan: ${item.keterangan}` : "",
-    ].filter(Boolean).join("\n");
-
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(summary);
-    }
-    setCopied(true);
-    showToast(`Ringkasan SPK "${item.pelanggan || item.spk_no}" berhasil disalin!`, "success");
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const isTeamOverload = teamWorkloadMap && teamWorkloadMap[item.tim] >= 5 && item.status !== "SELESAI";
   const isSlaUrgent = item.jenis === "PERBAIKAN" && item.status === "WAITING LIST";
@@ -256,26 +233,6 @@ function KanbanCard({
           )}
         </div>
         <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-          {/* 1-Click Quick Copy Button with Visual Feedback */}
-          <button
-            type="button"
-            onClick={handleQuickCopy}
-            className={`p-1 rounded-lg transition-all cursor-pointer ${
-              copied
-                ? "bg-emerald-100 text-emerald-800 font-bold px-1.5 text-[10px]"
-                : "hover:bg-slate-100 text-slate-400 hover:text-blue-600"
-            }`}
-            title="1-Click Salin Ringkasan SPK & Info Pelanggan"
-          >
-            {copied ? (
-              <span className="flex items-center gap-1 font-bold">
-                <Check className="w-3 h-3 text-emerald-600" />
-                <span>Tersalin!</span>
-              </span>
-            ) : (
-              <Copy className="w-3.5 h-3.5" />
-            )}
-          </button>
 
           {onCompleteTask && item.status !== "SELESAI" && (
             <button
@@ -527,27 +484,10 @@ export default function Pekerjaan() {
     alasan: "",
     tanggal: new Date().toISOString().split("T")[0],
   });
-  const [showModal, setShowModal] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
   const [deleteTargetTask, setDeleteTargetTask] = useState(null);
   const [deleteTargetPemutusan, setDeleteTargetPemutusan] = useState(null);
   const [, setDraggedId] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
-  const [formData, setFormData] = useState({
-    tim: "",
-    jenis: "PEMASANGAN",
-    pelanggan: "",
-    alamat: "",
-    odc: "",
-    odp: "",
-    userTerdampak: "",
-    tanggalSelesai: "",
-    status: "WAITING LIST",
-    tanggal: "",
-    keterangan: "",
-    komisi_items: [],
-    komisi_total: 0,
-  });
 
   if (searchParams.get("search") !== prevQuery) {
     setPrevQuery(searchParams.get("search"));
@@ -569,15 +509,14 @@ export default function Pekerjaan() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
-        setShowModal(false);
         setShowAddPemutusanModal(false);
       }
     };
-    if (showModal || showAddPemutusanModal) {
+    if (showAddPemutusanModal) {
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [showModal, showAddPemutusanModal]);
+  }, [showAddPemutusanModal]);
 
   // Salin Teks SPK Format WhatsApp ke Clipboard (alih-alih langsung membuka WhatsApp Web)
   const handleSendWaSpk = (task) => {
@@ -643,45 +582,22 @@ export default function Pekerjaan() {
     window.open(waUrl, "_blank");
   };
 
-  // Simpan Penugasan Baru dari DispatchTaskModal
-  const handleSaveDispatch = (newTask, shouldSendWa) => {
-    setData((prev) => [newTask, ...prev]);
+  // Simpan Penugasan Baru atau Update Penugasan dari DispatchTaskModal
+  const handleSaveDispatch = (savedTask) => {
+    setData((prev) => {
+      const exists = prev.some((d) => d.id === savedTask.id);
+      if (exists) {
+        return prev.map((d) => (d.id === savedTask.id ? { ...d, ...savedTask } : d));
+      }
+      return [savedTask, ...prev];
+    });
 
-    if (newTask.status === "SELESAI") {
-      syncCustomerOnTaskCompletion(newTask, pelangganList, setPelangganList);
+    if (savedTask.status === "SELESAI") {
+      syncCustomerOnTaskCompletion(savedTask, pelangganList, setPelangganList);
     }
 
-    notify(generatePekerjaanNotification(newTask, "ditambahkan"));
+    notify(generatePekerjaanNotification(savedTask, savedTask.isEdit ? "diperbarui" : "ditambahkan"));
     setDispatchModalOpen(false);
-  };
-
-  const handleJenisChange = (newJenis) => {
-    if (!editingItem) {
-      setFormData((prev) => ({
-        ...prev,
-        jenis: newJenis,
-        komisi_items: [],
-        komisi_total: 0,
-      }));
-    } else {
-      const defaultItems = getDefaultWorkItemsForTask(newJenis, 100, masterKomisi);
-      const defaultTotal = calculateKomisiItemsTotal(defaultItems, masterKomisi);
-      setFormData((prev) => ({
-        ...prev,
-        jenis: newJenis,
-        komisi_items: defaultItems,
-        komisi_total: defaultTotal,
-      }));
-    }
-  };
-
-  const handleKomisiItemsChange = (newItems) => {
-    const newTotal = calculateKomisiItemsTotal(newItems, masterKomisi);
-    setFormData((prev) => ({
-      ...prev,
-      komisi_items: newItems,
-      komisi_total: newTotal,
-    }));
   };
 
   const odcList = useMemo(() => {
@@ -692,11 +608,6 @@ export default function Pekerjaan() {
       return numA - numB;
     });
   }, [odpData]);
-
-  const availableOdps = useMemo(() => {
-    if (!formData.odc) return [];
-    return (odpData || []).filter((o) => o.odc === formData.odc);
-  }, [odpData, formData.odc]);
 
   const groupedOdp = useMemo(() => {
     const groups = {};
@@ -785,58 +696,13 @@ export default function Pekerjaan() {
     gagal: data.filter((d) => d.status === "GAGAL").length,
   };
 
-  const handleAdd = (defaultJenis = "PEMASANGAN") => {
-    setEditingItem(null);
-    setFormData({
-      tim: timData[0]?.nama || "",
-      jenis: defaultJenis,
-      pelanggan: "",
-      alamat: "",
-      odc: "",
-      odp: "",
-      userTerdampak: "",
-      tanggalSelesai: "",
-      status: "WAITING LIST",
-      tanggal: new Date().toISOString().split("T")[0],
-      keterangan: "",
-      komisi_items: [],
-      komisi_total: 0,
-    });
-    setShowModal(true);
-  };
-
   const handleEdit = (item) => {
-    setEditingItem(item);
-    let inferredOdc = item.odc || "";
-    let inferredOdp = item.odp || "";
-    if (inferredOdp.includes(" - ")) {
-      const parts = inferredOdp.split(" - ");
-      if (!inferredOdc) inferredOdc = parts[0];
-      inferredOdp = parts.slice(1).join(" - ");
-    }
-    const existingItems = Array.isArray(item.komisi_items) && item.komisi_items.length > 0
-      ? item.komisi_items
-      : getDefaultWorkItemsForTask(item.jenis, 100, masterKomisi);
-    const existingTotal = item.komisi_total !== undefined && item.komisi_total !== null
-      ? item.komisi_total
-      : calculateKomisiItemsTotal(existingItems, masterKomisi);
-
-    setFormData({
-      tim: item.tim,
-      jenis: item.jenis,
-      pelanggan: item.pelanggan,
-      alamat: item.alamat,
-      odc: inferredOdc,
-      odp: inferredOdp,
-      userTerdampak: item.userTerdampak ?? "",
-      tanggalSelesai: item.tanggalSelesai || "",
-      status: item.status,
-      tanggal: item.tanggal,
-      keterangan: item.keterangan || "",
-      komisi_items: existingItems,
-      komisi_total: existingTotal,
+    setDispatchInitialData({
+      ...item,
+      isEdit: true,
+      spk_no: item.spk_no || `#${item.id}`,
     });
-    setShowModal(true);
+    setDispatchModalOpen(true);
   };
 
   const handleDelete = (taskOrId) => {
@@ -850,56 +716,6 @@ export default function Pekerjaan() {
     setData((prev) => prev.filter((d) => d.id !== id));
     notify(generatePekerjaanNotification(deleteTargetTask, "dihapus"));
     setDeleteTargetTask(null);
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    let finalPayload = {
-      ...formData,
-      komisi_items: formData.komisi_items || [],
-      komisi_total: formData.komisi_total !== undefined
-        ? Number(formData.komisi_total)
-        : calculateKomisiItemsTotal(formData.komisi_items || [], masterKomisi),
-    };
-
-    if (formData.jenis === "PERBAIKAN KHUSUS (ODP/ODC)") {
-      if (!formData.odc) {
-        showToast("Silakan pilih ODC terlebih dahulu!", "warning");
-        return;
-      }
-      const odpLabel = formData.odp ? `${formData.odc} - ${formData.odp}` : formData.odc;
-      finalPayload.odp = odpLabel;
-      finalPayload.pelanggan = formData.pelanggan || `Perbaikan ${odpLabel}`;
-      finalPayload.alamat = formData.alamat || `Area Distribusi ${formData.odc}`;
-      finalPayload.userTerdampak = formData.userTerdampak ? Number(formData.userTerdampak) : 0;
-      finalPayload.tanggalSelesai = formData.tanggalSelesai || "";
-    }
-
-    if (editingItem) {
-      setData(data.map((d) => (d.id === editingItem.id ? { ...d, ...finalPayload } : d)));
-      notify(generatePekerjaanNotification({ ...editingItem, ...finalPayload }, "diperbarui"));
-    } else {
-      const newItem = { id: Date.now(), ...finalPayload };
-      setData([...data, newItem]);
-      notify(generatePekerjaanNotification(newItem, "ditambahkan"));
-    }
-
-    // Otomatisasi Sinkronisasi Port & Pelanggan jika status diset SELESAI
-    if (finalPayload.status === "SELESAI" && (!editingItem || editingItem.status !== "SELESAI")) {
-      const syncResult = syncCustomerOnTaskCompletion(finalPayload, pelangganList, setPelangganList);
-      if (syncResult && window.__addNotification) {
-        notify({
-          id: Date.now(),
-          type: "INFO",
-          title: "Sinkronisasi Port & Pelanggan",
-          message: syncResult.message,
-          timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-          read: false,
-        });
-      }
-    }
-
-    setShowModal(false);
   };
 
   const filteredPemutusan = useMemo(() => {
@@ -1788,471 +1604,6 @@ export default function Pekerjaan() {
     <MasterKomisiTab masterList={masterKomisi} setMasterList={setMasterKomisi} />
   )}
 
-      {/* Modal */}
-      {showModal && (
-        <div
-          onClick={() => setShowModal(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95"
-          >
-            {/* Mobile Drag Indicator Handle */}
-            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 sm:hidden" />
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">
-                {editingItem ? "Edit Pekerjaan" : "Tambah Pekerjaan Baru"}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-xl"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {formData.jenis === "PERBAIKAN KHUSUS (ODP/ODC)" ? (
-                <>
-                  {/* Banner Info Khusus */}
-                  <div className="bg-purple-50 border border-purple-200/80 rounded-xl p-3.5 flex items-start gap-3">
-                    <div className="p-2 bg-purple-100 text-purple-700 rounded-lg shrink-0">
-                      <Wrench className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-purple-900 uppercase tracking-wide flex items-center gap-1.5">
-                        Form Khusus Perbaikan ODP / ODC
-                        <span className="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-semibold">Khusus Jaringan</span>
-                      </h4>
-                      <p className="text-[11px] text-purple-700/90 mt-0.5">
-                        Form khusus penanganan gangguan perangkat distribusi fiber optik.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Tim & Checklist Pekerjaan ODP */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                        TIM TEKNISI <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={formData.tim}
-                        onChange={(e) => setFormData({ ...formData, tim: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"
-                      >
-                        {timData.map((t) => (
-                          <option key={t.id} value={t.nama}>{t.nama}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Kelompok & Checklist Pekerjaan ODP */}
-                    {(!editingItem || (formData.status !== "MENUNGGU VALIDASI" && formData.status !== "SELESAI")) ? (
-                      <div className="space-y-2.5">
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5 flex items-center justify-between">
-                            <span className="flex items-center gap-1.5">
-                              <Layers className="w-3.5 h-3.5 text-purple-600" />
-                              JENIS PEKERJAAN <span className="text-red-500">*</span>
-                            </span>
-                          </label>
-                          <select
-                            value={formData.jenis}
-                            onChange={(e) => handleJenisChange(e.target.value)}
-                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none bg-white font-medium text-slate-800"
-                          >
-                            {jenisPekerjaan.map((j) => (
-                              <option key={j} value={j}>{j}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-2xl flex items-start gap-3 shadow-2xs">
-                          <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 text-blue-700 mt-0.5">
-                            <ClipboardCheck className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1 text-xs">
-                            <div className="flex items-center gap-1.5 font-bold text-slate-800 mb-0.5">
-                              <span>Rincian Item & Material Dilaporkan Teknisi</span>
-                              <span className="text-[10px] font-extrabold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">SOP Lapangan</span>
-                            </div>
-                            <p className="text-slate-600 leading-relaxed text-[11px]">
-                              Admin tidak perlu mengisi checklist dan meter kabel di awal. Teknisi akan mencatat volume riil di lapangan saat menyelesaikan tugas, yang kemudian divalidasi oleh Supervisor.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <WorkItemsChecklist
-                        jenis={formData.jenis}
-                        onChangeJenis={handleJenisChange}
-                        jenisList={jenisPekerjaan}
-                        value={formData.komisi_items || []}
-                        onChange={handleKomisiItemsChange}
-                        masterList={masterKomisi}
-                      />
-                    )}
-                  </div>
-
-                  {/* Cascading ODC -> ODP */}
-                  <div className="p-3.5 bg-purple-50/50 rounded-xl border border-purple-200/70 space-y-3">
-                    <div className="flex items-center justify-between text-xs font-bold text-purple-900">
-                      <span className="flex items-center gap-1.5">
-                        <Network className="w-4 h-4 text-purple-700" />
-                        PILIH JARINGAN (ODC & ODP)
-                      </span>
-                      <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">
-                        Wajib Diisi
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
-                          <span>1. Pilih ODC <span className="text-red-500">*</span></span>
-                          <span className="text-[10px] text-purple-600 font-normal">{odcList.length} ODC</span>
-                        </label>
-                        <select
-                          value={formData.odc}
-                          onChange={(e) => {
-                            setFormData({
-                              ...formData,
-                              odc: e.target.value,
-                              odp: "", // reset odp ketika odc berganti
-                            });
-                          }}
-                          className="w-full px-3.5 py-2.5 bg-white border border-purple-200 rounded-xl text-sm font-medium text-gray-800 focus:ring-2 focus:ring-purple-400 outline-none"
-                          required
-                        >
-                          <option value="">-- Pilih ODC --</option>
-                          {odcList.map((odc) => (
-                            <option key={odc} value={odc}>{odc}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
-                          <span>2. Pilih ODP <span className="text-red-500">*</span></span>
-                          {formData.odc && (
-                            <span className="text-[10px] text-purple-600 font-normal">{availableOdps.length} titik</span>
-                          )}
-                        </label>
-                        <select
-                          value={formData.odp}
-                          disabled={!formData.odc}
-                          onChange={(e) => setFormData({ ...formData, odp: e.target.value })}
-                          className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-medium outline-none transition-all ${
-                            !formData.odc
-                              ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
-                              : "bg-white text-gray-800 border border-purple-200 focus:ring-2 focus:ring-purple-400"
-                          }`}
-                          required
-                        >
-                          <option value="">
-                            {!formData.odc ? "-- Pilih ODC Dulu --" : "-- Pilih ODP --"}
-                          </option>
-                          {availableOdps.map((odp) => (
-                            <option key={odp.id} value={odp.nama}>
-                              {odp.nama} {odp.keterangan ? `(${odp.keterangan})` : ""}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    {!formData.odc && (
-                      <p className="text-[11px] text-amber-600 font-medium">
-                        ⚠️ Silakan pilih ODC terlebih dahulu untuk menampilkan daftar ODP di bawahnya.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Tanggal Perbaikan & Tanggal Selesai */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                        TANGGAL PERBAIKAN <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.tanggal}
-                        onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5 flex items-center justify-between">
-                        <span>TANGGAL SELESAI</span>
-                        <span className="text-[10px] text-gray-400 font-normal">Opsional</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.tanggalSelesai}
-                        onChange={(e) => setFormData({ ...formData, tanggalSelesai: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Jumlah User Terdampak & Status */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5 flex items-center justify-between">
-                        <span className="flex items-center gap-1.5">
-                          <Users className="w-3.5 h-3.5 text-purple-600" />
-                          USER TERDAMPAK
-                        </span>
-                        <span className="text-[10px] text-gray-400 font-normal">Estimasi</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          min="0"
-                          placeholder="Contoh: 16"
-                          value={formData.userTerdampak}
-                          onChange={(e) => setFormData({ ...formData, userTerdampak: e.target.value })}
-                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none pr-14"
-                        />
-                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">
-                          User
-                        </span>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                        STATUS PEKERJAAN
-                      </label>
-                      <select
-                        value={formData.status}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"
-                      >
-                        {statusPekerjaan.map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Keterangan */}
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                      KETERANGAN KENDALA & TINDAKAN
-                    </label>
-                    <textarea
-                      value={formData.keterangan}
-                      onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none resize-none"
-                      rows={3}
-                      placeholder="Deskripsikan kendala teknis (redaman tinggi, kabel putus, dsb.) dan penanganan yang dilakukan..."
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Form Standar (Pemasangan, Perbaikan Pelanggan, Pemutusan) */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tim Teknisi Lapangan</label>
-                      <select
-                        value={formData.tim}
-                        onChange={(e) => setFormData({ ...formData, tim: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none"
-                      >
-                        {timData.map((t) => (
-                          <option key={t.id} value={t.nama}>{t.nama}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Kelompok & Checklist Pekerjaan */}
-                    {(!editingItem || (formData.status !== "MENUNGGU VALIDASI" && formData.status !== "SELESAI")) ? (
-                      <div className="space-y-2.5">
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-1.5 flex items-center justify-between">
-                            <span className="flex items-center gap-1.5">
-                              <Layers className="w-4 h-4 text-amber-600" />
-                              Jenis Pekerjaan <span className="text-red-500">*</span>
-                            </span>
-                          </label>
-                          <select
-                            value={formData.jenis}
-                            onChange={(e) => handleJenisChange(e.target.value)}
-                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none bg-white font-medium text-slate-800"
-                          >
-                            {jenisPekerjaan.map((j) => (
-                              <option key={j} value={j}>{j}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-2xl flex items-start gap-3 shadow-2xs">
-                          <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 text-blue-700 mt-0.5">
-                            <ClipboardCheck className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1 text-xs">
-                            <div className="flex items-center gap-1.5 font-bold text-slate-800 mb-0.5">
-                              <span>Rincian Item & Meteran Kabel Dilaporkan Teknisi</span>
-                              <span className="text-[10px] font-extrabold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">SOP Lapangan</span>
-                            </div>
-                            <p className="text-slate-600 leading-relaxed text-[11px]">
-                              Admin/Operator tidak perlu mengisi checklist dan meter kabel di awal. Teknisi akan mencatat volume riil di lapangan (meter dropcore, pemakaian ONT, redaman OPM) saat menyelesaikan tugas, yang kemudian divalidasi oleh Supervisor.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <WorkItemsChecklist
-                        jenis={formData.jenis}
-                        onChangeJenis={handleJenisChange}
-                        jenisList={jenisPekerjaan}
-                        value={formData.komisi_items || []}
-                        onChange={handleKomisiItemsChange}
-                        masterList={masterKomisi}
-                      />
-                    )}
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-sm font-semibold text-gray-700">Pelanggan</label>
-                      {pelangganList.length > 0 && !editingItem && (
-                        <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 flex items-center gap-1">
-                          <Zap className="w-3 h-3 text-blue-600" />
-                          Database Pelanggan
-                        </span>
-                      )}
-                    </div>
-
-                    {!editingItem && (
-                      <div className="mb-2">
-                        <select
-                          onChange={(e) => {
-                            const selectedId = e.target.value;
-                            if (!selectedId) return;
-                            const cust = pelangganList.find((p) => p.id_pelanggan === selectedId);
-                            if (cust) {
-                              setFormData((prev) => ({
-                                ...prev,
-                                pelanggan: `${cust.nama} (${cust.id_pelanggan})`,
-                                alamat: cust.alamat,
-                                odp: cust.odp || prev.odp,
-                                keterangan: prev.keterangan || `Paket: ${cust.paket}`,
-                              }));
-                            }
-                          }}
-                          className="w-full px-3.5 py-2 bg-blue-50/70 hover:bg-blue-50 border border-blue-200 rounded-xl text-xs font-semibold text-blue-900 focus:bg-white focus:ring-2 focus:ring-blue-400 outline-none cursor-pointer"
-                        >
-                          <option value="">⚡ Pilih Cepat dari Data Pelanggan Lapangan...</option>
-                          {pelangganList.map((p) => (
-                            <option key={p.id_pelanggan} value={p.id_pelanggan}>
-                              [{p.status}] {p.nama} - {p.id_pelanggan} ({p.odp || "No ODP"})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    <input
-                      type="text"
-                      placeholder="Nama pelanggan atau pilih dari daftar di atas..."
-                      value={formData.pelanggan}
-                      onChange={(e) => setFormData({ ...formData, pelanggan: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Alamat</label>
-                    <input
-                      type="text"
-                      value={formData.alamat}
-                      onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <Network className="w-4 h-4 text-blue-600" />
-                        Informasi ODP / ODC
-                      </span>
-                      <span className="text-[11px] font-normal text-gray-400">Opsional</span>
-                    </label>
-                    <select
-                      value={formData.odp}
-                      onChange={(e) => setFormData({ ...formData, odp: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] bg-white text-gray-800 outline-none"
-                    >
-                      <option value="">-- Pilih ODP / ODC --</option>
-                      {Object.entries(groupedOdp).map(([odcGroup, items]) => (
-                        <optgroup key={odcGroup} label={`📁 ${odcGroup}`}>
-                          {items.map((odp) => (
-                            <option key={odp.id} value={`${odp.odc} - ${odp.nama}`}>
-                              {odp.odc} - {odp.nama} {odp.status ? `(${odp.status})` : ""}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tanggal</label>
-                      <input
-                        type="date"
-                        value={formData.tanggal}
-                        onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Status</label>
-                      <select
-                        value={formData.status}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none"
-                      >
-                        {statusPekerjaan.map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Keterangan</label>
-                    <textarea
-                      value={formData.keterangan}
-                      onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#F59E0B] outline-none resize-none"
-                      rows={2}
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="flex gap-3 justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className={`px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition-all shadow-md ${
-                    formData.jenis === "PERBAIKAN KHUSUS (ODP/ODC)"
-                      ? "bg-purple-600 hover:bg-purple-700"
-                      : "bg-[#F59E0B] hover:bg-[#d97706]"
-                  }`}
-                >
-                  Simpan Pekerjaan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Modal Tambah Pengajuan Pemutusan */}
       {showAddPemutusanModal && (

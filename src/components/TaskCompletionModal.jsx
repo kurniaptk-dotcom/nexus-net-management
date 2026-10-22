@@ -275,12 +275,15 @@ export default function TaskCompletionModal({
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {/* SOP Compliance Banner */}
-          <div className="p-3 bg-blue-50/90 border border-blue-200/90 rounded-xl text-xs text-blue-900 flex items-start gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+          <div className="p-3 bg-emerald-50/90 border border-emerald-200/90 rounded-xl text-xs text-emerald-950 flex items-start gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div className="leading-relaxed">
-              <p className="font-bold text-blue-950">Validasi SOP Penyelesaian Nexus Net</p>
-              <p className="text-[11px] text-blue-800">
-                Sebelum tiket dipindahkan ke status <b>SELESAI</b>, mohon lengkapi <b>hasil ukur OPM</b>, <b>nomor seri modem</b>, <b>meteran tarikan kabel riil</b>, dan <b>foto bukti fisik</b>. Port ODP dan komisi tim akan tersinkronisasi otomatis.
+              <p className="font-bold text-emerald-950 flex items-center gap-1.5">
+                <span>Validasi SOP Selesai — Cukup 1 Foto Bukti Utama</span>
+                <span className="px-1.5 py-0.5 text-[10px] bg-emerald-600 text-white rounded font-semibold">1 Foto Cukup</span>
+              </p>
+              <p className="text-[11px] text-emerald-800 mt-0.5">
+                Cukup lampirkan <b>1 foto fisik berstempel GPS/kamera</b> (layar OPM, modem menyala, atau fisik penanganan). Lengkapi data angka/teks, maka tiket <b>SELESAI</b>, status Port ODP, dan komisi tim langsung tersinkronisasi otomatis.
               </p>
             </div>
           </div>

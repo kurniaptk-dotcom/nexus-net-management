@@ -1659,7 +1659,7 @@ export default function TeknisiDashboard() {
 
           <button
             onClick={() => setViewMode("KANBAN")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
               viewMode === "KANBAN"
                 ? "bg-[#0D1B4A] text-white shadow-xs"
                 : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
@@ -1841,7 +1841,7 @@ export default function TeknisiDashboard() {
                     <div>
                       <span className="text-[10px] text-slate-400 block font-semibold leading-tight">Tim Lapangan</span>
                       <div className="relative">
-                        {isSupervisor ? (
+                        {isSupervisor && !isTechnician ? (
                           <div className="flex items-center gap-1">
                             <span className="text-xs font-bold text-slate-800">Tim:</span>
                             <select
@@ -1862,7 +1862,10 @@ export default function TeknisiDashboard() {
                             <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                           </div>
                         ) : (
-                          <span className="text-xs font-black text-slate-900">Tim: {activeTeam}</span>
+                          <span className="inline-flex items-center gap-1 text-xs font-black bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span>Tim {activeTeam} (Terkunci)</span>
+                          </span>
                         )}
                       </div>
                     </div>
