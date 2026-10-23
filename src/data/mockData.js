@@ -13,8 +13,8 @@ export const initialPersonilList = [
     "timId": 1,
     "timNama": "Tim A",
     "status": "AKTIF",
-    "total_selesai": 316,
-    "total_komisi": 3864500
+    "total_selesai": 269,
+    "total_komisi": 3629500
   },
   {
     "id": 2,
@@ -25,8 +25,8 @@ export const initialPersonilList = [
     "timId": 1,
     "timNama": "Tim A",
     "status": "AKTIF",
-    "total_selesai": 316,
-    "total_komisi": 3864500
+    "total_selesai": 269,
+    "total_komisi": 3629500
   },
   {
     "id": 3,
@@ -37,8 +37,8 @@ export const initialPersonilList = [
     "timId": 2,
     "timNama": "Tim B",
     "status": "AKTIF",
-    "total_selesai": 325,
-    "total_komisi": 3924000
+    "total_selesai": 296,
+    "total_komisi": 3779000
   },
   {
     "id": 4,
@@ -49,8 +49,8 @@ export const initialPersonilList = [
     "timId": 2,
     "timNama": "Tim B",
     "status": "AKTIF",
-    "total_selesai": 325,
-    "total_komisi": 3924000
+    "total_selesai": 296,
+    "total_komisi": 3779000
   },
   {
     "id": 5,
@@ -61,8 +61,8 @@ export const initialPersonilList = [
     "timId": 3,
     "timNama": "Tim C",
     "status": "AKTIF",
-    "total_selesai": 302,
-    "total_komisi": 3742000
+    "total_selesai": 277,
+    "total_komisi": 3617000
   },
   {
     "id": 6,
@@ -73,8 +73,8 @@ export const initialPersonilList = [
     "timId": 3,
     "timNama": "Tim C",
     "status": "AKTIF",
-    "total_selesai": 195,
-    "total_komisi": 2062000
+    "total_selesai": 170,
+    "total_komisi": 1937000
   }
 ];
 
@@ -7600,7 +7600,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260623/1415",
     "pelanggan": "Dewi Era N",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -7611,7 +7611,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-06-23",
     "keterangan": "Pemutusan & dismantle perangkat Dewi Era N",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1416,
@@ -7654,7 +7654,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260623/1418",
     "pelanggan": "Yuyun Purwaningsih",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -7665,7 +7665,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-06-23",
     "keterangan": "Pemutusan & dismantle perangkat Yuyun Purwaningsih",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1419,
@@ -7708,7 +7708,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260623/1421",
     "pelanggan": "Yudi Pratama",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -7719,7 +7719,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-06-23",
     "keterangan": "Pemutusan & dismantle perangkat Yudi Pratama",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1422,
@@ -7762,7 +7762,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260623/1424",
     "pelanggan": "Megawati",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -7773,7 +7773,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-06-23",
     "keterangan": "Pemutusan & dismantle perangkat Megawati",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1425,
@@ -7816,7 +7816,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260623/1427",
     "pelanggan": "Sri Widiyamaika",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -7827,7 +7827,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-06-23",
     "keterangan": "Pemutusan & dismantle perangkat Sri Widiyamaika",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1428,
@@ -7870,7 +7870,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260623/1430",
     "pelanggan": "Eko Winarto",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -7881,7 +7881,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-06-23",
     "keterangan": "Pemutusan & dismantle perangkat Eko Winarto",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1431,
@@ -7924,7 +7924,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260623/1433",
     "pelanggan": "Norman Susilo",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -7935,7 +7935,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-06-23",
     "keterangan": "Pemutusan & dismantle perangkat Norman Susilo",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1434,
@@ -11290,7 +11290,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260623/1620",
     "pelanggan": "Mona Lestari",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -11301,7 +11301,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-06-23",
     "keterangan": "Bulan 6 - Finish",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1621,
@@ -11344,7 +11344,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260623/1623",
     "pelanggan": "Ira Fajariya",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -11355,7 +11355,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-06-23",
     "keterangan": "Bulan 6 - Finish",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1624,
@@ -11398,7 +11398,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260623/1626",
     "pelanggan": "Massaunan",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -11409,7 +11409,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-06-23",
     "keterangan": "Bulan 6 - Finish",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1627,
@@ -11452,7 +11452,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260623/1629",
     "pelanggan": "Ambo Ukka",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -11463,7 +11463,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-06-23",
     "keterangan": "Bulan 6 - Finish",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1630,
@@ -11506,7 +11506,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260623/1632",
     "pelanggan": "Nurma",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -11517,7 +11517,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-06-23",
     "keterangan": "Bulan 6 - Finish",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1633,
@@ -11560,7 +11560,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260623/1635",
     "pelanggan": "Deni Agus P",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -11571,7 +11571,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-06-23",
     "keterangan": "Bulan 6 - Finish",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1636,
@@ -12395,7 +12395,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260722/1681",
     "pelanggan": "Anisatul Hasanah",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -12406,7 +12406,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-07-22",
     "keterangan": "Pemutusan & dismantle perangkat Anisatul Hasanah",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1682,
@@ -12449,7 +12449,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260722/1684",
     "pelanggan": "Yuliah",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -12460,7 +12460,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-07-22",
     "keterangan": "Pemutusan & dismantle perangkat Yuliah",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1685,
@@ -12503,7 +12503,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260722/1687",
     "pelanggan": "Monika Sindi",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -12514,7 +12514,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-07-22",
     "keterangan": "Pemutusan & dismantle perangkat Monika Sindi",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1688,
@@ -12557,7 +12557,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260722/1690",
     "pelanggan": "Rio Sandy Ricardo",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -12568,7 +12568,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-07-22",
     "keterangan": "Pemutusan & dismantle perangkat Rio Sandy Ricardo",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1691,
@@ -12611,7 +12611,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260722/1693",
     "pelanggan": "Syarif Khairul Aiman",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -12622,7 +12622,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-07-22",
     "keterangan": "Pemutusan & dismantle perangkat Syarif Khairul Aiman",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1694,
@@ -12665,7 +12665,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260722/1696",
     "pelanggan": "Dwi Lestari",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -12676,7 +12676,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-07-22",
     "keterangan": "Pemutusan & dismantle perangkat Dwi Lestari",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1697,
@@ -12719,7 +12719,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260722/1699",
     "pelanggan": "Rohana",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -12730,7 +12730,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-07-22",
     "keterangan": "Pemutusan & dismantle perangkat Rohana",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1700,
@@ -12773,7 +12773,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260722/1702",
     "pelanggan": "Anna Rosana",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -12784,7 +12784,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-07-22",
     "keterangan": "Pemutusan & dismantle perangkat Anna Rosana",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1703,
@@ -13133,7 +13133,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260826/1722",
     "pelanggan": "Devi Winda",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -13144,7 +13144,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-08-26",
     "keterangan": "Pemutusan & dismantle perangkat Devi Winda",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1723,
@@ -14819,7 +14819,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1815",
     "pelanggan": "Samsudin",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -14830,7 +14830,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Samsudin",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1816,
@@ -14873,7 +14873,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1818",
     "pelanggan": "Muslim",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -14884,7 +14884,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Muslim",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1819,
@@ -14927,7 +14927,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1821",
     "pelanggan": "Desya",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -14938,7 +14938,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Desya",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1822,
@@ -14981,7 +14981,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1824",
     "pelanggan": "Darmawira",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -14992,7 +14992,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Darmawira",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1825,
@@ -15035,7 +15035,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1827",
     "pelanggan": "Muhlisin",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -15046,7 +15046,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Muhlisin",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1828,
@@ -15089,7 +15089,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1830",
     "pelanggan": "Yuli Yanti",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -15100,7 +15100,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Yuli Yanti",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1831,
@@ -15143,7 +15143,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1833",
     "pelanggan": "Yuli Wijanarti",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -15154,7 +15154,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Yuli Wijanarti",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1834,
@@ -15197,7 +15197,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1836",
     "pelanggan": "Murtini",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -15208,7 +15208,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Murtini",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1837,
@@ -15251,7 +15251,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1839",
     "pelanggan": "Rahmat Hidayat",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -15262,7 +15262,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Rahmat Hidayat",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1840,
@@ -15557,7 +15557,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1856",
     "pelanggan": "Andi Herianto",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -15568,7 +15568,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Andi Herianto",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1857,
@@ -15611,7 +15611,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1859",
     "pelanggan": "Abdul Hakim Ridho",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -15622,7 +15622,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Abdul Hakim Ridho",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1860,
@@ -15665,7 +15665,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1862",
     "pelanggan": "Aditya Risky P",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -15676,7 +15676,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Aditya Risky P",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1863,
@@ -15719,7 +15719,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1865",
     "pelanggan": "Andika Saputra",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -15730,7 +15730,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Andika Saputra",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1866,
@@ -15773,7 +15773,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1868",
     "pelanggan": "Nurkirana",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -15784,7 +15784,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Nurkirana",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1869,
@@ -15827,7 +15827,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1871",
     "pelanggan": "Tantra denia",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -15838,7 +15838,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Tantra denia",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1872,
@@ -15881,7 +15881,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1874",
     "pelanggan": "Ardhita Cantika",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -15892,7 +15892,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Ardhita Cantika",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1875,
@@ -15935,7 +15935,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1877",
     "pelanggan": "Harpendi",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -15946,7 +15946,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Harpendi",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1878,
@@ -15989,7 +15989,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1880",
     "pelanggan": "Danang Pangestu",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -16000,7 +16000,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Danang Pangestu",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1881,
@@ -16043,7 +16043,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1883",
     "pelanggan": "Adib Samudra Putra",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -16054,7 +16054,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Adib Samudra Putra",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1884,
@@ -16097,7 +16097,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1886",
     "pelanggan": "Chairul",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -16108,7 +16108,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Chairul",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1887,
@@ -16205,7 +16205,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260923/1892",
     "pelanggan": "Alfian Diaz Ramadhani",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -16216,7 +16216,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-23",
     "keterangan": "Dijadwalkan bulan depan",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1893,
@@ -16241,7 +16241,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260925/1894",
     "pelanggan": "Hendri Yulianto",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -16252,7 +16252,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-25",
     "keterangan": "Dijadwalkan bulan depan",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1895,
@@ -16745,7 +16745,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1922",
     "pelanggan": "Lia Suswelye",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -16756,7 +16756,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Lia Suswelye",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1923,
@@ -16799,7 +16799,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1925",
     "pelanggan": "Rahmahdhan Adi S",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -16810,7 +16810,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Rahmahdhan Adi S",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1926,
@@ -17218,7 +17218,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1948",
     "pelanggan": "Samsudin",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17229,7 +17229,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Samsudin",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1949,
@@ -17272,7 +17272,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1951",
     "pelanggan": "Muslim",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17283,7 +17283,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Muslim",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1952,
@@ -17326,7 +17326,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1954",
     "pelanggan": "Desya",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17337,7 +17337,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Desya",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1955,
@@ -17380,7 +17380,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1957",
     "pelanggan": "Darmawira",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17391,7 +17391,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Darmawira",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1958,
@@ -17434,7 +17434,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1960",
     "pelanggan": "Muhlisin",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17445,7 +17445,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Muhlisin",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1961,
@@ -17488,7 +17488,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1963",
     "pelanggan": "Yuli Yanti",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17499,7 +17499,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Yuli Yanti",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1964,
@@ -17542,7 +17542,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1966",
     "pelanggan": "Yuli Wijanarti",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17553,7 +17553,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Yuli Wijanarti",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1967,
@@ -17596,7 +17596,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1969",
     "pelanggan": "Murtini",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17607,7 +17607,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Murtini",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1970,
@@ -17650,7 +17650,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/1972",
     "pelanggan": "Rahmat Hidayat",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17661,7 +17661,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Rahmat Hidayat",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1973,
@@ -17704,7 +17704,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/1975",
     "pelanggan": "Herli Mayeti",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17715,7 +17715,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Herli Mayeti",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1976,
@@ -17758,7 +17758,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/1978",
     "pelanggan": "Syarifah Shaleha A",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17769,7 +17769,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Syarifah Shaleha A",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1979,
@@ -17812,7 +17812,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/1981",
     "pelanggan": "Sri Dwi Kurniaty",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17823,7 +17823,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Sri Dwi Kurniaty",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1982,
@@ -17866,7 +17866,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/1984",
     "pelanggan": "Muhammad Adam",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17877,7 +17877,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Muhammad Adam",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1985,
@@ -17902,7 +17902,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/1986",
     "pelanggan": "Sudirman",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17913,7 +17913,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Sudirman",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1987,
@@ -17938,7 +17938,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/1988",
     "pelanggan": "Alfian Diaz Ramadhani",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17949,14 +17949,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Alfian Diaz Ramadhani",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1989,
     "spk_no": "SPK/DIS/20261022/1989",
     "pelanggan": "Hendri Yulianto",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17967,14 +17967,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Hendri Yulianto",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1990,
     "spk_no": "SPK/DIS/20261022/1990",
     "pelanggan": "Yulianti",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -17985,14 +17985,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Yulianti",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1991,
     "spk_no": "SPK/DIS/20261022/1991",
     "pelanggan": "Salsa Sindi",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -18003,14 +18003,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Salsa Sindi",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1992,
     "spk_no": "SPK/DIS/20261022/1992",
     "pelanggan": "Maya Febriandika",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -18021,14 +18021,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Maya Febriandika",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1993,
     "spk_no": "SPK/DIS/20261022/1993",
     "pelanggan": "As Ari Musthafa Lubis",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -18039,14 +18039,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat As Ari Musthafa Lubis",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1994,
     "spk_no": "SPK/DIS/20261022/1994",
     "pelanggan": "Sugi Hartono",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -18057,14 +18057,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Sugi Hartono",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1995,
     "spk_no": "SPK/DIS/20261022/1995",
     "pelanggan": "Syarifah Dwi",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -18075,14 +18075,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Syarifah Dwi",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1996,
     "spk_no": "SPK/DIS/20261022/1996",
     "pelanggan": "Ikhwan Apriwiyatno",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim A",
@@ -18093,7 +18093,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Ikhwan Apriwiyatno",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 1997,
@@ -18676,7 +18676,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2029",
     "pelanggan": "kusparyanti",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -18687,7 +18687,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat kusparyanti",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2030,
@@ -18712,7 +18712,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2031",
     "pelanggan": "Maulana Fikri R",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -18723,7 +18723,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Maulana Fikri R",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2032,
@@ -18748,7 +18748,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2033",
     "pelanggan": "Ary Wibowo",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -18759,7 +18759,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Ary Wibowo",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2034,
@@ -18784,7 +18784,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2035",
     "pelanggan": "Elly Yuliana",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -18795,7 +18795,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Elly Yuliana",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2036,
@@ -18820,7 +18820,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2037",
     "pelanggan": "Rusmin",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -18831,7 +18831,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Rusmin",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2038,
@@ -18856,7 +18856,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2039",
     "pelanggan": "Risfan Alfadri",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -18867,7 +18867,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Risfan Alfadri",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2040,
@@ -18892,7 +18892,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2041",
     "pelanggan": "Yudi Mariadi",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -18903,14 +18903,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Yudi Mariadi",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2042,
     "spk_no": "SPK/DIS/20261022/2042",
     "pelanggan": "Julita",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -18921,14 +18921,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Julita",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2043,
     "spk_no": "SPK/DIS/20261022/2043",
     "pelanggan": "Rafiqy Hafid",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -18939,14 +18939,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Rafiqy Hafid",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2044,
     "spk_no": "SPK/DIS/20261022/2044",
     "pelanggan": "Irsan Heli Ananta",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -18957,14 +18957,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Irsan Heli Ananta",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2045,
     "spk_no": "SPK/DIS/20261022/2045",
     "pelanggan": "Arif Dicky P",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -18975,14 +18975,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Arif Dicky P",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2046,
     "spk_no": "SPK/DIS/20261022/2046",
     "pelanggan": "Darmawira",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -18993,14 +18993,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Darmawira",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2047,
     "spk_no": "SPK/DIS/20261022/2047",
     "pelanggan": "Anwar",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -19011,14 +19011,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Anwar",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2048,
     "spk_no": "SPK/DIS/20261022/2048",
     "pelanggan": "Basri",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -19029,14 +19029,14 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Basri",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2049,
     "spk_no": "SPK/DIS/20261022/2049",
     "pelanggan": "Andriani",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim B",
@@ -19047,7 +19047,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Andriani",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2050,
@@ -19090,7 +19090,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/2052",
     "pelanggan": "Lia Suswelye",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19101,7 +19101,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Lia Suswelye",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2053,
@@ -19144,7 +19144,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20260922/2055",
     "pelanggan": "Rahmahdhan Adi S",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19155,7 +19155,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-09-22",
     "keterangan": "Pemutusan & dismantle perangkat Rahmahdhan Adi S",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2056,
@@ -19198,7 +19198,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2058",
     "pelanggan": "Aris Sugiantoro",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19209,7 +19209,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Aris Sugiantoro",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2059,
@@ -19252,7 +19252,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2061",
     "pelanggan": "Ahmad Riski Ismail",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19263,7 +19263,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Ahmad Riski Ismail",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2062,
@@ -19306,7 +19306,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2064",
     "pelanggan": "Nadia Pratiwi",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19317,7 +19317,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Nadia Pratiwi",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2065,
@@ -19360,7 +19360,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2067",
     "pelanggan": "Nafsi Rahmadianto",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19371,7 +19371,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Nafsi Rahmadianto",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2068,
@@ -19414,7 +19414,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2070",
     "pelanggan": "Muhammad Ardiansyah",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19425,7 +19425,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Muhammad Ardiansyah",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2071,
@@ -19468,7 +19468,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2073",
     "pelanggan": "Desi Kumalasari",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19479,7 +19479,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Desi Kumalasari",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2074,
@@ -19522,7 +19522,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2076",
     "pelanggan": "Mohammad Yunus",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19533,7 +19533,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Mohammad Yunus",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2077,
@@ -19576,7 +19576,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2079",
     "pelanggan": "Irma Ariyanti",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19587,7 +19587,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Irma Ariyanti",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2080,
@@ -19630,7 +19630,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2082",
     "pelanggan": "Karista Rendola",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19641,7 +19641,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Karista Rendola",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2083,
@@ -19666,7 +19666,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2084",
     "pelanggan": "Aidil Muhlis",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19677,7 +19677,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Aidil Muhlis",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2085,
@@ -19702,7 +19702,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2086",
     "pelanggan": "Suhaimi",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19713,7 +19713,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Suhaimi",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2087,
@@ -19738,7 +19738,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2088",
     "pelanggan": "Ali Wahyudi",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19749,7 +19749,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Ali Wahyudi",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2089,
@@ -19774,7 +19774,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2090",
     "pelanggan": "Dian",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19785,7 +19785,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Dian",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2091,
@@ -19810,7 +19810,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2092",
     "pelanggan": "Bandi Wahyudi",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19821,7 +19821,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Bandi Wahyudi",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2093,
@@ -19846,7 +19846,7 @@ export const pekerjaanList = [
     "spk_no": "SPK/DIS/20261022/2094",
     "pelanggan": "Syabirin",
     "jenis": "PEMUTUSAN",
-    "status": "SELESAI",
+    "status": "WAITING LIST",
     "prioritas": "NORMAL",
     "sesi": "PAGI",
     "tim": "Tim C",
@@ -19857,7 +19857,7 @@ export const pekerjaanList = [
     "alamat": "-",
     "tanggal": "2026-10-22",
     "keterangan": "Pemutusan & dismantle perangkat Syabirin",
-    "komisi_total": 5000
+    "komisi_total": 0
   },
   {
     "id": 2095,
@@ -27844,9 +27844,9 @@ export const summaryData = {
     "selesai": 251
   },
   "pemutusan": {
-    "waitingList": 0,
+    "waitingList": 101,
     "dijadwalkan": 0,
-    "selesai": 215,
+    "selesai": 114,
     "gagal": 0
   },
   "sumberLeads": {

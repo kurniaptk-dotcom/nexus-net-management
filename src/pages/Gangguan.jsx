@@ -19,7 +19,7 @@ import {
   RefreshCw,
   HardHat,
 } from "lucide-react";
-import { daftarGangguanList, odpOdcList, initialPelangganRadius, initialTimData } from "../data/mockData";
+import { daftarGangguanList, odpOdcList, initialPelangganRadius, initialTimData, pekerjaanList } from "../data/mockData";
 import { usePersistState } from "../hooks/usePersistState";
 import Toast from "../components/Toast";
 import DispatchTaskModal from "../components/DispatchTaskModal";
@@ -79,7 +79,7 @@ const KENDALA_PRESETS = [
 
 export default function Gangguan() {
   const [data, setData] = usePersistState("xnet_daftar_gangguan_v2", daftarGangguanList);
-  const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", []);
+  const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", pekerjaanList);
   const [odpList] = usePersistState("xnet_odpodc", odpOdcList);
   const [pelangganList] = usePersistState("xnet_pelanggan_radius", initialPelangganRadius);
   const [timList] = usePersistState("xnet_tim", initialTimData);

@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Radio, Wifi, WifiOff, RefreshCw, CheckCircle2, AlertCircle, Database, CloudUpload } from "lucide-react";
 import { useRealtimeStatus, usePersistState } from "../hooks/usePersistState";
 import { countPendingOfflinePhotos, flushPendingOfflineEvidence } from "../lib/offlineSyncQueue";
+import { pekerjaanList } from "../data/mockData";
 
 export default function RealtimeStatusBadge() {
   const { isOnline, overallStatus, activeChannelsCount, tableStatuses } = useRealtimeStatus();
-  const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", []);
+  const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", pekerjaanList);
   const [isSyncingOffline, setIsSyncingOffline] = useState(false);
   const [open, setOpen] = useState(false);
   const popoverRef = useRef(null);

@@ -293,15 +293,21 @@ function parseWorkbook(workbook, monthMeta, globalCounters) {
         const c = blocks[2].colNo;
         const disNama = r[c + 1] && typeof r[c + 1] === "string" ? r[c + 1].trim() : null;
         if (disNama && disNama.toLowerCase() !== "nama" && !disNama.toUpperCase().includes("TOTAL")) {
-          const start = excelDateToDate(r[c + 2] || r[c + 3], defaultDate);
+          const start = excelDateToDate(r[c + 2], defaultDate);
+          const finish = r[c + 3] ? excelDateToDate(r[c + 3], start) : null;
           const ket = r[c + 4] ? String(r[c + 4]).trim() : "";
+          // Check columns for Selesai / Dijadwalkan / No Progress
+          const isSelesai = finish !== null || r[c + 8] === 1;
+          const isDijadwalkan = r[c + 7] === 1;
+          const status = isSelesai ? "SELESAI" : isDijadwalkan ? "DIJADWALKAN" : "WAITING LIST";
+
           const taskId = ++globalCounters.taskId;
           result.pekerjaan.push({
             id: taskId,
             spk_no: `SPK/DIS/${start.replace(/-/g, "")}/${String(taskId).padStart(4, "0")}`,
             pelanggan: disNama,
             jenis: "PEMUTUSAN",
-            status: "SELESAI",
+            status,
             prioritas: "NORMAL",
             sesi: "PAGI",
             tim: tc.tim,
@@ -309,7 +315,7 @@ function parseWorkbook(workbook, monthMeta, globalCounters) {
             alamat: "-",
             tanggal: start,
             keterangan: ket || `Pemutusan & dismantle perangkat ${disNama}`,
-            komisi_total: 5000,
+            komisi_total: status === "SELESAI" ? 5000 : 0,
           });
         }
       }

@@ -5,7 +5,7 @@ import './index.css'
 import App from './App.jsx'
 
 // Auto-Migration & Data Sync: Muat dataset utuh 10 bulan (Januari - Oktober 2026)
-const CURRENT_DATA_VERSION = "20261023_v5_full_10_months_2026";
+const CURRENT_DATA_VERSION = "20261023_v6_full_10_months_data";
 if (typeof localStorage !== "undefined") {
   try {
     const savedVersion = localStorage.getItem("xnet_data_version");

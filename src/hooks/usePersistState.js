@@ -424,17 +424,10 @@ export function usePersistState(key, initialValue) {
       const saved = localStorage.getItem(key);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(initialValue) && initialValue.length === 0 && Array.isArray(parsed)) {
-          const isLegacyDemo = parsed.some(
-            (item) =>
-              (item.id >= 101 && item.id <= 110) ||
-              (item.id >= 201 && item.id <= 205) ||
-              (item.id >= 301 && item.id <= 304)
-          );
-          if (isLegacyDemo) {
-            localStorage.removeItem(key);
-            return [];
-          }
+        // Jika data di localStorage kosong padahal initialValue memiliki dataset riil (1.101 pekerjaan dll), prioritaskan initialValue!
+        if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(initialValue) && initialValue.length > 0) {
+          safeSetLocalStorage(key, initialValue);
+          return initialValue;
         }
         return parsed;
       }
@@ -479,29 +472,20 @@ export function usePersistState(key, initialValue) {
         const camelRows = rows.map(toCamel);
         
         setState((current) => {
-          // Jika Supabase kosong dan dataset awal memang kosong, bersihkan data demo lama
+          // Jika Supabase kosong (0 rows), JANGAN pernah mengosongkan data lokal/initialValue!
           if (camelRows.length === 0) {
-            if (Array.isArray(initialValue) && initialValue.length === 0) {
-              const isOldDemoData =
-                Array.isArray(current) &&
-                current.some(
-                  (item) =>
-                    (item.id >= 101 && item.id <= 110) ||
-                    (item.id >= 201 && item.id <= 205) ||
-                    (item.id >= 301 && item.id <= 304)
-                );
-              if (isOldDemoData) {
-                safeSetLocalStorage(key, []);
-                return [];
-              }
-            }
             if (Array.isArray(current) && current.length > 0) {
               safeSetLocalStorage(key, current);
               return current;
             }
-            safeSetLocalStorage(key, []);
-            return [];
+            if (Array.isArray(initialValue) && initialValue.length > 0) {
+              safeSetLocalStorage(key, initialValue);
+              return initialValue;
+            }
+            return current || [];
           }
+
+          const currentList = Array.isArray(current) ? current : [];
 
           // Keep only user-created pending items with timestamp IDs
           const localOnly = currentList.filter((r) => r.id >= 1000000000000);

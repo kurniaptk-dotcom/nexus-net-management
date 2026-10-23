@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import {
   leadsList,
+  pekerjaanList,
   sumberLeads,
   odpOdcList,
   initialPelangganRadius,
@@ -123,7 +124,7 @@ const statusOptions = ["BARU", "KONTAK", "DIJADWALKAN", "SELESAI", "BATAL"];
 export default function Leads() {
   const navigate = useNavigate();
   const [data, setData] = usePersistState("xnet_leads", leadsList);
-  const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", []);
+  const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", pekerjaanList);
   const [odpList] = usePersistState("xnet_odpodc", odpOdcList);
   const [pelangganList] = usePersistState("xnet_pelanggan_radius", initialPelangganRadius);
   const [timList] = usePersistState("xnet_tim", initialTimData);

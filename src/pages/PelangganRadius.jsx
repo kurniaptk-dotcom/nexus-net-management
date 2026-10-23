@@ -26,7 +26,7 @@ import {
   Edit2,
   Trash2,
 } from "lucide-react";
-import { initialPelangganRadius, initialTimData, odpOdcList } from "../data/mockData";
+import { initialPelangganRadius, initialTimData, odpOdcList, pekerjaanList } from "../data/mockData";
 import { usePersistState } from "../hooks/usePersistState";
 import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
@@ -44,7 +44,7 @@ export default function PelangganRadius() {
   );
 
   // State Pekerjaan Lapangan & Master Tim & ODP
-  const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", []);
+  const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", pekerjaanList);
   const [timList] = usePersistState("xnet_tim", initialTimData);
   const [odpList] = usePersistState("xnet_odpodc", odpOdcList);
 
