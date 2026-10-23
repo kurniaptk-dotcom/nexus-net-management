@@ -4,13 +4,13 @@ import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.jsx'
 
-// Auto-Migration: Menghapus cache demo lama di browser pengguna dan memuat dataset riil 118 pekerjaan
-const CURRENT_DATA_VERSION = "20261023_v3_real_118_jobs";
+// Auto-Migration & Clean Reset: Bersihkan seluruh data demo lama di browser
+const CURRENT_DATA_VERSION = "20261023_v4_wipe_clean";
 if (typeof localStorage !== "undefined") {
   try {
     const savedVersion = localStorage.getItem("xnet_data_version");
     if (savedVersion !== CURRENT_DATA_VERSION) {
-      console.log("🔄 [MIGRATION] Menghapus cache demo lama dan menerapkan dataset riil terbaru...");
+      console.log("🧹 [CLEANUP] Mengosongkan data lama di browser...");
       const keysToReset = [
         "xnet_pekerjaan",
         "xnet_leads",
@@ -19,9 +19,7 @@ if (typeof localStorage !== "undefined") {
         "xnet_pengajuan_pemutusan",
         "xnet_pelanggan_radius",
         "xnet_fu_pelanggan",
-        "xnet_redaman_tinggi",
-        "xnet_tim",
-        "xnet_personil"
+        "xnet_redaman_tinggi"
       ];
       keysToReset.forEach((k) => localStorage.removeItem(k));
       localStorage.setItem("xnet_data_version", CURRENT_DATA_VERSION);
@@ -29,6 +27,15 @@ if (typeof localStorage !== "undefined") {
   } catch (err) {
     console.warn("[MIGRATION ERROR]", err);
   }
+}
+
+// Unregister Service Worker caches jika ada versi lawas yang terkunci
+if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const reg of registrations) {
+      reg.update().catch(() => {});
+    }
+  });
 }
 
 // Register PWA service worker with auto-update / prompt

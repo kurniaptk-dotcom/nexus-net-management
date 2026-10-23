@@ -423,7 +423,20 @@ export function usePersistState(key, initialValue) {
     try {
       const saved = localStorage.getItem(key);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(initialValue) && initialValue.length === 0 && Array.isArray(parsed)) {
+          const isLegacyDemo = parsed.some(
+            (item) =>
+              (item.id >= 101 && item.id <= 110) ||
+              (item.id >= 201 && item.id <= 205) ||
+              (item.id >= 301 && item.id <= 304)
+          );
+          if (isLegacyDemo) {
+            localStorage.removeItem(key);
+            return [];
+          }
+        }
+        return parsed;
       }
       return initialValue;
     } catch {
@@ -466,17 +479,28 @@ export function usePersistState(key, initialValue) {
         const camelRows = rows.map(toCamel);
         
         setState((current) => {
-          const currentList = Array.isArray(current) && current.length > 0
-            ? current
-            : (Array.isArray(initialValue) && initialValue.length > 0 ? initialValue : []);
-
-          // JIKA data dari Supabase kosong (misal tabel belum di-seed atau RLS membatasi),
-          // JANGAN hapus data lokal! Pertahankan data lokal / demo yang sudah ada.
+          // Jika Supabase kosong dan dataset awal memang kosong, bersihkan data demo lama
           if (camelRows.length === 0) {
-            if (currentList.length > 0) {
-              safeSetLocalStorage(key, currentList);
+            if (Array.isArray(initialValue) && initialValue.length === 0) {
+              const isOldDemoData =
+                Array.isArray(current) &&
+                current.some(
+                  (item) =>
+                    (item.id >= 101 && item.id <= 110) ||
+                    (item.id >= 201 && item.id <= 205) ||
+                    (item.id >= 301 && item.id <= 304)
+                );
+              if (isOldDemoData) {
+                safeSetLocalStorage(key, []);
+                return [];
+              }
             }
-            return currentList;
+            if (Array.isArray(current) && current.length > 0) {
+              safeSetLocalStorage(key, current);
+              return current;
+            }
+            safeSetLocalStorage(key, []);
+            return [];
           }
 
           // Keep only user-created pending items with timestamp IDs

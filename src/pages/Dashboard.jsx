@@ -113,14 +113,14 @@ function getSystemTodayStr() {
 
 function StatCard({ icon: Icon, label, value, subtext, changeType = "up", bgColor, href }) {
   const content = (
-    <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-900/5 transition-all duration-300 group cursor-pointer relative overflow-hidden h-full flex flex-col justify-between active:scale-[0.98]">
-      <div className="flex items-start justify-between gap-2">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 2xl:p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-900/5 transition-all duration-300 group cursor-pointer relative overflow-hidden h-full flex flex-col justify-between active:scale-[0.98]">
+      <div className="flex items-start justify-between gap-1.5 sm:gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider truncate">{label}</p>
-          <p className="text-xl sm:text-3xl font-black text-slate-900 mt-0.5 sm:mt-1 tracking-tight truncate">{value}</p>
+          <p className="text-[10px] sm:text-[11px] 2xl:text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight line-clamp-1" title={label}>{label}</p>
+          <p className="text-lg sm:text-2xl 2xl:text-3xl font-black text-slate-900 mt-0.5 sm:mt-1 tracking-tight truncate" title={String(value)}>{value}</p>
           {subtext && (
             <div
-              className={`inline-flex items-center gap-1 mt-1.5 sm:mt-2 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full ${
+              className={`inline-flex items-center gap-1 mt-1.5 sm:mt-2 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full max-w-full ${
                 changeType === "up"
                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200/70"
                   : changeType === "down"
@@ -138,9 +138,9 @@ function StatCard({ icon: Icon, label, value, subtext, changeType = "up", bgColo
           )}
         </div>
         <div
-          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0 ${bgColor} group-hover:scale-105 shadow-md shadow-slate-900/10 transition-transform duration-300 ring-2 ring-white`}
+          className={`w-9 h-9 sm:w-11 sm:h-11 2xl:w-12 2xl:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${bgColor} group-hover:scale-105 shadow-md shadow-slate-900/10 transition-transform duration-300 ring-2 ring-white`}
         >
-          <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6 text-white" />
         </div>
       </div>
     </div>
@@ -650,7 +650,7 @@ export default function Dashboard() {
         "xnet_personil",
       ];
       keys.forEach((k) => localStorage.removeItem(k));
-      localStorage.setItem("xnet_data_version", "20261023_v3_real_118_jobs");
+      localStorage.setItem("xnet_data_version", "20261023_v4_wipe_clean");
       window.location.reload();
     } catch {}
   };
@@ -842,11 +842,11 @@ export default function Dashboard() {
 
             <button
               onClick={handleReloadLatestRealData}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-xl border border-amber-300 transition-colors cursor-pointer shadow-2xs shrink-0"
-              title="Bersihkan cache browser lama dan muat dataset riil 118 pekerjaan"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl border border-red-200 transition-colors cursor-pointer shadow-2xs shrink-0"
+              title="Bersihkan seluruh data lama & cache browser"
             >
-              <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
-              <span>Muat Data Real Baru</span>
+              <RotateCcw className="w-3.5 h-3.5 text-red-600" />
+              <span>Kosongkan Data / Reset Cache</span>
             </button>
           </div>
         </div>
@@ -974,7 +974,7 @@ export default function Dashboard() {
       </div>
 
       {/* 6 Dynamic Stat Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5 sm:gap-4">
         <StatCard
           icon={Wrench}
           label="Total Pekerjaan"
