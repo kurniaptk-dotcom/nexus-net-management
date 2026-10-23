@@ -210,6 +210,64 @@ test("Payroll Engine - calculates Take Home Pay with base salary, allowances, ta
   assert.ok(waMsg.includes("3.010.000"));
 });
 
+test("Personal Payroll Engine - generates individual pay slip per technician with personal bank details", async () => {
+  const { calculatePersonilPayroll, DEFAULT_PERSONIL_SALARY_PROFILES, generateWhatsAppSlipMessage } = await import("../src/lib/payroll.js");
+
+  const sampleTasks = [
+    {
+      id: 101,
+      tim: "Tim A",
+      teknisi_list: ["AIS", "Gatra"],
+      status: "SELESAI",
+      komisi_total: 25000,
+    },
+    {
+      id: 102,
+      tim: "Tim A",
+      teknisi_list: ["AIS", "Gatra"],
+      status: "SELESAI",
+      komisi_total: 35000,
+    },
+  ];
+
+  // 1. Hitung payroll personal untuk "Ais Maulana"
+  const aisPayroll = calculatePersonilPayroll({
+    personil: { id: 1, nama: "Ais Maulana", panggilan: "AIS", peran: "Installer / Field Tech", timNama: "Tim A" },
+    tasks: sampleTasks,
+    periodLabel: "Oktober 2026",
+  });
+
+  assert.equal(aisPayroll.atasNama, "Ais Maulana");
+  assert.equal(aisPayroll.nik, "TKN-001");
+  assert.equal(aisPayroll.rekeningBank, "BCA - 8450192831");
+  assert.equal(aisPayroll.gajiPokok, 2500000);
+  assert.equal(aisPayroll.totalKomisiTugas, 60000); // 25.000 + 35.000 (komisi utuh per personil)
+  assert.equal(aisPayroll.totalTunjangan, 650000); // Makan 300k + Transport 250k + Komunikasi 100k
+  assert.equal(aisPayroll.totalPotongan, 50000); // BPJS 50k
+  // Take Home Pay: 2.500.000 + 650.000 + 60.000 - 50.000 = 3.160.000
+  assert.equal(aisPayroll.takeHomePay, 3160000);
+  assert.ok(aisPayroll.slipNumber.startsWith("SLIP/AIS/"));
+
+  // 2. Hitung payroll personal untuk "Gatra Wicaksono"
+  const gatraPayroll = calculatePersonilPayroll({
+    personil: { id: 2, nama: "Gatra Wicaksono", panggilan: "Gatra", peran: "Splicer / Fiber Specialist", timNama: "Tim A" },
+    tasks: sampleTasks,
+    periodLabel: "Oktober 2026",
+  });
+
+  assert.equal(gatraPayroll.atasNama, "Gatra Wicaksono");
+  assert.equal(gatraPayroll.nik, "TKN-002");
+  assert.equal(gatraPayroll.rekeningBank, "BCA - 8450192832");
+  assert.equal(gatraPayroll.takeHomePay, 3160000);
+  assert.ok(gatraPayroll.slipNumber.startsWith("SLIP/GATR/"));
+
+  // 3. Pastikan pesan WhatsApp memuat NIK dan nama personal teknisi
+  const aisWa = generateWhatsAppSlipMessage(aisPayroll);
+  assert.ok(aisWa.includes("Ais Maulana"));
+  assert.ok(aisWa.includes("TKN-001"));
+  assert.ok(aisWa.includes("BCA - 8450192831"));
+});
+
 test("Personal Technician & Team Commission - full commission per person (not split 50-50)", async () => {
   const { calculateTeamIncentives } = await import("../src/lib/incentives.js");
 

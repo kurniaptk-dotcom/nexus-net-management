@@ -96,10 +96,12 @@ export default function SlipGajiModal({ payrollData, onClose }) {
             <div>
               <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Nama Penerima</span>
               <span className="font-bold text-slate-900 text-sm mt-0.5 block">{p.atasNama}</span>
+              {p.nik && <span className="text-[10px] text-slate-500 font-mono">NIK: {p.nik}</span>}
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Regu / Tim</span>
-              <span className="font-bold text-[#0D1B4A] text-sm mt-0.5 block">{p.timNama}</span>
+              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Jabatan & Tim</span>
+              <span className="font-bold text-[#0D1B4A] text-xs sm:text-sm mt-0.5 block">{p.peran || "Field Tech"}</span>
+              <span className="text-[10px] text-slate-500 font-semibold">{p.timNama}</span>
             </div>
             <div>
               <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Skema Gaji</span>
@@ -271,7 +273,7 @@ export default function SlipGajiModal({ payrollData, onClose }) {
             <div>
               <p className="text-slate-400 mb-14">Diterima oleh Teknisi:</p>
               <p className="font-bold text-slate-900 text-sm">{p.atasNama}</p>
-              <p className="text-[10px] text-slate-400">Field Technician ({p.timNama})</p>
+              <p className="text-[10px] text-slate-400">{p.peran || "Field Technician"} • {p.timNama}</p>
             </div>
           </div>
         </div>

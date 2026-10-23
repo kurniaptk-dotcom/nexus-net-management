@@ -64,7 +64,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { usePersistState, useRealtimeStatus } from "../hooks/usePersistState";
-import { pekerjaanList, initialTimData, odpOdcList, initialPelangganRadius } from "../data/mockData";
+import { pekerjaanList, initialTimData, odpOdcList, initialPelangganRadius, initialPersonilList, timList } from "../data/mockData";
 import {
   KOMISI_PEKERJAAN_MASTER,
   KOMISI_MAP,
@@ -87,7 +87,7 @@ import Toast from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import { formatPhoneWa as formatPhoneForWa } from "../lib/spkGenerator";
 import { createWhatsAppUrl } from "../lib/whatsapp";
-import { calculateTeamPayroll } from "../lib/payroll";
+import { calculateTeamPayroll, calculatePersonilPayroll } from "../lib/payroll";
 import SlipGajiModal from "../components/SlipGajiModal";
 import {
   getRemainingTimeToCutoff,
@@ -234,10 +234,50 @@ export default function TeknisiDashboard() {
   const isTechnician = profile?.role === "teknisi" || (profile?.role !== "admin" && Boolean(profile?.tim));
   const isSupervisor = profile?.role === "admin" || profile?.role === "user";
 
-  // Tim Aktif
-  const assignedTeam = profile?.tim || "GATRA - AIS";
-  const [selectedTeam, setSelectedTeam] = usePersistState("xnet_active_tech_team", assignedTeam);
-  const activeTeam = isTechnician && profile?.tim ? profile.tim : selectedTeam;
+  // Master Data Personil Teknisi Perorangan (Individu)
+  const [personilList] = usePersistState("xnet_personil", initialPersonilList);
+
+  // Auto-detect teknisi yang login berdasarkan email atau nama akun
+  const loggedInPersonil = useMemo(() => {
+    if (!profile) return null;
+    const email = (profile.email || "").toLowerCase();
+    const name = (profile.full_name || profile.nama || "").toLowerCase();
+    return (
+      personilList.find(
+        (p) =>
+          (email && email.includes(p.panggilan.toLowerCase())) ||
+          (name && name.includes(p.panggilan.toLowerCase())) ||
+          (name && p.nama.toLowerCase().includes(name))
+      ) || null
+    );
+  }, [profile, personilList]);
+
+  // Personil yang aktif ditinjau (default ke Ais Maulana ID: 1 atau personil yang login)
+  const defaultPersonilId = loggedInPersonil ? loggedInPersonil.id : 1;
+  const [selectedPersonilId, setSelectedPersonilId] = usePersistState("xnet_active_tech_personil_id", defaultPersonilId);
+
+  // Active Personil: Jika user adalah teknisi yang terautentikasi, kunci ke dirinya; jika admin/supervisor, ikuti selectedPersonilId
+  const activePersonil = useMemo(() => {
+    if (isTechnician && loggedInPersonil) return loggedInPersonil;
+    return personilList.find((p) => p.id === Number(selectedPersonilId)) || personilList[0] || initialPersonilList[0];
+  }, [isTechnician, loggedInPersonil, selectedPersonilId, personilList]);
+
+  // Tim & Partner dari Personil Aktif
+  const activePersonilTeamObj = useMemo(() => {
+    return timList.find((t) => t.id === activePersonil?.timId || t.nama === activePersonil?.timNama) || timList[0];
+  }, [activePersonil]);
+
+  const partnerPersonil = useMemo(() => {
+    if (!activePersonil) return null;
+    return (
+      personilList.find(
+        (p) => (p.timId === activePersonil.timId || p.timNama === activePersonil.timNama) && p.id !== activePersonil.id
+      ) || null
+    );
+  }, [activePersonil, personilList]);
+
+  // Tim Aktif Lapangan (Tersinkronisasi untuk SPK & Kanban)
+  const activeTeam = activePersonilTeamObj?.alias || activePersonilTeamObj?.nama || activePersonil?.timNama || "GATRA - AIS";
 
   // View Mode: DASHBOARD | KANBAN | LIST | ODP_TOOL | WALLET
   const [viewMode, setViewMode] = usePersistState("xnet_active_tech_view_mode", "DASHBOARD");
@@ -465,33 +505,43 @@ export default function TeknisiDashboard() {
     return "Semua Periode";
   }, [walletPeriod, cutoffStart, cutoffEnd]);
 
-  // Filter tugas untuk tim aktif
+  // Filter tugas untuk tim aktif (Sinkronisasi Tim: seluruh tugas Tim A tampil untuk Ais & Gatra)
   const teamTasks = useMemo(() => {
-    if (activeTeam === "ALL") return pekerjaan;
-    return pekerjaan.filter((p) => (p.tim || "").toUpperCase() === activeTeam.toUpperCase());
-  }, [pekerjaan, activeTeam]);
+    const timNama = (activePersonil?.timNama || "Tim A").toUpperCase();
+    const timAlias = (activePersonilTeamObj?.alias || "GATRA - AIS").toUpperCase();
+    return pekerjaan.filter((p) => {
+      const pt = (p.tim || "").toUpperCase().trim();
+      return (
+        pt === timNama ||
+        pt === timAlias ||
+        (timNama === "TIM A" && (pt.includes("GATRA") || pt.includes("AIS") || pt === "TIM A")) ||
+        (timNama === "TIM B" && (pt.includes("JUSMAN") || pt.includes("IQBAL") || pt === "TIM B")) ||
+        (timNama === "TIM C" && (pt.includes("AZWAR") || pt.includes("RIO") || pt === "TIM C"))
+      );
+    });
+  }, [pekerjaan, activePersonil, activePersonilTeamObj]);
 
   // Tugas yang memerlukan revisi dari SPV (revisi_catatan && status !== 'SELESAI')
   const revisionTasks = useMemo(() => {
     return teamTasks.filter((t) => Boolean(t.revisi_catatan) && t.status !== "SELESAI");
   }, [teamTasks]);
 
-  // Perhitungan insentif otomatis tim aktif sesuai cut-off periode dompet
+  // Perhitungan insentif otomatis personil aktif sesuai cut-off periode dompet
   const teamIncentives = useMemo(() => {
-    return calculateTeamIncentives(walletFilteredTasks, activeTeam, incentiveConfig, masterKomisi);
-  }, [walletFilteredTasks, activeTeam, incentiveConfig, masterKomisi]);
+    const targetKey = activePersonil?.panggilan || activePersonil?.nama || activeTeam;
+    return calculateTeamIncentives(walletFilteredTasks, targetKey, incentiveConfig, masterKomisi);
+  }, [walletFilteredTasks, activePersonil, activeTeam, incentiveConfig, masterKomisi]);
 
-  // Perhitungan slip gaji resmi tim aktif
+  // Perhitungan slip gaji resmi personil aktif
   const technicianPayrollData = useMemo(() => {
-    const targetTeam = activeTeam === "ALL" ? (profile?.tim || "GATRA - AIS") : activeTeam;
-    return calculateTeamPayroll({
-      timNama: targetTeam,
+    return calculatePersonilPayroll({
+      personil: activePersonil,
       tasks: walletFilteredTasks,
       periodLabel: walletPeriodLabel,
       config: incentiveConfig,
       masterList: masterKomisi,
     });
-  }, [activeTeam, profile, walletFilteredTasks, walletPeriodLabel, incentiveConfig, masterKomisi]);
+  }, [activePersonil, walletFilteredTasks, walletPeriodLabel, incentiveConfig, masterKomisi]);
 
   // Pencarian
   const searchedTasks = useMemo(() => {
@@ -1608,22 +1658,84 @@ export default function TeknisiDashboard() {
             </div>
 
             <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-              {/* Sisi Kiri: Greeting & Quick Action Buttons */}
+              {/* Sisi Kiri: Ranah Personal Teknisi (Identitas, Status Siaga & Mode Supervisi) */}
               <div className="space-y-3 max-w-xl">
-                <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                    DASHBOARD
-                  </span>
-                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                    Halo, {profile?.full_name || "Demo Admin"}! 👋
-                  </h1>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {profile?.role === "admin"
-                      ? "Anda login sebagai Administrator (Mode Supervisi Global)."
-                      : profile?.role === "user"
-                      ? "Anda login sebagai Operator (Mode Supervisi Operasional)."
-                      : `Anda login sebagai Teknisi Lapangan Tim ${activeTeam}.`}
-                  </p>
+                <div className="flex items-start gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#0D1B4A] to-blue-600 text-white flex items-center justify-center font-black text-xl shadow-md shrink-0 border border-blue-400/30">
+                    {activePersonil?.nama ? activePersonil.nama.charAt(0) : "T"}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200">
+                        {activePersonil?.peran || "Teknisi Lapangan"}
+                      </span>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                        NIK: {activePersonil?.nik || `TKN-00${activePersonil?.id || 1}`}
+                      </span>
+                      {isSupervisor && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-300">
+                          Supervisi Admin
+                        </span>
+                      )}
+                    </div>
+                    <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                      Halo, {activePersonil?.nama || profile?.full_name || "Teknisi"}! 👋
+                    </h1>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {isSupervisor
+                        ? `Mode Supervisi: Anda sedang meninjau portal personal ${activePersonil?.nama} (${activePersonilTeamObj?.nama || activeTeam}).`
+                        : `Selamat bertugas di lapangan. Utamakan kepatuhan SOP K3 dan mutu redaman OPM.`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Personil Switcher untuk Mode Supervisi Admin */}
+                {isSupervisor && (
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-blue-50/70 border border-blue-200/80 w-fit flex-wrap">
+                    <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-blue-600" />
+                      Melihat Personil:
+                    </span>
+                    <div className="relative inline-block">
+                      <select
+                        value={activePersonil?.id || 1}
+                        onChange={(e) => setSelectedPersonilId(Number(e.target.value))}
+                        className="text-xs font-black text-blue-900 bg-white px-3 py-1.5 pr-7 rounded-lg border border-blue-300 shadow-2xs outline-none cursor-pointer appearance-none font-sans hover:border-blue-500 transition-colors"
+                      >
+                        {personilList.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            👷 {p.nama} ({p.timNama} - {p.peran})
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-blue-600 pointer-events-none absolute right-2 top-1/2 -translate-y-1/2" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Status Siaga Kerja Pribadi (Personal Duty Presence) */}
+                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                  <span className="text-[11px] font-bold text-slate-600">Status Kehadiran:</span>
+                  <div className="inline-flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/80">
+                    {Object.values(DUTY_STATUS_MAP).map((ds) => (
+                      <button
+                        key={ds.key}
+                        type="button"
+                        onClick={() => {
+                          setDutyStatus(ds.key);
+                          triggerToast(`Status siaga ${activePersonil?.panggilan || "Anda"}: ${ds.label}`, "info");
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                          dutyStatus === ds.key
+                            ? "bg-white text-slate-900 shadow-xs"
+                            : "text-slate-500 hover:text-slate-800"
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${ds.dot}`} />
+                        <span>{ds.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* 3 Quick Action Field Toolkit Buttons */}
@@ -1657,46 +1769,44 @@ export default function TeknisiDashboard() {
                 </div>
               </div>
 
-              {/* Sisi Kanan: Kartu Info Tim & Shift */}
-              <div className="bg-slate-50/90 sm:bg-white/95 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs min-w-[240px] sm:min-w-[260px] space-y-3 self-start lg:self-auto">
-                {/* Selector / Info Tim */}
+              {/* Sisi Kanan: Kartu Ranah Tim (Tersinkronisasi Lapangan) */}
+              <div className="bg-slate-50/90 sm:bg-white/95 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs min-w-[260px] sm:min-w-[280px] space-y-3 self-start lg:self-auto">
+                {/* Info Tim & Partner Lapangan */}
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
                       <Users className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold leading-tight">Tim Lapangan</span>
-                      <div className="relative">
-                        {isSupervisor && !isTechnician ? (
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs font-bold text-slate-800">Tim:</span>
-                            <select
-                              value={activeTeam}
-                              onChange={(e) => setSelectedTeam(e.target.value)}
-                              className="text-xs font-black text-slate-900 bg-transparent pr-4 outline-none cursor-pointer hover:text-blue-600 appearance-none font-sans"
-                            >
-                              <option value="GATRA - AIS">GATRA - AIS</option>
-                              <option value="AZWAR - RIO">AZWAR - RIO</option>
-                              {teamMasterList
-                                .filter((t) => t.nama !== "GATRA - AIS" && t.nama !== "AZWAR - RIO")
-                                .map((t) => (
-                                  <option key={t.id || t.nama} value={t.nama}>
-                                    {t.nama}
-                                  </option>
-                                ))}
-                            </select>
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs font-black bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <span>Tim {activeTeam} (Terkunci)</span>
-                          </span>
-                        )}
-                      </div>
+                      <span className="text-[10px] text-slate-400 block font-semibold leading-tight">Regu Lapangan (Tim)</span>
+                      <span className="text-xs font-black text-slate-900 block mt-0.5">
+                        {activePersonilTeamObj?.nama || activePersonil?.timNama || "Tim A"} ({activePersonilTeamObj?.alias || activeTeam})
+                      </span>
                     </div>
                   </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
+                    Tersinkron
+                  </span>
+                </div>
+
+                {/* Partner Tim (Rekan Kerja Duo) */}
+                <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold leading-tight">Partner Lapangan</span>
+                      <span className="text-xs font-black text-slate-800">
+                        {partnerPersonil ? partnerPersonil.nama : "Mandiri / Solo"}
+                      </span>
+                    </div>
+                  </div>
+                  {partnerPersonil && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                      {partnerPersonil.panggilan}
+                    </span>
+                  )}
                 </div>
 
                 {/* Shift Lapangan */}
@@ -2651,12 +2761,21 @@ export default function TeknisiDashboard() {
                   <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
                     <Wallet className="w-4 h-4" />
                   </div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                    Dompet & Insentif Tim: <span className="text-[#F59E0B]">{activeTeam}</span>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-2 flex-wrap">
+                    <span>Dompet & Insentif Pribadi:</span>
+                    <span className="text-[#F59E0B]">{activePersonil?.nama || activeTeam}</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200">
+                      {activePersonilTeamObj?.nama || activeTeam}
+                    </span>
+                    {activePersonil?.nik && (
+                      <span className="text-xs font-mono font-semibold text-slate-500">
+                        NIK: {activePersonil.nik}
+                      </span>
+                    )}
                   </h3>
                 </div>
                 <p className="text-xs sm:text-sm text-slate-500">
-                  Akumulasi fee pokok pekerjaan, bonus redaman optik prima, dan bonus target kinerja bulanan.
+                  Akumulasi fee pokok pekerjaan, bonus redaman optik prima, dan bonus target kinerja bulanan untuk personil bersangkutan.
                 </p>
               </div>
 
@@ -2679,7 +2798,7 @@ export default function TeknisiDashboard() {
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#0D1B4A] hover:bg-[#1a237e] text-white shadow-xs transition-all cursor-pointer"
                 >
                   <Printer className="w-4 h-4 text-amber-400" />
-                  <span>Cetak Slip Insentif</span>
+                  <span>Cetak Slip Gaji Resmi</span>
                 </button>
               </div>
             </div>
