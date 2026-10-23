@@ -635,6 +635,26 @@ export default function Dashboard() {
     window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key: "xnet_pekerjaan", value: pekerjaanData } }));
   };
 
+  const handleReloadLatestRealData = () => {
+    try {
+      const keys = [
+        "xnet_pekerjaan",
+        "xnet_leads",
+        "xnet_gangguan",
+        "xnet_daftar_gangguan_v2",
+        "xnet_pengajuan_pemutusan",
+        "xnet_pelanggan_radius",
+        "xnet_fu_pelanggan",
+        "xnet_redaman_tinggi",
+        "xnet_tim",
+        "xnet_personil",
+      ];
+      keys.forEach((k) => localStorage.removeItem(k));
+      localStorage.setItem("xnet_data_version", "20261023_v3_real_118_jobs");
+      window.location.reload();
+    } catch {}
+  };
+
   return (
     <div className="space-y-6">
       {/* Unified Minimalist Header & Filter Bar (1 Baris) */}
@@ -814,10 +834,19 @@ export default function Dashboard() {
             <button
               onClick={handleRefresh}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 transition-colors cursor-pointer shadow-2xs shrink-0"
-              title="Segarkan Sinkronisasi"
+              title="Segarkan Tampilan"
             >
               <RefreshCw className="w-3.5 h-3.5 text-gray-500" />
               <span className="hidden sm:inline">Segarkan</span>
+            </button>
+
+            <button
+              onClick={handleReloadLatestRealData}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-xl border border-amber-300 transition-colors cursor-pointer shadow-2xs shrink-0"
+              title="Bersihkan cache browser lama dan muat dataset riil 118 pekerjaan"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+              <span>Muat Data Real Baru</span>
             </button>
           </div>
         </div>

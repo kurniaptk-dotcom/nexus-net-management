@@ -81,7 +81,7 @@ function exportToJSON(data, filename) {
   URL.revokeObjectURL(url);
 }
 
-async function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odpData, masterKomisi, filename, periodLabel) {
+async function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timData, odpData, masterKomisi, filename, periodLabel, pengajuanData = []) {
   const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
 
@@ -217,7 +217,7 @@ async function exportToExcel(pekerjaanData, leadsData, gangguanDataState, timDat
   })));
   XLSX.utils.book_append_sheet(wb, wsRedaman, "Redaman Tinggi");
 
-  const wsPengajuan = XLSX.utils.json_to_sheet(pengajuanPemutusanList.map((p) => ({
+  const wsPengajuan = XLSX.utils.json_to_sheet((pengajuanData || []).map((p) => ({
     ID: p.id, Nama: p.nama, Kontak: p.kontak, Alasan: p.alasan, Tanggal: p.tanggal,
   })));
   XLSX.utils.book_append_sheet(wb, wsPengajuan, "Pengajuan Pemutusan");
@@ -256,6 +256,7 @@ export default function Laporan() {
   const [pekerjaanData] = usePersistState("xnet_pekerjaan", pekerjaanList);
   const [leadsData] = usePersistState("xnet_leads", leadsList);
   const [gangguanDataState] = usePersistState("xnet_daftar_gangguan_v2", daftarGangguanList);
+  const [pengajuanData] = usePersistState("xnet_pengajuan_pemutusan", pengajuanPemutusanList);
   const [timData] = usePersistState("xnet_tim", initialTimData);
   const [odpData] = usePersistState("xnet_odpodc", odpOdcList);
   const [masterKomisi] = usePersistState("xnet_master_komisi", MASTER_KOMISI_ITEMS);
@@ -385,7 +386,8 @@ export default function Laporan() {
         odpData,
         masterKomisi,
         `laporan-${periodSlug}.xlsx`,
-        periodLabel
+        periodLabel,
+        pengajuanData
       );
       setToast({ type: "success", message: `Laporan Excel ${periodLabel} berhasil diekspor!` });
     } catch (err) {
@@ -862,7 +864,7 @@ export default function Laporan() {
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-gray-800">Pengajuan Pemutusan</h3>
-            <p className="text-xs text-gray-400 mt-0.5">{pengajuanPemutusanList.length} pengajuan</p>
+            <p className="text-xs text-gray-400 mt-0.5">{(pengajuanData || []).length} pengajuan</p>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -877,15 +879,23 @@ export default function Laporan() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {pengajuanPemutusanList.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-5 py-3 text-gray-400 font-medium">{p.id}</td>
-                  <td className="px-5 py-3 font-semibold text-gray-800">{p.nama}</td>
-                  <td className="px-5 py-3 text-gray-500 font-mono text-xs">{p.kontak}</td>
-                  <td className="px-5 py-3 text-gray-600">{p.alasan || <span className="text-gray-300">-</span>}</td>
-                  <td className="px-5 py-3 text-gray-500 font-medium">{p.tanggal}</td>
+              {(pengajuanData || []).length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-5 py-6 text-center text-xs text-gray-400">
+                    Belum ada data pengajuan pemutusan
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                pengajuanData.map((p) => (
+                  <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-5 py-3 text-gray-400 font-medium">{p.id}</td>
+                    <td className="px-5 py-3 font-semibold text-gray-800">{p.nama}</td>
+                    <td className="px-5 py-3 text-gray-500 font-mono text-xs">{p.kontak}</td>
+                    <td className="px-5 py-3 text-gray-600">{p.alasan || <span className="text-gray-300">-</span>}</td>
+                    <td className="px-5 py-3 text-gray-500 font-medium">{p.tanggal}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -896,7 +906,7 @@ export default function Laporan() {
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-gray-800">Daftar Gangguan (Detail)</h3>
-            <p className="text-xs text-gray-400 mt-0.5">{daftarGangguanList.length} gangguan tercatat</p>
+            <p className="text-xs text-gray-400 mt-0.5">{(gangguanDataState || []).length} gangguan tercatat</p>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -913,29 +923,37 @@ export default function Laporan() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {daftarGangguanList.map((g) => (
-                <tr key={g.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-5 py-3 text-gray-400 font-medium">{g.id}</td>
-                  <td className="px-5 py-3 font-semibold text-gray-800">{g.nama}</td>
-                  <td className="px-5 py-3 text-gray-600">{g.keterangan || <span className="text-gray-300">-</span>}</td>
-                  <td className="px-5 py-3 text-gray-500 font-mono text-xs">{g.kontak || <span className="text-gray-300">-</span>}</td>
-                  <td className="px-5 py-3 text-gray-500 font-medium">{g.tanggalMulai}</td>
-                  <td className="px-5 py-3 text-gray-500 font-medium">{g.followUp || <span className="text-gray-300">-</span>}</td>
-                  <td className="px-5 py-3">
-                    {g.hasilFU ? (
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                        g.hasilFU === "Aman" ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                          : g.hasilFU === "Bermasalah" ? "bg-red-50 text-red-700 ring-1 ring-red-200"
-                          : "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
-                      }`}>
-                        {g.hasilFU}
-                      </span>
-                    ) : (
-                      <span className="text-gray-300 text-xs">-</span>
-                    )}
+              {(gangguanDataState || []).length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-6 text-center text-xs text-gray-400">
+                    Belum ada data gangguan tercatat
                   </td>
                 </tr>
-              ))}
+              ) : (
+                gangguanDataState.map((g) => (
+                  <tr key={g.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-5 py-3 text-gray-400 font-medium">{g.id}</td>
+                    <td className="px-5 py-3 font-semibold text-gray-800">{g.nama}</td>
+                    <td className="px-5 py-3 text-gray-600">{g.keterangan || <span className="text-gray-300">-</span>}</td>
+                    <td className="px-5 py-3 text-gray-500 font-mono text-xs">{g.kontak || <span className="text-gray-300">-</span>}</td>
+                    <td className="px-5 py-3 text-gray-500 font-medium">{g.tanggalMulai}</td>
+                    <td className="px-5 py-3 text-gray-500 font-medium">{g.followUp || <span className="text-gray-300">-</span>}</td>
+                    <td className="px-5 py-3">
+                      {g.hasilFU ? (
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                          g.hasilFU === "Aman" ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                            : g.hasilFU === "Bermasalah" ? "bg-red-50 text-red-700 ring-1 ring-red-200"
+                            : "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
+                        }`}>
+                          {g.hasilFU}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 text-xs">-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

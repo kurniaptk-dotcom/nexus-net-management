@@ -423,11 +423,7 @@ export function usePersistState(key, initialValue) {
     try {
       const saved = localStorage.getItem(key);
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(initialValue) && initialValue.length > 0) {
-          return initialValue;
-        }
-        return parsed;
+        return JSON.parse(saved);
       }
       return initialValue;
     } catch {

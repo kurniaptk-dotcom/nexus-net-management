@@ -5,77 +5,77 @@ export const bulan = new Date().toLocaleDateString("id-ID", { month: "long", yea
 // Master Personil Teknisi Perorangan (Individu)
 export const initialPersonilList = [
   {
-    id: 1,
-    nama: "Ais Maulana",
-    panggilan: "AIS",
-    telepon: "081234567890",
-    peran: "Installer / Field Tech",
-    timId: 1,
-    timNama: "Tim A",
-    status: "AKTIF",
-    total_selesai: 6,
-    total_komisi: 104000,
+    "id": 1,
+    "nama": "Ais Maulana",
+    "panggilan": "AIS",
+    "telepon": "081234567890",
+    "peran": "Installer / Field Tech",
+    "timId": 1,
+    "timNama": "Tim A",
+    "status": "AKTIF",
+    "total_selesai": 36,
+    "total_komisi": 364000
   },
   {
-    id: 2,
-    nama: "Gatra Wicaksono",
-    panggilan: "Gatra",
-    telepon: "081234567891",
-    peran: "Splicer / Fiber Specialist",
-    timId: 1,
-    timNama: "Tim A",
-    status: "AKTIF",
-    total_selesai: 6,
-    total_komisi: 104000,
+    "id": 2,
+    "nama": "Gatra Wicaksono",
+    "panggilan": "Gatra",
+    "telepon": "081234567891",
+    "peran": "Splicer / Fiber Specialist",
+    "timId": 1,
+    "timNama": "Tim A",
+    "status": "AKTIF",
+    "total_selesai": 36,
+    "total_komisi": 364000
   },
   {
-    id: 3,
-    nama: "Jusman",
-    panggilan: "Jusman",
-    telepon: "081298765432",
-    peran: "Team Leader / Field Tech",
-    timId: 2,
-    timNama: "Tim B",
-    status: "AKTIF",
-    total_selesai: 4,
-    total_komisi: 68500,
+    "id": 3,
+    "nama": "Jusman",
+    "panggilan": "Jusman",
+    "telepon": "081298765432",
+    "peran": "Team Leader / Field Tech",
+    "timId": 2,
+    "timNama": "Tim B",
+    "status": "AKTIF",
+    "total_selesai": 35,
+    "total_komisi": 334000
   },
   {
-    id: 4,
-    nama: "Iqbal Ramadhan",
-    panggilan: "Iqbal",
-    telepon: "081298765433",
-    peran: "Installer / Field Tech",
-    timId: 2,
-    timNama: "Tim B",
-    status: "AKTIF",
-    total_selesai: 4,
-    total_komisi: 68500,
+    "id": 4,
+    "nama": "Iqbal Ramadhan",
+    "panggilan": "Iqbal",
+    "telepon": "081298765433",
+    "peran": "Installer / Field Tech",
+    "timId": 2,
+    "timNama": "Tim B",
+    "status": "AKTIF",
+    "total_selesai": 35,
+    "total_komisi": 334000
   },
   {
-    id: 5,
-    nama: "Azwar",
-    panggilan: "Azwar",
-    telepon: "08125556677",
-    peran: "Specialist ODP/ODC",
-    timId: 3,
-    timNama: "Tim C",
-    status: "AKTIF",
-    total_selesai: 2,
-    total_komisi: 35000,
+    "id": 5,
+    "nama": "Azwar",
+    "panggilan": "Azwar",
+    "telepon": "08125556677",
+    "peran": "Specialist ODP/ODC",
+    "timId": 3,
+    "timNama": "Tim C",
+    "status": "AKTIF",
+    "total_selesai": 37,
+    "total_komisi": 361500
   },
   {
-    id: 6,
-    nama: "Rio Saputra",
-    panggilan: "Rio",
-    telepon: "08125556678",
-    peran: "Field Technician",
-    timId: 3,
-    timNama: "Tim C",
-    status: "AKTIF",
-    total_selesai: 2,
-    total_komisi: 35000,
-  },
+    "id": 6,
+    "nama": "Rio Saputra",
+    "panggilan": "Rio",
+    "telepon": "08125556678",
+    "peran": "Field Technician",
+    "timId": 3,
+    "timNama": "Tim C",
+    "status": "AKTIF",
+    "total_selesai": 37,
+    "total_komisi": 361500
+  }
 ];
 
 // Master Regu Tim (Pengelompokan Teknisi)
@@ -137,637 +137,3360 @@ export const kategoriGangguan = [
   "Pusat",
 ];
 
-// Data awal master tim
 export const initialTimData = timList;
 
-// Data pekerjaan detail untuk tabel dan kanban
+// Data operasional detail (Hasil Impor Spreadsheet Terbaru)
 export const pekerjaanList = [
   {
-    id: 101,
-    spk_no: "SPK/PSB/202610/0041",
-    pelanggan: "Rudianto Saputra",
-    jenis: "PEMASANGAN",
-    status: "WAITING LIST",
-    prioritas: "TINGGI",
-    sesi: "PAGI",
-    tim: "Tim A",
-    teknisi_list: ["AIS", "Gatra"],
-    alamat: "Jl. Danau Sentarum No. 45, Pontianak",
-    odp: "ODP 1.1",
-    port: "Port 3",
-    telepon: "081234567811",
-    tanggal: "2026-10-10",
-    keterangan: "Pasang baru paket Home Fiber 30 Mbps, jalur tiang aman",
-    komisi_items: [
-      { id: "tarik_pelanggan_baru", qty: 85 },
-      { id: "pasang_modem", qty: 1 },
-      { id: "setting_modem", qty: 1 },
+    "id": 1001,
+    "spk_no": "SPK/PSB/20260829/1001",
+    "pelanggan": "Aris Aprianto",
+    "jenis": "PEMASANGAN",
+    "status": "WAITING LIST",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
     ],
-    komisi_total: 16500,
+    "alamat": "Jl. Adisucipto",
+    "tanggal": "2026-08-29",
+    "keterangan": "Pemasangan baru Aris Aprianto",
+    "komisi_total": 0
   },
   {
-    id: 102,
-    spk_no: "SPK/RPR/202610/0042",
-    pelanggan: "Ratna Sari",
-    jenis: "PERBAIKAN",
-    status: "WAITING LIST",
-    prioritas: "URGENT",
-    sesi: "PAGI",
-    tim: "Tim B",
-    teknisi_list: ["Jusman", "Iqbal"],
-    alamat: "Gg. Cendrawasih No. 12, Pontianak",
-    odp: "ODP 1.4",
-    port: "Port 2",
-    telepon: "081398765422",
-    tanggal: "2026-10-10",
-    keterangan: "LOS lampu merah berkedip, kabel dropcore tertimpa dahan pohon",
-    komisi_items: [
-      { id: "sambung_kabel", qty: 1 },
-      { id: "perbaikan_fastcont", qty: 1 },
+    "id": 1002,
+    "spk_no": "SPK/RPR/20260908/1002",
+    "pelanggan": "Deviana Aida Rahim",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
     ],
-    komisi_total: 8500,
+    "alamat": "-",
+    "tanggal": "2026-09-08",
+    "keterangan": "Pemindahan",
+    "komisi_total": 8500
   },
   {
-    id: 100,
-    spk_no: "SPK/PSB/202610/0040",
-    pelanggan: "Bpk. Suryadi (Menunggu Validasi)",
-    jenis: "PEMASANGAN",
-    status: "MENUNGGU VALIDASI",
-    prioritas: "TINGGI",
-    sesi: "PAGI",
-    tim: "Tim A",
-    teknisi_list: ["AIS", "Gatra"],
-    alamat: "Jl. Putri Candramidi No. 18, Pontianak",
-    odp: "ODP 1.1",
-    port: "Port 5",
-    telepon: "081234567899",
-    tanggal: "2026-10-10",
-    redaman: "-19.1",
-    sn_modem: "ZTEGC9921820",
-    foto_bukti_utama: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80",
-    waktu_lapor: "2026-10-10T11:45:00Z",
-    waktu_selesai: "2026-10-10T11:45:00Z",
-    keterangan: "Laporan 1 Foto Lapangan terunggah. Menunggu verifikasi SPV & persetujuan komisi.",
-    komisi_items: [
-      { id: "tarik_pelanggan_baru", qty: 90 },
-      { id: "pasang_modem", qty: 1 },
-      { id: "setting_modem", qty: 1 },
+    "id": 1003,
+    "spk_no": "SPK/DIS/20260922/1003",
+    "pelanggan": "Samsudin",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
     ],
-    komisi_total: 17000,
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Samsudin",
+    "komisi_total": 5000
   },
   {
-    id: 103,
-    spk_no: "SPK/PSB/202610/0038",
-    pelanggan: "Hendra Gunawan",
-    jenis: "PEMASANGAN",
-    status: "DIJADWALKAN",
-    prioritas: "NORMAL",
-    sesi: "SIANG",
-    tim: "Tim A",
-    teknisi_list: ["AIS", "Gatra"],
-    alamat: "Jl. Gajah Mada No. 110, Pontianak",
-    odp: "ODP 1.2",
-    port: "Port 4",
-    telepon: "082155667733",
-    tanggal: "2026-10-10",
-    keterangan: "Teknisi sedang menuju lokasi pengerjaan",
-    komisi_items: [
-      { id: "tarik_pelanggan_baru", qty: 110 },
-      { id: "pasang_modem", qty: 1 },
-      { id: "setting_modem", qty: 1 },
+    "id": 1004,
+    "spk_no": "SPK/PSB/20260904/1004",
+    "pelanggan": "Raja Faizal Lubis",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
     ],
-    komisi_total: 19000,
+    "alamat": "Jl. Angkasa Pura 2",
+    "tanggal": "2026-09-04",
+    "keterangan": "Pemasangan baru Raja Faizal Lubis",
+    "komisi_total": 18000
   },
   {
-    id: 104,
-    spk_no: "SPK/SPL/202610/0039",
-    pelanggan: "Distribusi Sinyal Gang 4",
-    jenis: "PERBAIKAN KHUSUS (ODP/ODC)",
-    status: "DIJADWALKAN",
-    prioritas: "TINGGI",
-    sesi: "SIANG",
-    tim: "Tim C",
-    teknisi_list: ["Azwar", "Rio"],
-    alamat: "Jl. H.R. A Rahman Tiang 14",
-    odp: "ODP 2.1",
-    telepon: "08125556677",
-    tanggal: "2026-10-10",
-    keterangan: "Perbaikan dan perapian konektor tiang ODP",
-    komisi_items: [
-      { id: "perbaikan_odp_odc", qty: 1 },
+    "id": 1005,
+    "spk_no": "SPK/RPR/20260909/1005",
+    "pelanggan": "Dian Pribiri",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
     ],
-    komisi_total: 10000,
+    "alamat": "-",
+    "tanggal": "2026-09-09",
+    "keterangan": "Perbaikan koneksi Dian Pribiri",
+    "komisi_total": 8500
   },
   {
-    id: 105,
-    spk_no: "SPK/PSB/202610/0031",
-    pelanggan: "Budi Santoso",
-    jenis: "PEMASANGAN",
-    status: "SELESAI",
-    tim: "Tim A",
-    teknisi_list: ["AIS", "Gatra"],
-    prioritas: "NORMAL",
-    alamat: "Jl. Gajah Mada No. 45, Pontianak",
-    odp: "ODP 1.2",
-    port: "Port 1",
-    redaman: "-19.2",
-    sn_modem: "ZTEGC8819201",
-    foto_bukti_utama: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80",
-    foto_opm: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80",
-    foto_modem: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=400&q=80",
-    waktu_lapor: "2026-10-09T14:30:00Z",
-    waktu_selesai: "2026-10-09T14:30:00Z",
-    tanggal: "2026-10-09",
-    komisi_items: [
-      { id: "tarik_pelanggan_baru", qty: 120 },
-      { id: "pasang_modem", qty: 1 },
-      { id: "setting_modem", qty: 1 },
+    "id": 1006,
+    "spk_no": "SPK/DIS/20260922/1006",
+    "pelanggan": "Muslim",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
     ],
-    komisi_total: 20000,
-    keterangan: "Pemasangan selesai. Redaman -19.2 dBm | SN: ZTEGC8819201 | Port 1 ODP 1.2",
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Muslim",
+    "komisi_total": 5000
   },
   {
-    id: 106,
-    spk_no: "SPK/RPR/202610/0032",
-    pelanggan: "Hendrik Wijaya",
-    jenis: "PERBAIKAN",
-    status: "SELESAI",
-    tim: "GATRA - AIS",
-    teknisi_list: ["AIS", "Gatra"],
-    prioritas: "TINGGI",
-    alamat: "Jl. Ahmad Yani II Gg. Cendrawasih No. 8",
-    odp: "ODP 1.4",
-    port: "Port 1",
-    redaman: "-18.8",
-    waktu_lapor: "2026-10-09T11:15:00Z",
-    waktu_selesai: "2026-10-09T11:15:00Z",
-    tanggal: "2026-10-09",
-    komisi_items: [
-      { id: "sambung_kabel", qty: 1 },
-      { id: "perbaikan_fastcont", qty: 1 },
+    "id": 1007,
+    "spk_no": "SPK/PSB/20260904/1007",
+    "pelanggan": "Jhosua Tarigan",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
     ],
-    komisi_total: 8500,
-    keterangan: "Splicing core fiber putus berhasil. Redaman normal kembali -18.8 dBm",
+    "alamat": "Grand Deli Angkasa",
+    "tanggal": "2026-09-04",
+    "keterangan": "Pemasangan baru Jhosua Tarigan",
+    "komisi_total": 18000
   },
   {
-    id: 107,
-    spk_no: "SPK/PSB/202610/0033",
-    pelanggan: "dr. Andi Pratama",
-    jenis: "PEMASANGAN",
-    status: "SELESAI",
-    tim: "Tim B",
-    teknisi_list: ["Jusman", "Iqbal"],
-    prioritas: "NORMAL",
-    alamat: "Klinik Medika Sehat, Jl. Veteran No. 88",
-    odp: "ODP 1.1",
-    port: "Port 2",
-    redaman: "-17.9",
-    sn_modem: "HWTC10928374",
-    foto_opm: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80",
-    foto_modem: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=400&q=80",
-    waktu_lapor: "2026-10-08T16:00:00Z",
-    waktu_selesai: "2026-10-08T16:00:00Z",
-    tanggal: "2026-10-08",
-    komisi_items: [
-      { id: "tarik_pelanggan_baru", qty: 95 },
-      { id: "pasang_modem", qty: 1 },
-      { id: "setting_modem", qty: 1 },
+    "id": 1008,
+    "spk_no": "SPK/RPR/20260910/1008",
+    "pelanggan": "Suyanti",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
     ],
-    komisi_total: 17500,
-    keterangan: "Pemasangan selesai rapi. Redaman prima -17.9 dBm | SN: HWTC10928374",
+    "alamat": "-",
+    "tanggal": "2026-09-10",
+    "keterangan": "Perbaikan koneksi Suyanti",
+    "komisi_total": 8500
   },
   {
-    id: 108,
-    spk_no: "SPK/PSB/202610/0034",
-    pelanggan: "Cafe Kopi Kawan",
-    jenis: "PEMASANGAN",
-    status: "SELESAI",
-    tim: "Tim B",
-    teknisi_list: ["Jusman", "Iqbal"],
-    prioritas: "NORMAL",
-    alamat: "Jl. Sidas No. 12, Tengah Kota",
-    odp: "ODP 1.3",
-    port: "Port 4",
-    redaman: "-19.5",
-    sn_modem: "ZTEGC7722119",
-    waktu_lapor: "2026-10-08T10:45:00Z",
-    waktu_selesai: "2026-10-08T10:45:00Z",
-    tanggal: "2026-10-08",
-    komisi_items: [
-      { id: "tarik_pelanggan_baru", qty: 140 },
-      { id: "pasang_modem", qty: 1 },
-      { id: "setting_modem", qty: 1 },
+    "id": 1009,
+    "spk_no": "SPK/DIS/20260922/1009",
+    "pelanggan": "Desya",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
     ],
-    komisi_total: 22000,
-    keterangan: "Pemasangan paket bisnis selesai rapi",
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Desya",
+    "komisi_total": 5000
   },
   {
-    id: 109,
-    spk_no: "SPK/DIS/202610/0035",
-    pelanggan: "Dewi Lestari",
-    jenis: "PEMUTUSAN",
-    status: "SELESAI",
-    tim: "Tim C",
-    teknisi_list: ["Azwar", "Rio"],
-    prioritas: "NORMAL",
-    alamat: "Jl. Danau Sentarum Gg. Bersama No. 19",
-    odp: "ODP 2.3",
-    port: "Port 5",
-    waktu_lapor: "2026-10-07T09:20:00Z",
-    waktu_selesai: "2026-10-07T15:20:00Z",
-    tanggal: "2026-10-07",
-    komisi_items: [
-      { id: "pemutusan_dismantle", qty: 1 },
+    "id": 1010,
+    "spk_no": "SPK/PSB/20260805/1010",
+    "pelanggan": "Rizky",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
     ],
-    komisi_total: 5000,
-    keterangan: "Dismantle modem ONT & adaptor lengkap, 1 port ODP 2.3 dibebaskan",
+    "alamat": "Grand Deli Angkasa",
+    "tanggal": "2026-08-05",
+    "keterangan": "Pemasangan baru Rizky",
+    "komisi_total": 18000
   },
   {
-    id: 110,
-    spk_no: "SPK/PSB/202610/0036",
-    pelanggan: "Iwan Setiawan",
-    jenis: "PEMASANGAN",
-    status: "GAGAL",
-    tim: "AZWAR - RIO",
-    prioritas: "NORMAL",
-    alamat: "Jl. Tanjungpura No. 89",
-    odp: "ODP 3.1",
-    tanggal: "2026-10-07",
-    keterangan: "[KENDALA] Pelanggan tidak ada di rumah / kosong - Rumah digembok, dijadwalkan ulang besok",
-    komisi_items: [],
-    komisi_total: 0,
+    "id": 1011,
+    "spk_no": "SPK/RPR/20260910/1011",
+    "pelanggan": "Wira Syahbandi",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-10",
+    "keterangan": "Perbaikan koneksi Wira Syahbandi",
+    "komisi_total": 8500
   },
+  {
+    "id": 1012,
+    "spk_no": "SPK/DIS/20260922/1012",
+    "pelanggan": "Darmawira",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Darmawira",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1013,
+    "spk_no": "SPK/PSB/20260907/1013",
+    "pelanggan": "Listiani",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "Jl. Parit Bugis",
+    "tanggal": "2026-09-07",
+    "keterangan": "Pemasangan baru Listiani",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1014,
+    "spk_no": "SPK/RPR/20260911/1014",
+    "pelanggan": "Yulia Veronika",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-11",
+    "keterangan": "Perbaikan koneksi Yulia Veronika",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1015,
+    "spk_no": "SPK/DIS/20260922/1015",
+    "pelanggan": "Muhlisin",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Muhlisin",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1016,
+    "spk_no": "SPK/PSB/20260909/1016",
+    "pelanggan": "Enny Juniarti",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "Angkasa pura",
+    "tanggal": "2026-09-09",
+    "keterangan": "Pemasangan baru Enny Juniarti",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1017,
+    "spk_no": "SPK/RPR/20260912/1017",
+    "pelanggan": "Feliksia Azizah",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-12",
+    "keterangan": "Perbaikan koneksi Feliksia Azizah",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1018,
+    "spk_no": "SPK/DIS/20260922/1018",
+    "pelanggan": "Yuli Yanti",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Yuli Yanti",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1019,
+    "spk_no": "SPK/PSB/20260910/1019",
+    "pelanggan": "Nuratasha",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "Galaxy Residence",
+    "tanggal": "2026-09-10",
+    "keterangan": "Pemasangan baru Nuratasha",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1020,
+    "spk_no": "SPK/RPR/20260919/1020",
+    "pelanggan": "Tika Riani",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-19",
+    "keterangan": "Perbaikan koneksi Tika Riani",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1021,
+    "spk_no": "SPK/DIS/20260922/1021",
+    "pelanggan": "Yuli Wijanarti",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Yuli Wijanarti",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1022,
+    "spk_no": "SPK/PSB/20260912/1022",
+    "pelanggan": "Yogi Saputra",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "Gg. Jaga Bersama",
+    "tanggal": "2026-09-12",
+    "keterangan": "Pemasangan baru Yogi Saputra",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1023,
+    "spk_no": "SPK/RPR/20260919/1023",
+    "pelanggan": "Bandi Wahyudi",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-19",
+    "keterangan": "Perbaikan koneksi Bandi Wahyudi",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1024,
+    "spk_no": "SPK/DIS/20260922/1024",
+    "pelanggan": "Murtini",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Murtini",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1025,
+    "spk_no": "SPK/PSB/20260918/1025",
+    "pelanggan": "Tika Riani",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "Mega Citra Raya",
+    "tanggal": "2026-09-18",
+    "keterangan": "Pemasangan baru Tika Riani",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1026,
+    "spk_no": "SPK/RPR/20260919/1026",
+    "pelanggan": "Istamariah",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-19",
+    "keterangan": "Perbaikan koneksi Istamariah",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1027,
+    "spk_no": "SPK/DIS/20260922/1027",
+    "pelanggan": "Bilqis.W.A",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Bilqis.W.A",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1028,
+    "spk_no": "SPK/PSB/20260923/1028",
+    "pelanggan": "M.Isa",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "Jl. Adisucipto",
+    "tanggal": "2026-09-23",
+    "keterangan": "Pemasangan baru M.Isa",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1029,
+    "spk_no": "SPK/RPR/20260921/1029",
+    "pelanggan": "M. Muslih Adnan",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-21",
+    "keterangan": "Perbaikan koneksi M. Muslih Adnan",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1030,
+    "spk_no": "SPK/DIS/20260922/1030",
+    "pelanggan": "Rahmat Hidayat",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Rahmat Hidayat",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1031,
+    "spk_no": "SPK/PSB/20260925/1031",
+    "pelanggan": "Rizky Prassetyo",
+    "jenis": "PEMASANGAN",
+    "status": "WAITING LIST",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "Gang Usaha 1",
+    "tanggal": "2026-09-25",
+    "keterangan": "Pemasangan baru Rizky Prassetyo",
+    "komisi_total": 0
+  },
+  {
+    "id": 1032,
+    "spk_no": "SPK/RPR/20260922/1032",
+    "pelanggan": "Nengsi Ratna Sari",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Perbaikan koneksi Nengsi Ratna Sari",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1033,
+    "spk_no": "SPK/RPR/20260923/1033",
+    "pelanggan": "Andhika",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-23",
+    "keterangan": "Perbaikan koneksi Andhika",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1034,
+    "spk_no": "SPK/RPR/20260925/1034",
+    "pelanggan": "Suryanti",
+    "jenis": "PERBAIKAN",
+    "status": "WAITING LIST",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-25",
+    "keterangan": "Perbaikan koneksi Suryanti",
+    "komisi_total": 0
+  },
+  {
+    "id": 1035,
+    "spk_no": "SPK/PSB/20260905/1035",
+    "pelanggan": "Bagus Julian S",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "Gg. Wanara Sakti",
+    "tanggal": "2026-09-05",
+    "keterangan": "Pemasangan baru Bagus Julian S",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1036,
+    "spk_no": "SPK/RPR/20260901/1036",
+    "pelanggan": "Dessy Priayni",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-01",
+    "keterangan": "Perbaikan koneksi Dessy Priayni",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1037,
+    "spk_no": "SPK/DIS/20260826/1037",
+    "pelanggan": "Devi Winda",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-08-26",
+    "keterangan": "Pemutusan & dismantle perangkat Devi Winda",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1038,
+    "spk_no": "SPK/PSB/20260905/1038",
+    "pelanggan": "Masiyah",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "Gg. Ponti",
+    "tanggal": "2026-09-05",
+    "keterangan": "Pemasangan baru Masiyah",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1039,
+    "spk_no": "SPK/RPR/20260802/1039",
+    "pelanggan": "Sri Dwi Kurniaty",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-08-02",
+    "keterangan": "Perbaikan koneksi Sri Dwi Kurniaty",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1040,
+    "spk_no": "SPK/DIS/20260922/1040",
+    "pelanggan": "Andi Herianto",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Andi Herianto",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1041,
+    "spk_no": "SPK/PSB/20260907/1041",
+    "pelanggan": "Erryck Ekstrada",
+    "jenis": "PEMASANGAN",
+    "status": "GAGAL",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "Gg. Jambu",
+    "tanggal": "2026-09-07",
+    "keterangan": "Tidak Memungkinkan Dipasang",
+    "komisi_total": 0
+  },
+  {
+    "id": 1042,
+    "spk_no": "SPK/RPR/20260904/1042",
+    "pelanggan": "Suryanti",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-04",
+    "keterangan": "Perbaikan koneksi Suryanti",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1043,
+    "spk_no": "SPK/DIS/20260922/1043",
+    "pelanggan": "Abdul Hakim Ridho",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Abdul Hakim Ridho",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1044,
+    "spk_no": "SPK/PSB/20260907/1044",
+    "pelanggan": "Hari Saktiawan",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "Dsn Mulyorejo",
+    "tanggal": "2026-09-07",
+    "keterangan": "Pemasangan baru Hari Saktiawan",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1045,
+    "spk_no": "SPK/RPR/20260907/1045",
+    "pelanggan": "Bunga Lestary",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-07",
+    "keterangan": "Perbaikan modem",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1046,
+    "spk_no": "SPK/DIS/20260922/1046",
+    "pelanggan": "Aditya Risky P",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Aditya Risky P",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1047,
+    "spk_no": "SPK/PSB/20260908/1047",
+    "pelanggan": "Lanang Galih",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "Dusun Mulyorejo",
+    "tanggal": "2026-09-08",
+    "keterangan": "Pemasangan baru Lanang Galih",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1048,
+    "spk_no": "SPK/RPR/20260907/1048",
+    "pelanggan": "Yeni",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-07",
+    "keterangan": "Perbaikan koneksi Yeni",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1049,
+    "spk_no": "SPK/DIS/20260922/1049",
+    "pelanggan": "Andika Saputra",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Andika Saputra",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1050,
+    "spk_no": "SPK/PSB/20260908/1050",
+    "pelanggan": "Ade Oktaviani",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "Parit Bugis",
+    "tanggal": "2026-09-08",
+    "keterangan": "Pemasangan baru Ade Oktaviani",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1051,
+    "spk_no": "SPK/RPR/20260912/1051",
+    "pelanggan": "Hari Saktiawan",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-12",
+    "keterangan": "Pemindahan Wifi",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1052,
+    "spk_no": "SPK/DIS/20260922/1052",
+    "pelanggan": "Nurkirana",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Nurkirana",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1053,
+    "spk_no": "SPK/PSB/20260909/1053",
+    "pelanggan": "Muhammad Dadang",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "Parit Bugis",
+    "tanggal": "2026-09-09",
+    "keterangan": "Pemasangan baru Muhammad Dadang",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1054,
+    "spk_no": "SPK/RPR/20260914/1054",
+    "pelanggan": "Ahmad Rifky Dwi P",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-14",
+    "keterangan": "Perbaikan koneksi Ahmad Rifky Dwi P",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1055,
+    "spk_no": "SPK/DIS/20260922/1055",
+    "pelanggan": "Tantra denia",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Tantra denia",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1056,
+    "spk_no": "SPK/PSB/20260912/1056",
+    "pelanggan": "Hafidz Fakhrurrazi",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "Pontianak",
+    "tanggal": "2026-09-12",
+    "keterangan": "Pemasangan baru Hafidz Fakhrurrazi",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1057,
+    "spk_no": "SPK/RPR/20260914/1057",
+    "pelanggan": "Sarkun",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-14",
+    "keterangan": "Perbaikan koneksi Sarkun",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1058,
+    "spk_no": "SPK/DIS/20260922/1058",
+    "pelanggan": "Ardhita Cantika",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Ardhita Cantika",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1059,
+    "spk_no": "SPK/PSB/20260912/1059",
+    "pelanggan": "Heri Kuswanto",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "Dusun Mulyorejo",
+    "tanggal": "2026-09-12",
+    "keterangan": "Pemasangan baru Heri Kuswanto",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1060,
+    "spk_no": "SPK/RPR/20260918/1060",
+    "pelanggan": "Febry Winarto",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-18",
+    "keterangan": "Perbaikan koneksi Febry Winarto",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1061,
+    "spk_no": "SPK/DIS/20260922/1061",
+    "pelanggan": "Harpendi",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Harpendi",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1062,
+    "spk_no": "SPK/PSB/20260916/1062",
+    "pelanggan": "Budi Suhendro",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "Parit Bugis",
+    "tanggal": "2026-09-16",
+    "keterangan": "Pemasangan baru Budi Suhendro",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1063,
+    "spk_no": "SPK/RPR/20260921/1063",
+    "pelanggan": "Arief Rino Nugroho",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-21",
+    "keterangan": "Perbaikan koneksi Arief Rino Nugroho",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1064,
+    "spk_no": "SPK/DIS/20260922/1064",
+    "pelanggan": "Danang Pangestu",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Danang Pangestu",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1065,
+    "spk_no": "SPK/PSB/20260923/1065",
+    "pelanggan": "Titin",
+    "jenis": "PEMASANGAN",
+    "status": "WAITING LIST",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "Pontianak",
+    "tanggal": "2026-09-23",
+    "keterangan": "Pemasangan baru Titin",
+    "komisi_total": 0
+  },
+  {
+    "id": 1066,
+    "spk_no": "SPK/RPR/20260924/1066",
+    "pelanggan": "Yuliana Putri",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-24",
+    "keterangan": "Perbaikan koneksi Yuliana Putri",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1067,
+    "spk_no": "SPK/DIS/20260922/1067",
+    "pelanggan": "Adib Samudra Putra",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Adib Samudra Putra",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1068,
+    "spk_no": "SPK/RPR/20260924/1068",
+    "pelanggan": "Aman Yasin Putra",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-24",
+    "keterangan": "Perbaikan koneksi Aman Yasin Putra",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1069,
+    "spk_no": "SPK/DIS/20260922/1069",
+    "pelanggan": "Chairul",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Chairul",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1070,
+    "spk_no": "SPK/RPR/20260925/1070",
+    "pelanggan": "Agung Sedhayu",
+    "jenis": "PERBAIKAN",
+    "status": "WAITING LIST",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-25",
+    "keterangan": "Perbaikan koneksi Agung Sedhayu",
+    "komisi_total": 0
+  },
+  {
+    "id": 1071,
+    "spk_no": "SPK/DIS/20260923/1071",
+    "pelanggan": "Suhaini",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-23",
+    "keterangan": "Pemutusan & dismantle perangkat Suhaini",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1072,
+    "spk_no": "SPK/DIS/20260923/1072",
+    "pelanggan": "Alfian Diaz Ramadhani",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim B",
+    "teknisi_list": [
+      "Jusman",
+      "Iqbal"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-23",
+    "keterangan": "Pemutusan & dismantle perangkat Alfian Diaz Ramadhani",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1073,
+    "spk_no": "SPK/PSB/20260831/1073",
+    "pelanggan": "Ratmawati",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "Desa Arang Limbung",
+    "tanggal": "2026-08-31",
+    "keterangan": "Pemasangan baru Ratmawati",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1074,
+    "spk_no": "SPK/RPR/20260802/1074",
+    "pelanggan": "M. Sarno",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-08-02",
+    "keterangan": "Perbaikan koneksi M. Sarno",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1075,
+    "spk_no": "SPK/DIS/20260922/1075",
+    "pelanggan": "Ariesya F S",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Ariesya F S",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1076,
+    "spk_no": "SPK/PSB/20260905/1076",
+    "pelanggan": "Bayu Adji Saputra",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "Parit Pairan",
+    "tanggal": "2026-09-05",
+    "keterangan": "Pemasangan baru Bayu Adji Saputra",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1077,
+    "spk_no": "SPK/RPR/20260903/1077",
+    "pelanggan": "Melani Gianka Saragih",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-03",
+    "keterangan": "Perbaikan koneksi Melani Gianka Saragih",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1078,
+    "spk_no": "SPK/DIS/20260922/1078",
+    "pelanggan": "Yusmin",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Yusmin",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1079,
+    "spk_no": "SPK/PSB/20260907/1079",
+    "pelanggan": "Erfa Arfana",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "Komplek Jatayu 1",
+    "tanggal": "2026-09-07",
+    "keterangan": "Pemasangan baru Erfa Arfana",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1080,
+    "spk_no": "SPK/RPR/20260903/1080",
+    "pelanggan": "M. Fatur Widianto",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-03",
+    "keterangan": "Perbaikan koneksi M. Fatur Widianto",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1081,
+    "spk_no": "SPK/DIS/20260922/1081",
+    "pelanggan": "Shofi Kusumawati",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Shofi Kusumawati",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1082,
+    "spk_no": "SPK/PSB/20260907/1082",
+    "pelanggan": "Gracia Ifri Sandy",
+    "jenis": "PEMASANGAN",
+    "status": "GAGAL",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "Perumahan Mega Citra r",
+    "tanggal": "2026-09-07",
+    "keterangan": "Tidak ada tiang",
+    "komisi_total": 0
+  },
+  {
+    "id": 1083,
+    "spk_no": "SPK/RPR/20260904/1083",
+    "pelanggan": "Abdul Rahman",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-04",
+    "keterangan": "Perbaikan koneksi Abdul Rahman",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1084,
+    "spk_no": "SPK/DIS/20260922/1084",
+    "pelanggan": "Yogie Adi Satrya",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Yogie Adi Satrya",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1085,
+    "spk_no": "SPK/PSB/20260907/1085",
+    "pelanggan": "Andrian Parluhutan",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "Galaxy Residence",
+    "tanggal": "2026-09-07",
+    "keterangan": "Pemasangan baru Andrian Parluhutan",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1086,
+    "spk_no": "SPK/RPR/20260904/1086",
+    "pelanggan": "Atiya Biyantini",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-04",
+    "keterangan": "Perbaikan koneksi Atiya Biyantini",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1087,
+    "spk_no": "SPK/DIS/20260922/1087",
+    "pelanggan": "Muhammad Rezky M",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Muhammad Rezky M",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1088,
+    "spk_no": "SPK/PSB/20260812/1088",
+    "pelanggan": "Julianti",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "Pontianak",
+    "tanggal": "2026-08-12",
+    "keterangan": "Pemasangan baru Julianti",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1089,
+    "spk_no": "SPK/RPR/20260904/1089",
+    "pelanggan": "Febiyana",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-04",
+    "keterangan": "Perbaikan koneksi Febiyana",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1090,
+    "spk_no": "SPK/DIS/20260922/1090",
+    "pelanggan": "Putri Nurul J",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Putri Nurul J",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1091,
+    "spk_no": "SPK/PSB/20260912/1091",
+    "pelanggan": "Semoyati",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "Komplek Star Adis",
+    "tanggal": "2026-09-12",
+    "keterangan": "Pemasangan baru Semoyati",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1092,
+    "spk_no": "SPK/RPR/20260904/1092",
+    "pelanggan": "Laila Septiana",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-04",
+    "keterangan": "Perbaikan koneksi Laila Septiana",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1093,
+    "spk_no": "SPK/DIS/20260922/1093",
+    "pelanggan": "Nur Zamzam",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Nur Zamzam",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1094,
+    "spk_no": "SPK/PSB/20260915/1094",
+    "pelanggan": "Mutammimah",
+    "jenis": "PEMASANGAN",
+    "status": "WAITING LIST",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "Kuala Dua",
+    "tanggal": "2026-09-15",
+    "keterangan": "Pemasangan baru Mutammimah",
+    "komisi_total": 0
+  },
+  {
+    "id": 1095,
+    "spk_no": "SPK/RPR/20260907/1095",
+    "pelanggan": "Ahmad Riski Ismail",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-07",
+    "keterangan": "Perbaikan koneksi Ahmad Riski Ismail",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1096,
+    "spk_no": "SPK/DIS/20260922/1096",
+    "pelanggan": "Rizky Suya Perdana",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Rizky Suya Perdana",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1097,
+    "spk_no": "SPK/PSB/20260915/1097",
+    "pelanggan": "Lisa Diah Anggraeni",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "Perum Tirta Buana",
+    "tanggal": "2026-09-15",
+    "keterangan": "Pemasangan baru Lisa Diah Anggraeni",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1098,
+    "spk_no": "SPK/RPR/20260907/1098",
+    "pelanggan": "Hafiza Nurazizah",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-07",
+    "keterangan": "Perbaikan koneksi Hafiza Nurazizah",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1099,
+    "spk_no": "SPK/DIS/20260922/1099",
+    "pelanggan": "Lia Suswelye",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Lia Suswelye",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1100,
+    "spk_no": "SPK/PSB/20260918/1100",
+    "pelanggan": "Putra Fathirul Barkah",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "Sungai Durian",
+    "tanggal": "2026-09-18",
+    "keterangan": "Pemasangan baru Putra Fathirul Barkah",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1101,
+    "spk_no": "SPK/RPR/20260912/1101",
+    "pelanggan": "Eko Prasetio",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-12",
+    "keterangan": "Perbaikan koneksi Eko Prasetio",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1102,
+    "spk_no": "SPK/DIS/20260922/1102",
+    "pelanggan": "Rahmahdhan Adi S",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Rahmahdhan Adi S",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1103,
+    "spk_no": "SPK/PSB/20260921/1103",
+    "pelanggan": "Sri Ayu",
+    "jenis": "PEMASANGAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "Gang Kurnia",
+    "tanggal": "2026-09-21",
+    "keterangan": "Pemasangan baru Sri Ayu",
+    "komisi_total": 18000
+  },
+  {
+    "id": 1104,
+    "spk_no": "SPK/RPR/20260912/1104",
+    "pelanggan": "Dwi Tini Suryanti",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-12",
+    "keterangan": "Perbaikan koneksi Dwi Tini Suryanti",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1105,
+    "spk_no": "SPK/DIS/20260922/1105",
+    "pelanggan": "Burhan",
+    "jenis": "PEMUTUSAN",
+    "status": "SELESAI",
+    "prioritas": "NORMAL",
+    "sesi": "PAGI",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-22",
+    "keterangan": "Pemutusan & dismantle perangkat Burhan",
+    "komisi_total": 5000
+  },
+  {
+    "id": 1106,
+    "spk_no": "SPK/RPR/20260917/1106",
+    "pelanggan": "Muhammad Mastur",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-17",
+    "keterangan": "Perbaikan koneksi Muhammad Mastur",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1107,
+    "spk_no": "SPK/RPR/20260919/1107",
+    "pelanggan": "Indah",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-19",
+    "keterangan": "Perbaikan koneksi Indah",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1108,
+    "spk_no": "SPK/RPR/20260921/1108",
+    "pelanggan": "Indah Sari",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-21",
+    "keterangan": "Perbaikan koneksi Indah Sari",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1109,
+    "spk_no": "SPK/RPR/20260923/1109",
+    "pelanggan": "Edwat",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-23",
+    "keterangan": "Setel ulang/tereset",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1110,
+    "spk_no": "SPK/RPR/20260923/1110",
+    "pelanggan": "Isuara Aprillia",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-23",
+    "keterangan": "Adaptor Meledak",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1111,
+    "spk_no": "SPK/RPR/20260923/1111",
+    "pelanggan": "Arief Rino Nugroho",
+    "jenis": "PERBAIKAN",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-23",
+    "keterangan": "Modem tidak Hidup",
+    "komisi_total": 8500
+  },
+  {
+    "id": 1112,
+    "spk_no": "SPK/RPR/20260925/1112",
+    "pelanggan": "Feliksia Azizah",
+    "jenis": "PERBAIKAN",
+    "status": "WAITING LIST",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-25",
+    "keterangan": "Perbaikan koneksi Feliksia Azizah",
+    "komisi_total": 0
+  },
+  {
+    "id": 1113,
+    "spk_no": "SPK/RPR/20260925/1113",
+    "pelanggan": "Ira Cantika",
+    "jenis": "PERBAIKAN",
+    "status": "WAITING LIST",
+    "prioritas": "URGENT",
+    "sesi": "SORE",
+    "tim": "Tim C",
+    "teknisi_list": [
+      "Azwar",
+      "Rio"
+    ],
+    "alamat": "-",
+    "tanggal": "2026-09-25",
+    "keterangan": "Perbaikan koneksi Ira Cantika",
+    "komisi_total": 0
+  },
+  {
+    "id": 1114,
+    "spk_no": "SPK/RPR/20260901/1114",
+    "pelanggan": "Infrastruktur ODP.9.6",
+    "jenis": "PERBAIKAN KHUSUS (ODP/ODC)",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "Tiang ODP ODP.9.6",
+    "odp": "ODP.9.6",
+    "tanggal": "2026-09-01",
+    "keterangan": "ODP LOS / Perbaikan Redaman",
+    "komisi_total": 10000
+  },
+  {
+    "id": 1115,
+    "spk_no": "SPK/RPR/20260903/1115",
+    "pelanggan": "Infrastruktur ODP.12.7",
+    "jenis": "PERBAIKAN KHUSUS (ODP/ODC)",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "Tiang ODP ODP.12.7",
+    "odp": "ODP.12.7",
+    "tanggal": "2026-09-03",
+    "keterangan": "ODP LOS / Perbaikan Redaman",
+    "komisi_total": 10000
+  },
+  {
+    "id": 1116,
+    "spk_no": "SPK/RPR/20260915/1116",
+    "pelanggan": "Infrastruktur ODP.16.1.6",
+    "jenis": "PERBAIKAN KHUSUS (ODP/ODC)",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "Tiang ODP ODP.16.1.6",
+    "odp": "ODP.16.1.6",
+    "tanggal": "2026-09-15",
+    "keterangan": "Perbaikan Redaman",
+    "komisi_total": 10000
+  },
+  {
+    "id": 1117,
+    "spk_no": "SPK/RPR/20260923/1117",
+    "pelanggan": "Infrastruktur ODP.11.7",
+    "jenis": "PERBAIKAN KHUSUS (ODP/ODC)",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "Tiang ODP ODP.11.7",
+    "odp": "ODP.11.7",
+    "tanggal": "2026-09-23",
+    "keterangan": "Los",
+    "komisi_total": 10000
+  },
+  {
+    "id": 1118,
+    "spk_no": "SPK/RPR/20260923/1118",
+    "pelanggan": "Infrastruktur ODP.12.2",
+    "jenis": "PERBAIKAN KHUSUS (ODP/ODC)",
+    "status": "SELESAI",
+    "prioritas": "URGENT",
+    "sesi": "PAGI",
+    "tim": "Tim A",
+    "teknisi_list": [
+      "AIS",
+      "Gatra"
+    ],
+    "alamat": "Tiang ODP ODP.12.2",
+    "odp": "ODP.12.2",
+    "tanggal": "2026-09-23",
+    "keterangan": "ODP LOS / Perbaikan Redaman",
+    "komisi_total": 10000
+  }
 ];
 
 export const leadsList = [
   {
-    id: 201,
-    nama: "Fajar Nugraha",
-    telepon: "081299887766",
-    alamat: "Jl. Danau Sentarum No. 88, Pontianak",
-    sumber: "IKLAN",
-    status: "BARU",
-    paket: "Home Fiber 30 Mbps",
-    tanggal: "2026-10-10",
-    lat: -0.0263,
-    lng: 109.3425,
-    odp_terdekat: "ODP 1.1",
-    jarak_odp: 75,
-    redaman: "-18.5",
-    keterangan_survey: "Lokasi sangat dekat dengan tiang ODP 1.1, jalur aman",
+    "id": 2001,
+    "nama": "Aris Aprianto",
+    "alamat": "Jl. Adisucipto",
+    "sumber": "IKLAN",
+    "status": "BARU",
+    "tanggal": "2026-08-29",
+    "keterangan_survey": "Survey awal PSB"
   },
   {
-    id: 202,
-    nama: "Siti Nurhaliza",
-    telepon: "085211223344",
-    alamat: "Jl. Gajah Mada Gg. Gajah Mada 9 No. 4",
-    sumber: "MARKETING",
-    status: "BARU",
-    paket: "Home Fiber 20 Mbps",
-    tanggal: "2026-10-10",
-    lat: -0.0315,
-    lng: 109.3361,
-    odp_terdekat: "ODP 1.2",
-    jarak_odp: 120,
-    redaman: "-19.8",
-    keterangan_survey: "Siap survey lapangan",
+    "id": 2002,
+    "nama": "Raja Faizal Lubis",
+    "alamat": "Jl. Angkasa Pura 2",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-09-04",
+    "keterangan_survey": "Survey awal PSB"
   },
   {
-    id: 203,
-    nama: "Herman Susanto",
-    telepon: "081377889900",
-    alamat: "Jl. Ahmad Yani Komp. Perdana Indah B-3",
-    sumber: "AFFILIATE",
-    status: "DIJADWALKAN",
-    spk_no: "SPK/PSB/202610/0043",
-    tim: "Tim B",
-    paket: "Home Fiber 50 Mbps",
-    tanggal: "2026-10-09",
-    lat: -0.0452,
-    lng: 109.3488,
-    odp_terdekat: "ODP 1.4",
-    jarak_odp: 85,
-    redaman: "-18.2",
-    biaya_kabel: "Gratis (di bawah 150m)",
-    keterangan_survey: "Survey FEASIBLE. Calon pelanggan setuju pasang paket 50 Mbps",
+    "id": 2003,
+    "nama": "Jhosua Tarigan",
+    "alamat": "Grand Deli Angkasa",
+    "sumber": "MARKETING",
+    "status": "SELESAI",
+    "tanggal": "2026-09-04",
+    "keterangan_survey": "Survey awal PSB"
   },
   {
-    id: 204,
-    nama: "Klinik Pratama Sehat",
-    telepon: "082166778899",
-    alamat: "Jl. Veteran No. 34",
-    sumber: "MARKETING",
-    status: "DIJADWALKAN",
-    spk_no: "SPK/PSB/202610/0044",
-    tim: "Tim A",
-    paket: "Bisnis Dedicated 50 Mbps",
-    tanggal: "2026-10-08",
-    lat: -0.0388,
-    lng: 109.3402,
-    odp_terdekat: "ODP 1.1",
-    jarak_odp: 95,
-    redaman: "-18.9",
-    keterangan_survey: "Survey FEASIBLE. Siap terbitkan SPK",
+    "id": 2004,
+    "nama": "Rizky",
+    "alamat": "Grand Deli Angkasa",
+    "sumber": "MARKETING",
+    "status": "SELESAI",
+    "tanggal": "2026-08-05",
+    "keterangan_survey": "Survey awal PSB"
   },
   {
-    id: 205,
-    nama: "Budi Santoso",
-    telepon: "081234567890",
-    alamat: "Jl. Gajah Mada No. 45",
-    sumber: "IKLAN",
-    status: "SELESAI",
-    paket: "Home Fiber 30 Mbps",
-    tanggal: "2026-10-05",
-    lat: -0.0305,
-    lng: 109.3370,
-    odp_terdekat: "ODP 1.2",
-    jarak_odp: 110,
-    redaman: "-19.2",
-    keterangan_survey: "Pemasangan selesai aktif",
+    "id": 2005,
+    "nama": "Listiani",
+    "alamat": "Jl. Parit Bugis",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-09-07",
+    "keterangan_survey": "Survey awal PSB"
   },
+  {
+    "id": 2006,
+    "nama": "Enny Juniarti",
+    "alamat": "Angkasa pura",
+    "sumber": "MARKETING",
+    "status": "SELESAI",
+    "tanggal": "2026-09-09",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2007,
+    "nama": "Nuratasha",
+    "alamat": "Galaxy Residence",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-09-10",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2008,
+    "nama": "Yogi Saputra",
+    "alamat": "Gg. Jaga Bersama",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-09-12",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2009,
+    "nama": "Tika Riani",
+    "alamat": "Mega Citra Raya",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-09-18",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2010,
+    "nama": "M.Isa",
+    "alamat": "Jl. Adisucipto",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-09-23",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2011,
+    "nama": "Rizky Prassetyo",
+    "alamat": "Gang Usaha 1",
+    "sumber": "IKLAN",
+    "status": "BARU",
+    "tanggal": "2026-09-25",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2012,
+    "nama": "Bagus Julian S",
+    "alamat": "Gg. Wanara Sakti",
+    "sumber": "AFFILIATE",
+    "status": "SELESAI",
+    "tanggal": "2026-09-05",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2013,
+    "nama": "Masiyah",
+    "alamat": "Gg. Ponti",
+    "sumber": "AFFILIATE",
+    "status": "SELESAI",
+    "tanggal": "2026-09-05",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2014,
+    "nama": "Erryck Ekstrada",
+    "alamat": "Gg. Jambu",
+    "sumber": "IKLAN",
+    "status": "GAGAL",
+    "tanggal": "2026-09-07",
+    "keterangan_survey": "Tidak Memungkinkan Dipasang"
+  },
+  {
+    "id": 2015,
+    "nama": "Hari Saktiawan",
+    "alamat": "Dsn Mulyorejo",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-09-07",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2016,
+    "nama": "Lanang Galih",
+    "alamat": "Dusun Mulyorejo",
+    "sumber": "AFFILIATE",
+    "status": "SELESAI",
+    "tanggal": "2026-09-08",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2017,
+    "nama": "Ade Oktaviani",
+    "alamat": "Parit Bugis",
+    "sumber": "AFFILIATE",
+    "status": "SELESAI",
+    "tanggal": "2026-09-08",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2018,
+    "nama": "Muhammad Dadang",
+    "alamat": "Parit Bugis",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-09-09",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2019,
+    "nama": "Hafidz Fakhrurrazi",
+    "alamat": "Pontianak",
+    "sumber": "AFFILIATE",
+    "status": "SELESAI",
+    "tanggal": "2026-09-12",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2020,
+    "nama": "Heri Kuswanto",
+    "alamat": "Dusun Mulyorejo",
+    "sumber": "MARKETING",
+    "status": "SELESAI",
+    "tanggal": "2026-09-12",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2021,
+    "nama": "Budi Suhendro",
+    "alamat": "Parit Bugis",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-09-16",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2022,
+    "nama": "Titin",
+    "alamat": "Pontianak",
+    "sumber": "MARKETING",
+    "status": "BARU",
+    "tanggal": "2026-09-23",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2023,
+    "nama": "Ratmawati",
+    "alamat": "Desa Arang Limbung",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-08-31",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2024,
+    "nama": "Bayu Adji Saputra",
+    "alamat": "Parit Pairan",
+    "sumber": "MARKETING",
+    "status": "SELESAI",
+    "tanggal": "2026-09-05",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2025,
+    "nama": "Erfa Arfana",
+    "alamat": "Komplek Jatayu 1",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-09-07",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2026,
+    "nama": "Gracia Ifri Sandy",
+    "alamat": "Perumahan Mega Citra r",
+    "sumber": "IKLAN",
+    "status": "GAGAL",
+    "tanggal": "2026-09-07",
+    "keterangan_survey": "Tidak ada tiang"
+  },
+  {
+    "id": 2027,
+    "nama": "Andrian Parluhutan",
+    "alamat": "Galaxy Residence",
+    "sumber": "MARKETING",
+    "status": "SELESAI",
+    "tanggal": "2026-09-07",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2028,
+    "nama": "Julianti",
+    "alamat": "Pontianak",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-08-12",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2029,
+    "nama": "Semoyati",
+    "alamat": "Komplek Star Adis",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-09-12",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2030,
+    "nama": "Mutammimah",
+    "alamat": "Kuala Dua",
+    "sumber": "IKLAN",
+    "status": "BARU",
+    "tanggal": "2026-09-15",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2031,
+    "nama": "Lisa Diah Anggraeni",
+    "alamat": "Perum Tirta Buana",
+    "sumber": "MARKETING",
+    "status": "SELESAI",
+    "tanggal": "2026-09-15",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2032,
+    "nama": "Putra Fathirul Barkah",
+    "alamat": "Sungai Durian",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-09-18",
+    "keterangan_survey": "Survey awal PSB"
+  },
+  {
+    "id": 2033,
+    "nama": "Sri Ayu",
+    "alamat": "Gang Kurnia",
+    "sumber": "IKLAN",
+    "status": "SELESAI",
+    "tanggal": "2026-09-21",
+    "keterangan_survey": "Survey awal PSB"
+  }
 ];
 export const initialLeads = leadsList;
 
 export const gangguanList = [
   {
-    id: 301,
-    tanggal: "2026-10-10",
-    kategori: "Kabel Putus",
-    pelanggan: "Ratna Sari",
-    alamat: "Gg. Cendrawasih No. 12",
-    status: "PROSES",
-    keterangan: "LOS merah berkedip, tertimpa dahan pohon",
-    user_terdampak: 1,
+    "id": 3001,
+    "nama": "M Fatur Widianto",
+    "keterangan": "Tidak ada internet/Azwar",
+    "kontak": "083140653180",
+    "tanggalMulai": "2026-09-03",
+    "followUp": "2026-09-24",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
   },
   {
-    id: 302,
-    tanggal: "2026-10-10",
-    kategori: "Redaman Tinggi",
-    pelanggan: "Toko Sinar Rejeki",
-    alamat: "Pasar Flamboyan Kios B-10",
-    status: "WAITING",
-    keterangan: "Redaman -26.5 dBm, koneksi sering putus",
-    user_terdampak: 1,
+    "id": 3002,
+    "nama": "M Marshel Shahab",
+    "keterangan": "Gangguan/Restart",
+    "kontak": "082251620422",
+    "tanggalMulai": "2026-09-03",
+    "followUp": "2026-09-24",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
   },
   {
-    id: 303,
-    tanggal: "2026-10-09",
-    kategori: "Kabel Putus",
-    pelanggan: "Hendrik Wijaya",
-    alamat: "Jl. Ahmad Yani II No. 8",
-    status: "SELESAI",
-    keterangan: "Splicing kabel dropcore berhasil, redaman kembali -18.8 dBm",
-    user_terdampak: 1,
+    "id": 3003,
+    "nama": "Zahri Romadan",
+    "keterangan": "Lampu hidup 1/ Normal sendiri",
+    "kontak": "089509450497",
+    "tanggalMulai": "2026-09-03",
+    "followUp": "2026-09-24",
+    "hasilFU": "Kadang lelet",
+    "status": "PROSES"
   },
   {
-    id: 304,
-    tanggal: "2026-10-08",
-    kategori: "Modem",
-    pelanggan: "Siti Rahmawati",
-    alamat: "Komp. Surya Kencana C-12",
-    status: "SELESAI",
-    keterangan: "Ganti adaptor modem 12V 1.5A baru, internet normal",
-    user_terdampak: 1,
+    "id": 3004,
+    "nama": "Suryanti",
+    "keterangan": "Lelet",
+    "kontak": "-",
+    "tanggalMulai": "2026-09-04",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
   },
+  {
+    "id": 3005,
+    "nama": "Wahyuningsih",
+    "keterangan": "Modem mati/restart",
+    "kontak": "085753072527",
+    "tanggalMulai": "2026-09-04",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3006,
+    "nama": "Ahmad Riski Ismail",
+    "keterangan": "Gangguan/Restart",
+    "kontak": "081256579429",
+    "tanggalMulai": "2026-09-09",
+    "followUp": "2026-09-24",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3007,
+    "nama": "Dian Pribiri",
+    "keterangan": "Los/Gatra",
+    "kontak": "089689353199",
+    "tanggalMulai": "2026-09-09",
+    "followUp": "2026-09-24",
+    "hasilFU": "aman kadang siang ping tinggi",
+    "status": "PROSES"
+  },
+  {
+    "id": 3008,
+    "nama": "Edwar Ismail",
+    "keterangan": "Lama Autentikasi",
+    "kontak": "089624024300",
+    "tanggalMulai": "2026-09-10",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3009,
+    "nama": "Suyanti",
+    "keterangan": "Los/Gatra",
+    "kontak": "085753091424",
+    "tanggalMulai": "2026-09-10",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3010,
+    "nama": "Wira Syahbandi",
+    "keterangan": "Los/Gatra",
+    "kontak": "083142356764",
+    "tanggalMulai": "2026-09-10",
+    "followUp": "2026-09-24",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3011,
+    "nama": "Ummu Ramlia",
+    "keterangan": "Lelet",
+    "kontak": "089527278196",
+    "tanggalMulai": "2026-09-11",
+    "followUp": "2026-09-24",
+    "hasilFU": "Kadang Ngeleg",
+    "status": "PROSES"
+  },
+  {
+    "id": 3012,
+    "nama": "Dessi Priyani",
+    "keterangan": "Gangguan koneksi",
+    "kontak": "089615570104",
+    "tanggalMulai": "2026-09-01",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3013,
+    "nama": "Ira Cantika",
+    "keterangan": "Lelet",
+    "kontak": "081250903576",
+    "tanggalMulai": "2026-09-10",
+    "followUp": "2026-09-24",
+    "hasilFU": "Masih suka lelet",
+    "status": "PROSES"
+  },
+  {
+    "id": 3014,
+    "nama": "Sarkun",
+    "keterangan": "Redaman tinggi/Iqbal",
+    "kontak": "081257519944",
+    "tanggalMulai": "2026-09-14",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3015,
+    "nama": "Ahmad Rifky Dwi P",
+    "keterangan": "LoS/Iqbal",
+    "kontak": "085393775739",
+    "tanggalMulai": "2026-09-14",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3016,
+    "nama": "Teguh Wardoyo",
+    "keterangan": "Lelet & kadang Putus/ Normal sendiri",
+    "kontak": "085751730699",
+    "tanggalMulai": "2026-09-19",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3017,
+    "nama": "Indah Sari",
+    "keterangan": "Lelet/Ganti chanel",
+    "kontak": "089693354123",
+    "tanggalMulai": "2026-09-19",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3018,
+    "nama": "Nengsi Ratna Sari",
+    "keterangan": "Los/gatra",
+    "kontak": "085751710793",
+    "tanggalMulai": "2026-09-22",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3019,
+    "nama": "Dessi Priyani",
+    "keterangan": "Gangguan/restart",
+    "kontak": "087700558171",
+    "tanggalMulai": "2026-09-23",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3020,
+    "nama": "Muslimah",
+    "keterangan": "Lelet & Tidak ada IP",
+    "kontak": "085397722805",
+    "tanggalMulai": "2026-09-23",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3021,
+    "nama": "Sasa Anggraeni",
+    "keterangan": "Gangguan/Normal sendiri",
+    "kontak": "0882020982678",
+    "tanggalMulai": "2026-09-23",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3022,
+    "nama": "Rustami",
+    "keterangan": "Hilang Sinyal/Restart",
+    "kontak": "087883806428",
+    "tanggalMulai": "2026-09-23",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3023,
+    "nama": "Andhika",
+    "keterangan": "Redaman tinggi/Gatra",
+    "kontak": "08971983332",
+    "tanggalMulai": "2026-09-24",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3024,
+    "nama": "Yuyun Rahayu",
+    "keterangan": "Lelet/Normal sendiri",
+    "kontak": "0895702373136",
+    "tanggalMulai": "2026-09-24",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3025,
+    "nama": "Mulyadi",
+    "keterangan": "Tidak ada koneksi",
+    "kontak": "085752054190",
+    "tanggalMulai": "2026-09-24",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  },
+  {
+    "id": 3026,
+    "nama": "Aninda Riskiani",
+    "keterangan": "Gangguan/restart",
+    "kontak": "085891489440",
+    "tanggalMulai": "2026-09-24",
+    "followUp": "-",
+    "hasilFU": "Aman",
+    "status": "SELESAI"
+  }
 ];
-
 export const daftarGangguanList = gangguanList;
 export const initialGangguanList = daftarGangguanList;
 
-export const fuPelangganList = [
-  { id: 1, nama: "Budi Santoso", status: "Puas", rating: 5, tanggal: "2026-10-10", catatan: "Pemasangan cepat dan rapi" },
-  { id: 2, nama: "Hendrik Wijaya", status: "Puas", rating: 5, tanggal: "2026-10-09", catatan: "Perbaikan tepat waktu" },
-];
-
-export const redamanTinggiList = [
-  { id: 1, pelanggan: "Toko Sinar Rejeki", redaman: -26.5, odp: "ODP 3.2", status: "Penanganan" },
-];
+export const fuPelangganList = [];
+export const redamanTinggiList = [];
 
 export const pengajuanPemutusanList = [
   {
-    id: 401,
-    nama: "Dewi Lestari",
-    kontak: "089677889900",
-    alasan: "Pindah rumah keluar kota",
-    tanggal: "2026-10-07",
-    status: "SELESAI",
+    "id": 4001,
+    "nama": "ODP.1.2-Yusmin",
+    "kontak": "085249757530",
+    "alasan": "Ceklis 1",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
   },
   {
-    id: 402,
-    nama: "Fandi Ahmad",
-    kontak: "087755443322",
-    alasan: "Kontrak ruko berakhir",
-    tanggal: "2026-10-10",
-    status: "MENUNGGU_DISPOSISI",
+    "id": 4002,
+    "nama": "ODP.12.1-Murtini",
+    "kontak": "083140820925",
+    "alasan": "Ceklis 1",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
   },
+  {
+    "id": 4003,
+    "nama": "ODP.2.6-Nur.Zamzam",
+    "kontak": "085751085283",
+    "alasan": "Ceklis 1",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4004,
+    "nama": "ODP.1.1-Ariesya.F.S",
+    "kontak": "085752132886",
+    "alasan": "No respon",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4005,
+    "nama": "ODP.1.4-Yogie.Adi.Satrya",
+    "kontak": "085250737664",
+    "alasan": "No respon",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4006,
+    "nama": "ODP.15.1.1-Rahmat.Hidayat",
+    "kontak": "08981339844",
+    "alasan": "No respon",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4007,
+    "nama": "ODP.4.4-Abdul.Hakim.Ridho",
+    "kontak": "085696714442",
+    "alasan": "No respon",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4008,
+    "nama": "ODP.7.1-Ardhita.Cantika",
+    "kontak": "085752395074",
+    "alasan": "No respon",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4009,
+    "nama": "ODP.7.7-Harpendi",
+    "kontak": "082250427112",
+    "alasan": "No respon",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4010,
+    "nama": "ODP.9.1-Desya",
+    "kontak": "081254643370",
+    "alasan": "No respon",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4011,
+    "nama": "ODP.9.3-Darmawira",
+    "kontak": "085754702608",
+    "alasan": "No respon",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4012,
+    "nama": "ODP.1.4-Shofi.Kusumawati",
+    "kontak": "083890994577",
+    "alasan": "Jarang di rumah",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4013,
+    "nama": "ODP.11.6-Yuli.Wijanarti",
+    "kontak": "087735327651",
+    "alasan": "suami lgi nd ad krjaan",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4014,
+    "nama": "ODP.13.1-Bilqis.W.A",
+    "kontak": "08970441678",
+    "alasan": "Pindah kontrakan",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4015,
+    "nama": "ODP.3.4-Lia.Suswelye",
+    "kontak": "081522652050",
+    "alasan": "Saya masih di kampung",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4016,
+    "nama": "ODP.3.6-Rahmahdhan.Adi.S",
+    "kontak": "089503304437",
+    "alasan": "saya tidak bisa lanjutkan bayar wifi nya lagi",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4017,
+    "nama": "ODP.4.5-Aditya.Risky.P",
+    "kontak": "089694311341",
+    "alasan": "Saya belum pakai wifinya karna belum pulang kerumah",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4018,
+    "nama": "ODP.6.4-Tantra.denia",
+    "kontak": "085820654931",
+    "alasan": "belum bisa bayar,suami sy menganggur",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4019,
+    "nama": "ODP.7.8-Danang.Pangestu",
+    "kontak": "085705568296",
+    "alasan": "saya lagi diluar kota kak",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4020,
+    "nama": "ODP.8.6-Chairul",
+    "kontak": "085752025242",
+    "alasan": "Lagi Krismon",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4021,
+    "nama": "ODP.9.7-Yuli.Yanti",
+    "kontak": "085651106707",
+    "alasan": "Belum gajian soalnya bg",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4022,
+    "nama": "ODP.1.5-Muhammad.Rezky.M",
+    "kontak": "089517936098",
+    "alasan": "Tidak menggunakan lagi ya",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4023,
+    "nama": "ODP.1.7-Putri.Nurul.J",
+    "kontak": "0895428927671",
+    "alasan": "gak pakai nexus lagi",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4024,
+    "nama": "ODP.23.4-Samsudin",
+    "kontak": "085822508381",
+    "alasan": "sy blm lanjut dlu ya kak",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4025,
+    "nama": "ODP.3.1-Rizky.Suya.Perdana",
+    "kontak": "082114444255",
+    "alasan": "Saya ingin berhenti berlanggan",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4026,
+    "nama": "ODP.3.7-Burhan",
+    "kontak": "081521904489",
+    "alasan": "Wifi-nya lelet nya luar biasa",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4027,
+    "nama": "ODP.4.4-Andi.Herianto",
+    "kontak": "081351758585",
+    "alasan": "sy sudah tidak berlangganan lg dg Nexus",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4028,
+    "nama": "ODP.5.3-Andika.Saputra",
+    "kontak": "08979414509",
+    "alasan": "Iya pemutusan jaringan aja",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4029,
+    "nama": "ODP.6.3-Nurkirana",
+    "kontak": "085828530250",
+    "alasan": "kerena ud ga pakai aja",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4030,
+    "nama": "ODP.8.2-Adib.Samudra.Putra",
+    "kontak": "085828188924",
+    "alasan": "Maaf min sudah tidak ingin di lanjutkan",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4031,
+    "nama": "ODP.8.8-Muslim",
+    "kontak": "081256585225",
+    "alasan": "Sudah tidak di aktifkan.dari bulan kemarin.",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  },
+  {
+    "id": 4032,
+    "nama": "ODP.9.3-Muhlisin",
+    "kontak": "087773054203",
+    "alasan": "Sudah tidak ya kak",
+    "tanggal": "2026-09-22",
+    "status": "SELESAI"
+  }
 ];
 
 export const summaryData = {
-  totalPekerjaan: 10,
-  totalLeads: 5,
-  pemasangan: { waitingList: 1, dijadwalkan: 1, selesai: 3, gagal: 1 },
-  perbaikan: { waitingList: 1, dijadwalkan: 1, selesai: 1 },
-  pemutusan: { waitingList: 0, dijadwalkan: 0, selesai: 1, gagal: 0 },
-  sumberLeads: { IKLAN: 2, MARKETING: 2, AFFILIATE: 1 },
-  odpOdc: { total: 12, userTerdampak: 2 },
+  totalPekerjaan: 118,
+  totalLeads: 33,
+  pemasangan: {
+    waitingList: 4,
+    dijadwalkan: 0,
+    selesai: 27,
+    gagal: 2,
+  },
+  perbaikan: {
+    waitingList: 4,
+    dijadwalkan: 0,
+    selesai: 41,
+  },
+  pemutusan: {
+    waitingList: 0,
+    dijadwalkan: 0,
+    selesai: 35,
+    gagal: 0,
+  },
+  sumberLeads: {
+    IKLAN: 20,
+    MARKETING: 8,
+    AFFILIATE: 5,
+  },
+  odpOdc: { total: 200, userTerdampak: 0 },
 };
 
 export const gangguanData = {
-  eksternal: { "Kabel Putus": 2, "Redaman Tinggi": 1, Modem: 1 },
-  totalCase: 4,
+  eksternal: {},
+  totalCase: 26,
 };
 
-// Fungsi Seeder Demo Data Seketika untuk Presentasi
-export function seedAllDemoData() {
+export function clearAllOperationalData() {
   if (typeof localStorage === "undefined") return;
   try {
-    localStorage.setItem("xnet_tim", JSON.stringify(timList));
-    localStorage.setItem("xnet_personil", JSON.stringify(initialPersonilList));
-    localStorage.setItem("xnet_pekerjaan", JSON.stringify(pekerjaanList));
-    localStorage.setItem("xnet_leads", JSON.stringify(leadsList));
-    localStorage.setItem("xnet_gangguan", JSON.stringify(gangguanList));
-    localStorage.setItem("xnet_daftar_gangguan_v2", JSON.stringify(daftarGangguanList));
-    localStorage.setItem("xnet_pengajuan_pemutusan", JSON.stringify(pengajuanPemutusanList));
-    localStorage.setItem("xnet_pelanggan_radius", JSON.stringify(initialPelangganRadius));
-    localStorage.setItem("xnet_odpodc", JSON.stringify(odpOdcList));
-
-    // Kirim notifikasi storage update agar seluruh hook di komponen langsung me-render ulang
-    const keys = [
-      "xnet_tim",
-      "xnet_personil",
+    const operationalKeys = [
       "xnet_pekerjaan",
       "xnet_leads",
       "xnet_gangguan",
       "xnet_daftar_gangguan_v2",
       "xnet_pengajuan_pemutusan",
       "xnet_pelanggan_radius",
-      "xnet_odpodc",
+      "xnet_fu_pelanggan",
+      "xnet_redaman_tinggi",
+      "xnet_komisi_adjustments",
+      "xnet_offline_queue_v1",
     ];
-    keys.forEach((k) => {
+    operationalKeys.forEach((key) => {
+      localStorage.setItem(key, "[]");
       window.dispatchEvent(
         new CustomEvent("xnet_storage_update", {
-          detail: { key: k, value: JSON.parse(localStorage.getItem(k) || "[]") },
+          detail: { key, value: [] },
         })
       );
     });
-    console.log("✅ [DEMO SEEDER] Seluruh data demo berhasil diisi ke sistem.");
-
-    // Sinkronisasi latar belakang ke Supabase Cloud jika user sedang login
-    if (typeof window !== "undefined") {
-      import("../lib/supabase").then(({ supabase }) => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (!session) return;
-          Promise.allSettled([
-            supabase.from("tim").upsert(timList.map(t => ({ id: t.id, nama: t.nama })), { onConflict: "id" }),
-            supabase.from("pekerjaan").upsert(pekerjaanList.map(p => ({
-              id: p.id,
-              tim: p.tim,
-              jenis: p.jenis,
-              alamat: p.alamat,
-              pelanggan: p.pelanggan,
-              odp: p.odp,
-              status: p.status,
-              tanggal: p.tanggal,
-              keterangan: p.keterangan,
-              spk_no: p.spk_no,
-              prioritas: p.prioritas,
-              sesi: p.sesi,
-              telepon: p.telepon,
-              port: p.port,
-              komisi_total: p.komisi_total,
-            })), { onConflict: "id" }),
-            supabase.from("leads").upsert(leadsList.map(l => ({
-              id: l.id,
-              nama: l.nama,
-              sumber: l.sumber,
-              status: l.status,
-              tanggal: l.tanggal,
-              telepon: l.telepon,
-              alamat: l.alamat,
-              odp_terdekat: l.odp_terdekat,
-              jarak_odp: l.jarak_odp,
-            })), { onConflict: "id" }),
-          ]).then(() => {
-            console.log("☁️ [SUPABASE CLOUD] Data demo berhasil disinkronkan ke cloud database.");
-          });
-        }).catch(() => {});
-      }).catch(() => {});
-    }
   } catch (err) {
-    console.warn("Gagal seed demo data:", err);
+    console.warn("Gagal membersihkan data operasional:", err);
   }
 }
 
-// Inisialisasi otomatis: Jika saat aplikasi dimuat data pekerjaan kosong, isi data demo
-if (typeof localStorage !== "undefined") {
-  try {
-    const existingPekerjaan = localStorage.getItem("xnet_pekerjaan");
-    if (!existingPekerjaan || existingPekerjaan === "[]" || existingPekerjaan === "null") {
-      seedAllDemoData();
-    }
-  } catch {}
-}
+export function seedAllDemoData() {}
 
-// ODP/ODC Master hasil sinkronisasi Google Earth KML
+// ODP/ODC Master hasil sinkronisasi Google Earth KML (TETAP DIPERTAHANKAN)
 export const odpOdcList = unifiedOdpOdc.odpList || [];
 export const odcMasterList = unifiedOdpOdc.odcList || [];
 
 // Data Master Pelanggan Sinkronisasi Radius Billing
 export const initialPelangganRadius = [
   {
-    id: 1,
-    id_pelanggan: "NX-2026-001",
-    nama: "Budi Santoso",
-    telepon: "081234567890",
-    alamat: "Jl. Gajah Mada No. 45, Pontianak",
-    odp: "ODP 1.2",
-    paket: "Home Fiber 30 Mbps",
-    status: "AKTIF",
-    ip_address: "10.20.1.45",
-    tgl_daftar: "2026-08-10",
+    "id": 1001,
+    "id_pelanggan": "NX-2026-001",
+    "nama": "Raja Faizal Lubis",
+    "telepon": "-",
+    "alamat": "Jl. Angkasa Pura 2",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-04"
   },
   {
-    id: 2,
-    id_pelanggan: "NX-2026-002",
-    nama: "Siti Rahmawati",
-    telepon: "081398765432",
-    alamat: "Komplek Surya Kencana Blok C-12, Pontianak",
-    odp: "ODP 2.1",
-    paket: "Business Fiber 50 Mbps",
-    status: "BARU",
-    ip_address: "-",
-    tgl_daftar: "2026-09-26",
+    "id": 1002,
+    "id_pelanggan": "NX-2026-002",
+    "nama": "Jhosua Tarigan",
+    "telepon": "-",
+    "alamat": "Grand Deli Angkasa",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-04"
   },
   {
-    id: 3,
-    id_pelanggan: "NX-2026-003",
-    nama: "Hendrik Wijaya",
-    telepon: "082155667788",
-    alamat: "Jl. Ahmad Yani II Gg. Cendrawasih No. 8",
-    odp: "ODP 1.4",
-    paket: "Home Fiber 20 Mbps",
-    status: "AKTIF",
-    ip_address: "10.20.1.78",
-    tgl_daftar: "2026-07-15",
+    "id": 1003,
+    "id_pelanggan": "NX-2026-003",
+    "nama": "Rizky",
+    "telepon": "-",
+    "alamat": "Grand Deli Angkasa",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-08-05"
   },
   {
-    id: 4,
-    id_pelanggan: "NX-2026-004",
-    nama: "Toko Sinar Rejeki (Ahmad)",
-    telepon: "085244332211",
-    alamat: "Pasar Flamboyan Kios B-10, Pontianak",
-    odp: "ODP 3.2",
-    paket: "Dedicated 100 Mbps",
-    status: "ISOLIR",
-    ip_address: "10.20.3.10",
-    tgl_daftar: "2026-06-01",
+    "id": 1004,
+    "id_pelanggan": "NX-2026-004",
+    "nama": "Listiani",
+    "telepon": "-",
+    "alamat": "Jl. Parit Bugis",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-07"
   },
   {
-    id: 5,
-    id_pelanggan: "NX-2026-005",
-    nama: "Dewi Lestari",
-    telepon: "089677889900",
-    alamat: "Jl. Danau Sentarum Gg. Bersama No. 19",
-    odp: "ODP 2.3",
-    paket: "Home Fiber 30 Mbps",
-    status: "PUTUS",
-    ip_address: "-",
-    tgl_daftar: "2026-05-12",
+    "id": 1005,
+    "id_pelanggan": "NX-2026-005",
+    "nama": "Enny Juniarti",
+    "telepon": "-",
+    "alamat": "Angkasa pura",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-09"
   },
   {
-    id: 6,
-    id_pelanggan: "NX-2026-006",
-    nama: "dr. Andi Pratama",
-    telepon: "081155009988",
-    alamat: "Klinik Medika Sehat, Jl. Veteran No. 88",
-    odp: "ODP 1.1",
-    paket: "Business Fiber 50 Mbps",
-    status: "AKTIF",
-    ip_address: "10.20.1.12",
-    tgl_daftar: "2026-08-20",
+    "id": 1006,
+    "id_pelanggan": "NX-2026-006",
+    "nama": "Nuratasha",
+    "telepon": "-",
+    "alamat": "Galaxy Residence",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-10"
   },
   {
-    id: 7,
-    id_pelanggan: "NX-2026-007",
-    nama: "Rian Hidayat",
-    telepon: "087711223344",
-    alamat: "Jl. Sungai Raya Dalam Komp. Griya Indah D-4",
-    odp: "ODP 2.2",
-    paket: "Home Fiber 20 Mbps",
-    status: "BARU",
-    ip_address: "-",
-    tgl_daftar: "2026-09-27",
+    "id": 1007,
+    "id_pelanggan": "NX-2026-007",
+    "nama": "Yogi Saputra",
+    "telepon": "-",
+    "alamat": "Gg. Jaga Bersama",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-12"
   },
   {
-    id: 8,
-    id_pelanggan: "NX-2026-008",
-    nama: "Cafe Kopi Kawan",
-    telepon: "081288990011",
-    alamat: "Jl. Sidas No. 12, Tengah Kota",
-    odp: "ODP 1.3",
-    paket: "Business Fiber 100 Mbps",
-    status: "AKTIF",
-    ip_address: "10.20.1.99",
-    tgl_daftar: "2026-04-10",
+    "id": 1008,
+    "id_pelanggan": "NX-2026-008",
+    "nama": "Tika Riani",
+    "telepon": "-",
+    "alamat": "Mega Citra Raya",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-18"
   },
+  {
+    "id": 1009,
+    "id_pelanggan": "NX-2026-009",
+    "nama": "M.Isa",
+    "telepon": "-",
+    "alamat": "Jl. Adisucipto",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-23"
+  },
+  {
+    "id": 1010,
+    "id_pelanggan": "NX-2026-010",
+    "nama": "Bagus Julian S",
+    "telepon": "-",
+    "alamat": "Gg. Wanara Sakti",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-05"
+  },
+  {
+    "id": 1011,
+    "id_pelanggan": "NX-2026-011",
+    "nama": "Masiyah",
+    "telepon": "-",
+    "alamat": "Gg. Ponti",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-05"
+  },
+  {
+    "id": 1012,
+    "id_pelanggan": "NX-2026-012",
+    "nama": "Hari Saktiawan",
+    "telepon": "-",
+    "alamat": "Dsn Mulyorejo",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-07"
+  },
+  {
+    "id": 1013,
+    "id_pelanggan": "NX-2026-013",
+    "nama": "Lanang Galih",
+    "telepon": "-",
+    "alamat": "Dusun Mulyorejo",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-08"
+  },
+  {
+    "id": 1014,
+    "id_pelanggan": "NX-2026-014",
+    "nama": "Ade Oktaviani",
+    "telepon": "-",
+    "alamat": "Parit Bugis",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-08"
+  },
+  {
+    "id": 1015,
+    "id_pelanggan": "NX-2026-015",
+    "nama": "Muhammad Dadang",
+    "telepon": "-",
+    "alamat": "Parit Bugis",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-09"
+  },
+  {
+    "id": 1016,
+    "id_pelanggan": "NX-2026-016",
+    "nama": "Hafidz Fakhrurrazi",
+    "telepon": "-",
+    "alamat": "Pontianak",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-12"
+  },
+  {
+    "id": 1017,
+    "id_pelanggan": "NX-2026-017",
+    "nama": "Heri Kuswanto",
+    "telepon": "-",
+    "alamat": "Dusun Mulyorejo",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-12"
+  },
+  {
+    "id": 1018,
+    "id_pelanggan": "NX-2026-018",
+    "nama": "Budi Suhendro",
+    "telepon": "-",
+    "alamat": "Parit Bugis",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-16"
+  },
+  {
+    "id": 1019,
+    "id_pelanggan": "NX-2026-019",
+    "nama": "Ratmawati",
+    "telepon": "-",
+    "alamat": "Desa Arang Limbung",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-08-31"
+  },
+  {
+    "id": 1020,
+    "id_pelanggan": "NX-2026-020",
+    "nama": "Bayu Adji Saputra",
+    "telepon": "-",
+    "alamat": "Parit Pairan",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-05"
+  },
+  {
+    "id": 1021,
+    "id_pelanggan": "NX-2026-021",
+    "nama": "Erfa Arfana",
+    "telepon": "-",
+    "alamat": "Komplek Jatayu 1",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-07"
+  },
+  {
+    "id": 1022,
+    "id_pelanggan": "NX-2026-022",
+    "nama": "Andrian Parluhutan",
+    "telepon": "-",
+    "alamat": "Galaxy Residence",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-07"
+  },
+  {
+    "id": 1023,
+    "id_pelanggan": "NX-2026-023",
+    "nama": "Julianti",
+    "telepon": "-",
+    "alamat": "Pontianak",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-08-12"
+  },
+  {
+    "id": 1024,
+    "id_pelanggan": "NX-2026-024",
+    "nama": "Semoyati",
+    "telepon": "-",
+    "alamat": "Komplek Star Adis",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-12"
+  },
+  {
+    "id": 1025,
+    "id_pelanggan": "NX-2026-025",
+    "nama": "Lisa Diah Anggraeni",
+    "telepon": "-",
+    "alamat": "Perum Tirta Buana",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-15"
+  },
+  {
+    "id": 1026,
+    "id_pelanggan": "NX-2026-026",
+    "nama": "Putra Fathirul Barkah",
+    "telepon": "-",
+    "alamat": "Sungai Durian",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-18"
+  },
+  {
+    "id": 1027,
+    "id_pelanggan": "NX-2026-027",
+    "nama": "Sri Ayu",
+    "telepon": "-",
+    "alamat": "Gang Kurnia",
+    "odp": "ODP 1.1",
+    "paket": "Home Fiber 30 Mbps",
+    "status": "AKTIF",
+    "ip_address": "-",
+    "tgl_daftar": "2026-09-21"
+  }
 ];
