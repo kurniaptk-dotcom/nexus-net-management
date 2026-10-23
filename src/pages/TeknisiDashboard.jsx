@@ -1517,20 +1517,21 @@ export default function TeknisiDashboard() {
       )}
 
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
       {/* NAVIGATION TABS SWITCHER & SEARCH (PERSIS KEBUTUHAN PORTAL TEKNISI)        */}
       {/* ========================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        {/* Buttons Switcher */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pt-1">
+        {/* Buttons Switcher (Mobile Touch-Friendly Scrollable Tabs) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
           <button
             onClick={() => setViewMode("DASHBOARD")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
               viewMode === "DASHBOARD"
                 ? "bg-[#0D1B4A] text-white shadow-xs"
                 : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
             }`}
           >
-            <PieChart className="w-4 h-4 text-blue-400" />
+            <PieChart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
             <span>Dashboard</span>
           </button>
 
@@ -1551,40 +1552,43 @@ export default function TeknisiDashboard() {
 
           <button
             onClick={() => setViewMode("LIST")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
               viewMode === "LIST"
                 ? "bg-[#0D1B4A] text-white shadow-xs"
                 : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
             }`}
           >
-            <ListFilter className="w-4 h-4 text-blue-500" />
-            <span>Daftar Tugas (Run-Sheet)</span>
+            <ListFilter className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500" />
+            <span className="hidden sm:inline">Daftar Tugas (Run-Sheet)</span>
+            <span className="sm:hidden">Run-Sheet</span>
           </button>
 
           <button
             onClick={() => setViewMode("ODP_TOOL")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
               viewMode === "ODP_TOOL"
                 ? "bg-[#0D1B4A] text-white shadow-xs"
                 : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
             }`}
           >
-            <Wifi className="w-4 h-4 text-emerald-500" />
-            <span>Cek Port ODP</span>
+            <Wifi className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
+            <span className="hidden sm:inline">Cek Port ODP</span>
+            <span className="sm:hidden">Cek ODP</span>
           </button>
 
           {/* Tab Dompet & Insentif */}
           <button
             onClick={() => setViewMode("WALLET")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
               viewMode === "WALLET"
                 ? "bg-[#0D1B4A] text-white shadow-xs"
                 : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
             }`}
           >
-            <Coins className="w-4 h-4 text-amber-400" />
-            <span>Dompet & Insentif</span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-[#0D1B4A]">
+            <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+            <span className="hidden sm:inline">Dompet & Insentif</span>
+            <span className="sm:hidden">Dompet</span>
+            <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-amber-400 text-[#0D1B4A]">
               {formatRupiah(teamIncentives.grandTotal)}
             </span>
           </button>
@@ -1593,39 +1597,39 @@ export default function TeknisiDashboard() {
         {/* Status Koneksi Realtime / Offline Pill & Search Bar */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {!isOnline ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs shrink-0" title="Koneksi terputus - Mode offline aktif">
+            <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs shrink-0" title="Koneksi terputus - Mode offline aktif">
               <WifiOff className="w-3.5 h-3.5 text-amber-700" />
-              <span>Offline ({offlineQueue.length} Draft)</span>
+              <span>Offline ({offlineQueue.length})</span>
             </span>
           ) : offlineQueue.length > 0 ? (
             <button
               type="button"
               disabled={isSyncingOffline}
               onClick={handleManualSyncOffline}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-blue-100 hover:bg-blue-200 text-blue-900 border border-blue-300 shadow-2xs cursor-pointer shrink-0 transition-all active:scale-95"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-bold bg-blue-100 hover:bg-blue-200 text-blue-900 border border-blue-300 shadow-2xs cursor-pointer shrink-0 transition-all active:scale-95"
               title="Klik untuk mensinkronkan laporan yang tersimpan saat offline"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-blue-700 ${isSyncingOffline ? "animate-spin" : ""}`} />
-              <span>{isSyncingOffline ? "Mengirim..." : `${offlineQueue.length} Draft (Sync)`}</span>
+              <span>{isSyncingOffline ? "Kirim..." : `${offlineQueue.length} Sync`}</span>
             </button>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs shrink-0" title="Terhubung secara realtime ke Cloud">
+            <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs shrink-0" title="Terhubung secara realtime ke Cloud">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="hidden sm:inline">Online (Realtime)</span>
-              <span className="sm:hidden">Online</span>
+              <span className="sm:hidden text-[11px]">Online</span>
             </span>
           )}
 
           {/* Search Bar Right */}
           {viewMode !== "ODP_TOOL" && viewMode !== "WALLET" && (
             <div className="relative flex-1 sm:w-64">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 sm:left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Cari tugas / pelanggan..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] outline-none shadow-2xs"
+                className="w-full pl-9 sm:pl-10 pr-8 py-2 sm:py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-[#F59E0B]/50 focus:border-[#F59E0B] outline-none shadow-2xs"
               />
               {search && (
                 <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -1641,9 +1645,9 @@ export default function TeknisiDashboard() {
       {/* TAMPILAN UTAMA: DASHBOARD PORTAL TEKNISI (SESUAI KONSEP & LAYOUT MOCKUP)  */}
       {/* ========================================================================= */}
       {viewMode === "DASHBOARD" && (
-        <div className="space-y-4 animate-in fade-in duration-200">
-          {/* 1. HERO WELCOME BANNER (MODERN & MINIMALIS) */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm relative overflow-hidden transition-all">
+        <div className="space-y-3.5 sm:space-y-4 animate-in fade-in duration-200">
+          {/* 1. HERO WELCOME BANNER (100% SIMETRIS MOBILE & MODERN MINIMALIS) */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm relative overflow-hidden transition-all space-y-3.5 sm:space-y-0">
             {/* Background Graphic Tower BTS di sebelah kanan */}
             <div className="absolute right-0 top-0 bottom-0 w-72 sm:w-96 pointer-events-none opacity-20 hidden md:block">
               <img
@@ -1657,27 +1661,27 @@ export default function TeknisiDashboard() {
               />
             </div>
 
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-5">
               {/* Sisi Kiri: Ranah Personal Teknisi (Identitas & Mode Supervisi) */}
-              <div className="flex items-center gap-4 sm:gap-5">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-[#0D1B4A] via-[#152763] to-blue-600 text-white flex items-center justify-center font-black text-2xl shadow-sm border border-blue-400/20 ring-4 ring-blue-50/70 shrink-0">
+              <div className="flex items-center gap-3.5 sm:gap-5 min-w-0">
+                <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-[#0D1B4A] via-[#152763] to-blue-600 text-white flex items-center justify-center font-black text-xl sm:text-2xl shadow-sm border border-blue-400/20 ring-4 ring-blue-50/70 shrink-0">
                   {activePersonil?.nama ? activePersonil.nama.charAt(0) : "T"}
                 </div>
 
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                    <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60 shrink-0">
                       {activePersonil?.peran || "Teknisi Lapangan"}
                     </span>
-                    <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60">
+                    <span className="text-[10px] sm:text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60 shrink-0">
                       NIK: {activePersonil?.nik || `TKN-00${activePersonil?.id || 1}`}
                     </span>
                     {isSupervisor && (
-                      <div className="relative inline-flex items-center">
+                      <div className="relative inline-flex items-center shrink-0">
                         <select
                           value={activePersonil?.id || 1}
                           onChange={(e) => setSelectedPersonilId(Number(e.target.value))}
-                          className="text-[11px] font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 px-2.5 py-0.5 pr-6 rounded-full border border-amber-300/80 outline-none cursor-pointer appearance-none transition-colors"
+                          className="text-[10px] sm:text-[11px] font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 px-2.5 py-0.5 pr-5 rounded-full border border-amber-300/80 outline-none cursor-pointer appearance-none transition-colors"
                           title="Ganti personil yang ditinjau"
                         >
                           {personilList.map((p) => (
@@ -1686,16 +1690,16 @@ export default function TeknisiDashboard() {
                             </option>
                           ))}
                         </select>
-                        <ChevronDown className="w-3 h-3 text-amber-700 pointer-events-none absolute right-2" />
+                        <ChevronDown className="w-3 h-3 text-amber-700 pointer-events-none absolute right-1.5" />
                       </div>
                     )}
                   </div>
 
-                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2 truncate">
                     Halo, {activePersonil?.nama || profile?.full_name || "Teknisi"}! 👋
                   </h1>
 
-                  <p className="text-xs text-slate-500 max-w-md">
+                  <p className="text-[11px] sm:text-xs text-slate-500 max-w-md line-clamp-1 sm:line-clamp-none">
                     {isSupervisor
                       ? `Meninjau portal operasional dan slip gaji ${activePersonil?.nama}.`
                       : "Selamat bertugas di lapangan. Utamakan kepatuhan SOP K3 dan mutu redaman OPM."}
@@ -1703,8 +1707,8 @@ export default function TeknisiDashboard() {
                 </div>
               </div>
 
-              {/* Sisi Kanan: Team Context & Partner (Minimalist Compact Card) */}
-              <div className="flex items-center gap-3 sm:gap-4 bg-slate-50/80 backdrop-blur-sm p-3 sm:p-3.5 rounded-2xl border border-slate-200/70 shrink-0 self-start md:self-auto">
+              {/* Sisi Kanan Desktop: Team Context & Partner (Minimalist Compact Card di Layar Sedang & Lebar) */}
+              <div className="hidden md:flex items-center gap-3 sm:gap-4 bg-slate-50/80 backdrop-blur-sm p-3 sm:p-3.5 rounded-2xl border border-slate-200/70 shrink-0">
                 {/* Regu Tim */}
                 <div className="px-1 pr-3 border-r border-slate-200/80">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Regu Tim</span>
@@ -1738,30 +1742,88 @@ export default function TeknisiDashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Sisi Bawah Mobile: 100% Simetris Full-Width Strip Regu & Partner Lapangan */}
+            <div className="md:hidden relative z-10 grid grid-cols-2 divide-x divide-slate-200/80 bg-slate-50/90 rounded-xl border border-slate-200/70 p-2.5 shadow-2xs">
+              {/* Kolom 1: Regu Tim (50% Lebar Simetris) */}
+              <div className="px-2 text-center">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Regu Tim</span>
+                <div className="flex items-center justify-center gap-1 mt-0.5">
+                  <span className="text-xs font-black text-slate-900">
+                    {activePersonilTeamObj?.nama || activePersonil?.timNama || "Tim A"}
+                  </span>
+                  <span className="text-[10px] font-semibold text-slate-500">
+                    ({activePersonilTeamObj?.alias || activeTeam})
+                  </span>
+                </div>
+              </div>
+
+              {/* Kolom 2: Partner Lapangan (50% Lebar Simetris) */}
+              <div className="px-2 text-center">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Partner Lapangan</span>
+                <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                  <div className="w-4 h-4 rounded-full bg-purple-100 text-purple-700 font-bold text-[9px] flex items-center justify-center shrink-0">
+                    {partnerPersonil?.nama ? partnerPersonil.nama.charAt(0) : "P"}
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 truncate">
+                    {partnerPersonil ? partnerPersonil.nama : "Mandiri / Solo"}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Reminder Alert Batas Cut-Off Jam 9 Malam */}
-          <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border border-amber-300/80 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 font-bold shadow-xs">
-                <Clock className="w-5 h-5" />
+          {/* Reminder Alert Batas Cut-Off Jam 9 Malam (Sleek Compact Mobile Bar & Full Desktop Alert) */}
+          <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border border-amber-300/80 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 shadow-2xs">
+            <div className="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto min-w-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 font-bold shadow-xs">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="font-extrabold text-xs sm:text-sm text-slate-900">
-                    Batas Laporan Pekerjaan: Maksimal Jam 9 Malam (21:00 WIB)
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 leading-tight">
+                    Batas Laporan: 21:00 WIB
                   </h4>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                  <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
                     SOP Wajib
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-600 mt-0.5">
+                {/* Teks Lengkap Desktop */}
+                <p className="hidden sm:block text-[11px] text-slate-600 mt-0.5">
                   Pastikan seluruh SPK yang dikerjakan hari ini telah dilampirkan minimal 1 foto bukti fisik sebelum jam 9 malam agar komisi divalidasi dan performa tercatat tepat waktu.
                 </p>
+                {/* Teks Ringkas Mobile */}
+                <p className="sm:hidden text-[10px] text-slate-500 mt-0.5 truncate">
+                  Lampirkan foto bukti fisik sebelum jam 9 malam agar komisi disahkan.
+                </p>
+              </div>
+
+              {/* Countdown Pill Mobile (Inline di Baris Atas) */}
+              <div
+                className={`sm:hidden flex items-center gap-1.5 shrink-0 text-[11px] px-2.5 py-1 rounded-lg font-mono font-bold shadow-2xs border ${
+                  cutoffRemaining.isPassed
+                    ? "bg-rose-50 border-rose-200 text-rose-800"
+                    : cutoffRemaining.minutesRemaining <= 60
+                    ? "bg-amber-100 border-amber-300 text-amber-900"
+                    : "bg-white/95 border-amber-200 text-amber-900"
+                }`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    cutoffRemaining.isPassed
+                      ? "bg-rose-500"
+                      : cutoffRemaining.minutesRemaining <= 60
+                      ? "bg-amber-600 animate-ping"
+                      : "bg-amber-500 animate-pulse"
+                  }`}
+                />
+                <span>{cutoffRemaining.text}</span>
               </div>
             </div>
+
+            {/* Countdown Pill Desktop */}
             <div
-              className={`flex items-center gap-2 shrink-0 self-end sm:self-auto text-xs px-3.5 py-1.5 rounded-xl font-mono shadow-2xs border transition-all ${
+              className={`hidden sm:flex items-center gap-2 shrink-0 text-xs px-3.5 py-1.5 rounded-xl font-mono shadow-2xs border transition-all ${
                 cutoffRemaining.isPassed
                   ? "bg-rose-50 border-rose-200 text-rose-800"
                   : cutoffRemaining.minutesRemaining <= 60
@@ -1782,113 +1844,113 @@ export default function TeknisiDashboard() {
             </div>
           </div>
 
-          {/* 2. BARIS 4 KARTU METRIK FINANSIAL & TARGET (PERSIS GAMBAR MOCKUP) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* 2. BARIS 4 KARTU METRIK FINANSIAL & TARGET (2x2 GRID SIMETRIS DI MOBILE, 4 DI DESKTOP) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {/* Card 1: Total Komisi & Insentif Teknisi */}
-            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm flex flex-col justify-between relative group hover:border-slate-200 transition-all">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <Wallet className="w-5 h-5" />
+            <div className="bg-white rounded-2xl p-3 sm:p-5 border border-slate-100 shadow-sm flex flex-col justify-between relative group hover:border-slate-200 transition-all">
+              <div className="flex items-start gap-2.5 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <Wallet className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div>
-                  <h3 className="text-xs font-bold text-slate-800 leading-snug">
-                    Total Komisi & Insentif Teknisi
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[11px] sm:text-xs font-bold text-slate-800 leading-tight truncate">
+                    Total Komisi
                   </h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    Periode {new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
+                  <p className="text-[9px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
+                    {new Date().toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-4 flex items-baseline justify-between">
-                <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              <div className="mt-3 sm:mt-4 flex items-baseline justify-between">
+                <span className="text-base sm:text-2xl font-black text-slate-900 tracking-tight truncate">
                   {formatRupiah(teamIncentives.grandTotal)}
                 </span>
                 <button
                   type="button"
                   onClick={() => setViewMode("WALLET")}
-                  className="w-7 h-7 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-all cursor-pointer group-hover:translate-x-0.5"
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-all cursor-pointer group-hover:translate-x-0.5 shrink-0"
                   title="Lihat Rincian Dompet"
                 >
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </button>
               </div>
             </div>
 
             {/* Card 2: Fee Pokok */}
-            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm flex flex-col justify-between hover:border-slate-200 transition-all">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <Coins className="w-5 h-5" />
+            <div className="bg-white rounded-2xl p-3 sm:p-5 border border-slate-100 shadow-sm flex flex-col justify-between hover:border-slate-200 transition-all">
+              <div className="flex items-start gap-2.5 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <Coins className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div>
-                  <h3 className="text-xs font-bold text-slate-800 leading-snug">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[11px] sm:text-xs font-bold text-slate-800 leading-tight truncate">
                     Fee Pokok
                   </h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    Dari {teamIncentives.totalCompleted} tugas selesai
+                  <p className="text-[9px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
+                    {teamIncentives.totalCompleted} tugas selesai
                   </p>
                 </div>
               </div>
 
-              <div className="mt-4 flex items-baseline justify-between">
-                <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              <div className="mt-3 sm:mt-4 flex items-baseline justify-between">
+                <span className="text-base sm:text-2xl font-black text-slate-900 tracking-tight truncate">
                   {formatRupiah(teamIncentives.totalBaseFee)}
                 </span>
               </div>
             </div>
 
             {/* Card 3: Bonus Redaman (QC) */}
-            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm flex flex-col justify-between hover:border-slate-200 transition-all">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                  <Gift className="w-5 h-5" />
+            <div className="bg-white rounded-2xl p-3 sm:p-5 border border-slate-100 shadow-sm flex flex-col justify-between hover:border-slate-200 transition-all">
+              <div className="flex items-start gap-2.5 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                  <Gift className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div>
-                  <h3 className="text-xs font-bold text-slate-800 leading-snug">
-                    Bonus Redaman (QC)
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[11px] sm:text-xs font-bold text-slate-800 leading-tight truncate">
+                    Bonus QC
                   </h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <p className="text-[9px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
                     {teamIncentives.primaCount || 0} titik prima
                   </p>
                 </div>
               </div>
 
-              <div className="mt-4 flex items-baseline justify-between">
-                <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              <div className="mt-3 sm:mt-4 flex items-baseline justify-between">
+                <span className="text-base sm:text-2xl font-black text-slate-900 tracking-tight truncate">
                   {formatRupiah(teamIncentives.totalQualityBonus || 0)}
                 </span>
               </div>
             </div>
 
             {/* Card 4: Target Bulanan */}
-            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm flex flex-col justify-between hover:border-slate-200 transition-all">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <Target className="w-5 h-5" />
+            <div className="bg-white rounded-2xl p-3 sm:p-5 border border-slate-100 shadow-sm flex flex-col justify-between hover:border-slate-200 transition-all">
+              <div className="flex items-start gap-2.5 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <Target className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div>
-                  <h3 className="text-xs font-bold text-slate-800 leading-snug">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[11px] sm:text-xs font-bold text-slate-800 leading-tight truncate">
                     Target Bulanan
                   </h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[150px]">
+                  <p className="text-[9px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
                     {teamIncentives.nextTier
-                      ? `Target ${teamIncentives.nextTier.label} (${teamIncentives.nextTier.targetCount} Tugas)`
-                      : teamIncentives.achievedTierLabel || "Target Tercapai"}
+                      ? teamIncentives.nextTier.label
+                      : teamIncentives.achievedTierLabel || "Tercapai"}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-4 space-y-1.5">
+              <div className="mt-3 sm:mt-4 space-y-1 sm:space-y-1.5">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  <span className="text-base sm:text-2xl font-black text-slate-900 tracking-tight">
                     {teamIncentives.nextTier ? `${teamIncentives.nextTier.progressPercent}%` : "100%"}
                   </span>
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    {teamIncentives.totalCompleted} / {teamIncentives.nextTier?.targetCount || teamIncentives.totalCompleted}
+                  <span className="text-[9px] sm:text-[11px] font-semibold text-slate-500">
+                    {teamIncentives.totalCompleted}/{teamIncentives.nextTier?.targetCount || teamIncentives.totalCompleted}
                   </span>
                 </div>
-                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 sm:h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-blue-600 rounded-full transition-all duration-500"
                     style={{
@@ -2178,8 +2240,90 @@ export default function TeknisiDashboard() {
                   </button>
                 </div>
 
-                {/* Table Run Sheet */}
-                <div className="overflow-x-auto mt-2">
+                {/* Tampilan Mobile: Kartu SPK Langsung Tindak (Maps & WA 1-Klik) */}
+                <div className="sm:hidden space-y-2 mt-2">
+                  {teamTasks.length === 0 ? (
+                    <div className="py-6 text-center text-slate-400">
+                      <ClipboardList className="w-7 h-7 mx-auto mb-1.5 text-slate-300" />
+                      <p className="font-semibold text-xs text-slate-600">Belum ada tugas lapangan</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Tidak ada antrean SPK yang ditugaskan untuk tim {activeTeam}</p>
+                    </div>
+                  ) : (
+                    teamTasks.slice(0, 5).map((task, idx) => {
+                      const cleanWaPhone = formatPhoneForWa(task.telepon || "");
+                      const waText = `Halo Bpk/Ibu ${task.pelanggan}, kami dari Tim Teknisi Nexus Net (${activeTeam}). Kami akan memproses pekerjaan ${task.jenis} di lokasi Anda: ${task.alamat}.`;
+                      const waUrl = createWhatsAppUrl(cleanWaPhone, waText);
+                      const isDone = task.status === "SELESAI";
+                      const isSched = task.status === "DIJADWALKAN";
+                      const mapsNavigationUrl = task.shareloc?.startsWith("http")
+                        ? task.shareloc
+                        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${task.pelanggan || ""} ${task.alamat || ""}`.trim())}`;
+
+                      return (
+                        <div key={task.id} className="p-3 bg-slate-50/70 rounded-xl border border-slate-100 flex items-center justify-between gap-2.5">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-mono text-[10px] font-bold text-slate-400">#{String(idx + 1).padStart(3, "0")}</span>
+                              <span
+                                className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                                  isDone
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                    : isSched
+                                    ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                    : "bg-amber-50 text-amber-700 border border-amber-200"
+                                }`}
+                              >
+                                {task.status}
+                              </span>
+                              <span className="text-[9px] font-semibold text-slate-600 bg-white px-1.5 py-0.2 rounded border border-slate-200">
+                                {task.jenis}
+                              </span>
+                            </div>
+                            <p className="font-bold text-xs text-slate-900 mt-1 truncate">{task.pelanggan}</p>
+                            <p className="text-[10px] text-slate-400 truncate">{task.alamat || "-"}</p>
+                          </div>
+
+                          {/* Quick Action Buttons for Field Tech on Mobile */}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {cleanWaPhone && (
+                              <a
+                                href={waUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-8 h-8 rounded-lg bg-emerald-100/80 text-emerald-700 flex items-center justify-center hover:bg-emerald-200 active:scale-95 transition-all shadow-2xs"
+                                title="Chat WhatsApp Pelanggan"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                            <a
+                              href={mapsNavigationUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-8 h-8 rounded-lg bg-blue-100/80 text-blue-700 flex items-center justify-center hover:bg-blue-200 active:scale-95 transition-all shadow-2xs"
+                              title="Buka Navigasi Maps"
+                            >
+                              <Navigation className="w-3.5 h-3.5" />
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setViewMode("LIST");
+                              }}
+                              className="w-8 h-8 rounded-lg bg-slate-200/80 text-slate-700 flex items-center justify-center hover:bg-slate-300 active:scale-95 transition-all shadow-2xs"
+                              title="Buka Detail Tugas"
+                            >
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Table Run Sheet (Tampilan Desktop Layar Sedang & Lebar) */}
+                <div className="hidden sm:block overflow-x-auto mt-2">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -2760,97 +2904,97 @@ export default function TeknisiDashboard() {
             </div>
           </div>
 
-          {/* 4 Kartu Ringkasan Insentif */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* 4 Kartu Ringkasan Insentif (2x2 Grid Simetris di Mobile) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {/* 1. Grand Total Insentif */}
-            <div className="bg-gradient-to-br from-[#0D1B4A] via-[#152355] to-[#1E293B] text-white p-5 rounded-3xl shadow-sm border border-blue-900/40 relative overflow-hidden flex flex-col justify-between">
+            <div className="bg-gradient-to-br from-[#0D1B4A] via-[#152355] to-[#1E293B] text-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm border border-blue-900/40 relative overflow-hidden flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-300">
-                  Total Estimasi Insentif
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-300">
+                  Total Estimasi
                 </span>
-                <div className="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-300 flex items-center justify-center">
-                  <Coins className="w-5 h-5" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0">
+                  <Coins className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <div className="my-2">
-                <h2 className="text-2xl sm:text-3xl font-black text-amber-400 tracking-tight">
+              <div className="my-1.5 sm:my-2">
+                <h2 className="text-lg sm:text-3xl font-black text-amber-400 tracking-tight truncate">
                   {formatRupiah(teamIncentives.grandTotal)}
                 </h2>
-                <p className="text-[11px] text-slate-300 mt-0.5">
-                  Akumulasi {teamIncentives.totalCompleted} tugas selesai
+                <p className="text-[10px] sm:text-[11px] text-slate-300 mt-0.5 truncate">
+                  {teamIncentives.totalCompleted} tugas selesai
                 </p>
               </div>
-              <div className="text-[10px] text-amber-200/80 bg-white/10 px-2.5 py-1 rounded-lg">
-                Siap diklaim pada penutupan periode
+              <div className="text-[9px] sm:text-[10px] text-amber-200/80 bg-white/10 px-2 py-0.5 sm:py-1 rounded-lg truncate">
+                Siap diklaim
               </div>
             </div>
 
             {/* 2. Komisi Pekerjaan */}
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
+            <div className="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">
-                  Komisi Pekerjaan
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-blue-700">
+                  Komisi Tugas
                 </span>
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <Wrench className="w-5 h-5" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <Wrench className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <div className="my-2">
-                <h3 className="text-2xl font-black text-slate-900">
+              <div className="my-1.5 sm:my-2">
+                <h3 className="text-lg sm:text-2xl font-black text-slate-900 truncate">
                   {formatRupiah(teamIncentives.totalBaseFee)}
                 </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Dari {teamIncentives.totalCompleted} pekerjaan sukses
+                <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 truncate">
+                  {teamIncentives.totalCompleted} pekerjaan sukses
                 </p>
               </div>
-              <div className="text-[10px] text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg">
-                Dihitung dari volume item pekerjaan
+              <div className="text-[9px] sm:text-[10px] text-slate-500 bg-slate-50 px-2 py-0.5 sm:py-1 rounded-lg truncate">
+                Item pekerjaan
               </div>
             </div>
 
             {/* 3. Volume Item Terverifikasi */}
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
+            <div className="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
-                  Volume Item Dikerjakan
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-700">
+                  Volume Item
                 </span>
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <Layers className="w-5 h-5" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <div className="my-2">
-                <h3 className="text-2xl font-black text-emerald-600">
+              <div className="my-1.5 sm:my-2">
+                <h3 className="text-lg sm:text-2xl font-black text-emerald-600 truncate">
                   {teamIncentives.itemsAggregated?.reduce((acc, item) => acc + item.totalQty, 0) || 0}
                 </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Dari {teamIncentives.itemsAggregated?.length || 0} macam jenis pekerjaan
+                <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 truncate">
+                  {teamIncentives.itemsAggregated?.length || 0} jenis pekerjaan
                 </p>
               </div>
-              <div className="text-[10px] text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                Tabel Komisi Pekerjaan Team Nexus
+              <div className="text-[9px] sm:text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 sm:py-1 rounded-lg truncate">
+                Tabel Komisi
               </div>
             </div>
 
             {/* 4. Bonus Target Kinerja */}
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
+            <div className="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">
-                  Bonus Target Kinerja
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-700">
+                  Bonus Target
                 </span>
-                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                  <Award className="w-5 h-5" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                  <Award className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <div className="my-2">
-                <h3 className="text-2xl font-black text-amber-600">
+              <div className="my-1.5 sm:my-2">
+                <h3 className="text-lg sm:text-2xl font-black text-amber-600 truncate">
                   {formatRupiah(teamIncentives.activeTierBonus)}
                 </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  {teamIncentives.achievedTierLabel || "Belum ada bonus tier"}
+                <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 truncate">
+                  {teamIncentives.achievedTierLabel || "Belum ada tier"}
                 </p>
               </div>
-              <div className="text-[10px] text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg">
-                Target bulanan tim teknisi
+              <div className="text-[9px] sm:text-[10px] text-amber-800 bg-amber-50 px-2 py-0.5 sm:py-1 rounded-lg truncate">
+                Target bulanan
               </div>
             </div>
           </div>

@@ -38,31 +38,37 @@ export default function SlipGajiModal({ payrollData, onClose }) {
         <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 sm:hidden print:hidden" />
 
         {/* Modal Action Bar (Hidden on Print) */}
-        <div className="px-6 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between print:hidden">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Preview Slip Gaji Resmi</span>
+        <div className="px-3.5 sm:px-6 py-2.5 sm:py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 print:hidden">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+            <span className="text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider truncate">
+              Preview Slip Gaji
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={handleSendWhatsApp}
-              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+              className="px-2.5 sm:px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] sm:text-xs font-semibold rounded-xl flex items-center gap-1 sm:gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+              title="Kirim ke WhatsApp"
             >
-              <Send className="w-3.5 h-3.5" />
+              <Send className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
               <span>Kirim WA</span>
             </button>
             <button
               onClick={handlePrint}
-              className="px-3.5 py-1.5 bg-[#0D1B4A] hover:bg-[#152763] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+              className="px-2.5 sm:px-3.5 py-1.5 bg-[#0D1B4A] hover:bg-[#152763] text-white text-[11px] sm:text-xs font-semibold rounded-xl flex items-center gap-1 sm:gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+              title="Cetak atau simpan PDF"
             >
-              <Printer className="w-3.5 h-3.5 text-[#F59E0B]" />
-              <span>Cetak / PDF</span>
+              <Printer className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#F59E0B]" />
+              <span className="hidden sm:inline">Cetak / PDF</span>
+              <span className="sm:hidden">Cetak</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+              className="p-1 sm:p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+              title="Tutup Modal"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
