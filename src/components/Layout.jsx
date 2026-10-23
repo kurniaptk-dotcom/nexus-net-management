@@ -24,7 +24,7 @@ import {
   UserCheck,
   Plus,
 } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import NotificationPanel from "./NotificationPanel";
 import ConfirmModal from "./ConfirmModal";
@@ -47,7 +47,17 @@ function Logo({ collapsed }) {
   );
 }
 
+function ContentLoading() {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] p-8">
+      <div className="w-9 h-9 border-3 border-[#0D1B4A]/20 border-t-[#0D1B4A] rounded-full animate-spin mb-3" />
+      <span className="text-xs font-semibold text-slate-400 tracking-wide">Memuat halaman...</span>
+    </div>
+  );
+}
+
 export default function Layout() {
+  const mainScrollRef = useRef(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
@@ -58,6 +68,13 @@ export default function Layout() {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Scroll to top when changing route
+  useEffect(() => {
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [location.pathname]);
 
   // Keyboard Shortcut: Ctrl + K atau Cmd + K untuk Omni-Search
   useEffect(() => {
@@ -351,8 +368,10 @@ export default function Layout() {
         )}
 
         {/* Page Content with bottom padding for mobile navigation bar */}
-        <main className="flex-1 overflow-y-auto p-3.5 sm:p-5 md:p-6 pb-24 lg:pb-6">
-          <Outlet />
+        <main ref={mainScrollRef} className="flex-1 overflow-y-auto p-3.5 sm:p-5 md:p-6 pb-24 lg:pb-6">
+          <Suspense fallback={<ContentLoading />}>
+            <Outlet />
+          </Suspense>
         </main>
 
         {/* Mobile Bottom Navigation Bar (Glassmorphic Super-App Shell) */}

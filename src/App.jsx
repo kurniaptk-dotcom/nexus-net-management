@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Layout from "./components/Layout";
@@ -82,6 +82,29 @@ function AuthenticatedRedirect() {
 function AppRoutes() {
   const { user, loading } = useAuth();
 
+  // Prefetch main route components on idle for instant, glitch-free switching
+  useEffect(() => {
+    if (user) {
+      const prefetch = () => {
+        import("./pages/Dashboard");
+        import("./pages/Tim");
+        import("./pages/Pekerjaan");
+        import("./pages/PelangganRadius");
+        import("./pages/Leads");
+        import("./pages/Gangguan");
+        import("./pages/ODP");
+        import("./pages/Laporan");
+        import("./pages/ManajemenUser");
+        import("./pages/TeknisiDashboard");
+      };
+      if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(prefetch);
+      } else {
+        setTimeout(prefetch, 800);
+      }
+    }
+  }, [user]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -91,23 +114,35 @@ function AppRoutes() {
   }
 
   return (
-    <Suspense fallback={<PageLoading />}>
-      <Routes>
-        <Route path="/login" element={user ? <AuthenticatedRedirect /> : <Login />} />
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route index element={<MenuGuard path="/"><Dashboard /></MenuGuard>} />
-          <Route path="teknisi" element={<MenuGuard path="/teknisi"><TeknisiDashboard /></MenuGuard>} />
-          <Route path="tim" element={<MenuGuard path="/tim"><Tim /></MenuGuard>} />
-          <Route path="pekerjaan" element={<MenuGuard path="/pekerjaan"><Pekerjaan /></MenuGuard>} />
-          <Route path="pelanggan" element={<MenuGuard path="/pelanggan"><PelangganRadius /></MenuGuard>} />
-          <Route path="leads" element={<MenuGuard path="/leads"><Leads /></MenuGuard>} />
-          <Route path="gangguan" element={<MenuGuard path="/gangguan"><Gangguan /></MenuGuard>} />
-          <Route path="odp" element={<MenuGuard path="/odp"><ODP /></MenuGuard>} />
-          <Route path="laporan" element={<MenuGuard path="/laporan"><Laporan /></MenuGuard>} />
-          <Route path="users" element={<MenuGuard path="/users"><ManajemenUser /></MenuGuard>} />
-        </Route>
-      </Routes>
-    </Suspense>
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          <Suspense fallback={<PageLoading />}>
+            {user ? <AuthenticatedRedirect /> : <Login />}
+          </Suspense>
+        }
+      />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<MenuGuard path="/"><Dashboard /></MenuGuard>} />
+        <Route path="teknisi" element={<MenuGuard path="/teknisi"><TeknisiDashboard /></MenuGuard>} />
+        <Route path="tim" element={<MenuGuard path="/tim"><Tim /></MenuGuard>} />
+        <Route path="pekerjaan" element={<MenuGuard path="/pekerjaan"><Pekerjaan /></MenuGuard>} />
+        <Route path="pelanggan" element={<MenuGuard path="/pelanggan"><PelangganRadius /></MenuGuard>} />
+        <Route path="leads" element={<MenuGuard path="/leads"><Leads /></MenuGuard>} />
+        <Route path="gangguan" element={<MenuGuard path="/gangguan"><Gangguan /></MenuGuard>} />
+        <Route path="odp" element={<MenuGuard path="/odp"><ODP /></MenuGuard>} />
+        <Route path="laporan" element={<MenuGuard path="/laporan"><Laporan /></MenuGuard>} />
+        <Route path="users" element={<MenuGuard path="/users"><ManajemenUser /></MenuGuard>} />
+      </Route>
+    </Routes>
   );
 }
 

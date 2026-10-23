@@ -2,22 +2,40 @@
  * XNet Wi-Fi Manager - Data Management & Ingestion Utility
  * 
  * Penggunaan:
- *   1. Bersihkan seluruh data operasional (Reset ke kondisi bersih):
+ *   1. Impor seluruh 10 bulan (Januari 2026 s/d Oktober 2026) dari folder data_bulanan_2026:
+ *      node scripts/clean_and_import_new_data.cjs --import-all
+ * 
+ *   2. Impor berkas tunggal (.xlsx):
+ *      node scripts/clean_and_import_new_data.cjs --import <path/ke/file_data.xlsx>
+ * 
+ *   3. Bersihkan seluruh data operasional (Reset ke kondisi bersih):
  *      node scripts/clean_and_import_new_data.cjs --clean
  * 
- *   2. Cek status data saat ini:
+ *   4. Cek status data saat ini:
  *      node scripts/clean_and_import_new_data.cjs --status
- * 
- *   3. Impor data terbaru dari file Excel (.xlsx) / CSV / JSON:
- *      node scripts/clean_and_import_new_data.cjs --import <path/ke/file_data.xlsx>
  */
 
 const fs = require("fs");
 const path = require("path");
+const XLSX = require("xlsx");
 
 const MOCK_DATA_PATH = path.resolve(__dirname, "../src/data/mockData.js");
 const IMPORTED_DATA_PATH = path.resolve(__dirname, "../src/data/latest_imported_data.json");
 const UNIFIED_ODP_PATH = path.resolve(__dirname, "../src/data/unifiedOdpOdc.json");
+const MONTHLY_DIR = path.resolve(__dirname, "../data_bulanan_2026");
+
+const MONTHLY_FILES = [
+  { file: '01_januari_TIM_WIFI_JANUARI_2026.xlsx', month: '2026-01', fallbackDate: '2026-01-15' },
+  { file: '02_februari_TIM_WIFI_FEBRUARI_2026.xlsx', month: '2026-02', fallbackDate: '2026-02-15' },
+  { file: '03_maret_TIM_WIFI_MARET_2026.xlsx', month: '2026-03', fallbackDate: '2026-03-15' },
+  { file: '04_april_TIM_WIFI_APRIL_2026.xlsx', month: '2026-04', fallbackDate: '2026-04-15' },
+  { file: '05_mei_TIM_WIFI_MEI_2026.xlsx', month: '2026-05', fallbackDate: '2026-05-15' },
+  { file: '06_juni_TIM_WIFI_JUNI_2026.xlsx', month: '2026-06', fallbackDate: '2026-06-15' },
+  { file: '07_juli_TIM_WIFI_JULI_2026.xlsx', month: '2026-07', fallbackDate: '2026-07-15' },
+  { file: '08_agustus_TIM_WIFI_AGUSTUS_2026.xlsx', month: '2026-08', fallbackDate: '2026-08-15' },
+  { file: '09_september_TIM_WIFI_SEPTEMBER_2026.xlsx', month: '2026-09', fallbackDate: '2026-09-15' },
+  { file: '10_oktober_TIM_WIFI_OKTOBER_2026.xlsx', month: '2026-10', fallbackDate: '2026-10-15' },
+];
 
 function getOdpSummary() {
   try {
@@ -32,13 +50,23 @@ function getOdpSummary() {
   return { odpCount: 0, odcCount: 0 };
 }
 
-function excelDateToDate(serial) {
-  if (!serial || isNaN(serial)) return null;
-  const utc_days = Math.floor(serial - 25569);
-  return new Date(utc_days * 86400 * 1000).toISOString().split("T")[0];
+function excelDateToDate(serial, fallback = "2026-10-01") {
+  if (!serial) return fallback;
+  if (typeof serial === "string") {
+    const s = serial.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const parts = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (parts) return `${parts[3]}-${parts[2].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+    return fallback;
+  }
+  if (!isNaN(serial) && serial > 30000 && serial < 60000) {
+    const utc_days = Math.floor(serial - 25569);
+    return new Date(utc_days * 86400 * 1000).toISOString().split("T")[0];
+  }
+  return fallback;
 }
 
-async function cleanOperationalData() {
+function cleanOperationalData() {
   console.log("\n=======================================================");
   console.log("🧹 [MEMBERSIHKAN DATA OPERASIONAL LAMA NEXUS/XNET]");
   console.log("=======================================================\n");
@@ -49,16 +77,6 @@ async function cleanOperationalData() {
   console.log(`   - Master ODC (Google Earth KML): ${odpInfo.odcCount} titik ODC`);
   console.log(`   - Master Tim: Tim A, Tim B, Tim C & Personil Teknisi\n`);
 
-  console.log("🗑️  Mengosongkan Data Operasional:");
-  console.log("   - xnet_pekerjaan        -> [] (KOSONG)");
-  console.log("   - xnet_leads            -> [] (KOSONG)");
-  console.log("   - xnet_gangguan         -> [] (KOSONG)");
-  console.log("   - xnet_daftar_gangguan  -> [] (KOSONG)");
-  console.log("   - xnet_pengajuan_putus  -> [] (KOSONG)");
-  console.log("   - xnet_pelanggan_radius -> [] (KOSONG)");
-  console.log("   - xnet_fu_pelanggan     -> [] (KOSONG)");
-  console.log("   - xnet_redaman_tinggi   -> [] (KOSONG)\n");
-
   const emptyPayload = {
     timestamp: new Date().toISOString(),
     status: "CLEANED",
@@ -67,40 +85,12 @@ async function cleanOperationalData() {
     pelanggan: [],
     gangguan: [],
     pengajuan_pemutusan: [],
+    redaman_tinggi: [],
   };
   fs.writeFileSync(IMPORTED_DATA_PATH, JSON.stringify(emptyPayload, null, 2), "utf8");
 
-  // Perbarui mockData.js dengan array kosong
   updateMockDataFile([], [], [], [], [], []);
-
   console.log("✅ Berkas `src/data/mockData.js` & `latest_imported_data.json` dikosongkan.");
-
-  // Coba bersihkan cloud Supabase jika kredensial ada
-  try {
-    const envPath = path.resolve(__dirname, "../.env");
-    if (fs.existsSync(envPath)) {
-      const envContent = fs.readFileSync(envPath, "utf8");
-      const urlMatch = envContent.match(/VITE_SUPABASE_URL\s*=\s*(.+)/);
-      const keyMatch = envContent.match(/VITE_SUPABASE_ANON_KEY\s*=\s*(.+)/);
-      if (urlMatch && keyMatch) {
-        const { createClient } = require("@supabase/supabase-js");
-        const supabase = createClient(urlMatch[1].trim(), keyMatch[1].trim());
-        console.log("☁️  Menghubungi Supabase Cloud...");
-        const tables = ["pekerjaan", "leads", "gangguan", "daftar_gangguan", "pelanggan_radius"];
-        for (const tbl of tables) {
-          try {
-            await supabase.from(tbl).delete().neq("id", -99999);
-          } catch {}
-        }
-        console.log("☁️  Sinkronisasi cloud request pembersihan selesai.");
-      }
-    }
-  } catch (err) {
-    console.log("ℹ️  Cloud notice:", err.message);
-  }
-
-  console.log("\n✨ SUKSES: Sistem sekarang 100% bersih dan siap menerima data terbaru.");
-  console.log("👉 Untuk memasukkan data terbaru, jalankan: node scripts/clean_and_import_new_data.cjs --import <nama_file.xlsx>\n");
 }
 
 function showStatus() {
@@ -117,6 +107,7 @@ function showStatus() {
     try {
       const data = JSON.parse(fs.readFileSync(IMPORTED_DATA_PATH, "utf8"));
       console.log(`\n📦 Dataset Terakhir Diimpor (${data.timestamp || "N/A"}):`);
+      console.log(`   - Sumber Data        : ${data.sourceFiles ? data.sourceFiles.join(', ') : (data.sourceFile || "N/A")}`);
       console.log(`   - Pekerjaan Lapangan : ${(data.pekerjaan || []).length} entri`);
       console.log(`   - Calon Leads/Prospek : ${(data.leads || []).length} entri`);
       console.log(`   - Pelanggan Radius   : ${(data.pelanggan || []).length} entri`);
@@ -129,81 +120,78 @@ function showStatus() {
   console.log("\n=======================================================\n");
 }
 
-async function importFromFile(filePath) {
-  if (!filePath) {
-    console.error("❌ Error: Harap sertakan path berkas. Contoh: --import spreadsheet_real.xlsx");
-    process.exit(1);
-  }
-
-  const resolved = path.resolve(process.cwd(), filePath);
-  if (!fs.existsSync(resolved)) {
-    console.error(`❌ Error: Berkas tidak ditemukan di "${resolved}"`);
-    process.exit(1);
-  }
-
-  console.log("\n=======================================================");
-  console.log(`📥 [MEMPROSES IMPOR DATA TERBARU DARI: ${path.basename(resolved)}]`);
-  console.log("=======================================================\n");
-
-  let XLSX;
-  try {
-    XLSX = require("xlsx");
-  } catch {
-    console.error("❌ Error: Paket `xlsx` tidak terpasang.");
-    process.exit(1);
-  }
-
-  const workbook = XLSX.readFile(resolved);
-  console.log(`📄 Lembar kerja ditemukan: ${workbook.SheetNames.join(", ")}`);
-
+function parseWorkbook(workbook, monthMeta, globalCounters) {
   const result = {
-    timestamp: new Date().toISOString(),
-    sourceFile: path.basename(resolved),
     pekerjaan: [],
     leads: [],
     pelanggan: [],
     gangguan: [],
     pengajuan_pemutusan: [],
+    redaman_tinggi: [],
   };
 
-  const isMultiTeamSpreadsheet = workbook.SheetNames.some(s => 
-    s.toUpperCase().includes("GATRA") || s.toUpperCase().includes("AZWAR") || s.toUpperCase().includes("IQBAL")
-  );
+  const defaultDate = monthMeta.fallbackDate || "2026-10-01";
 
-  if (isMultiTeamSpreadsheet) {
-    console.log("🔍 Terdeteksi format Spreadsheet Operasional Nexus Net (Per Tim & Gangguan & Pemutusan)...");
+  // Team configurations
+  const teamConfigs = [
+    { sheetMatch: "GATRA", tim: "Tim A", teknisi: ["AIS", "Gatra"] },
+    { sheetMatch: "IQBAL", tim: "Tim B", teknisi: ["Jusman", "Iqbal"] },
+    { sheetMatch: "AZWAR", tim: "Tim C", teknisi: ["Azwar", "Rio"] },
+  ];
 
-    let taskId = 1000;
-    const teamConfigs = [
-      { sheetMatch: "GATRA", tim: "Tim A", teknisi: ["AIS", "Gatra"] },
-      { sheetMatch: "IQBAL", tim: "Tim B", teknisi: ["Jusman", "Iqbal"] },
-      { sheetMatch: "AZWAR", tim: "Tim C", teknisi: ["Azwar", "Rio"] },
-    ];
+  teamConfigs.forEach(tc => {
+    const sheetName = workbook.SheetNames.find(s => s.toUpperCase().includes(tc.sheetMatch));
+    if (!sheetName) return;
 
-    teamConfigs.forEach(tc => {
-      const sheetName = workbook.SheetNames.find(s => s.toUpperCase().includes(tc.sheetMatch));
-      if (!sheetName) return;
+    // Detect if team members are Azwar-Wahyu or Azwar-Rio
+    let teknisiMembers = tc.teknisi;
+    if (tc.sheetMatch === "AZWAR" && sheetName.toUpperCase().includes("WAHYU")) {
+      teknisiMembers = ["Azwar", "Wahyu"];
+    }
 
-      const sheet = workbook.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-      console.log(`   -> Memproses lembar kerja ${tc.tim} (${sheetName}): ${rows.length} baris...`);
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    const r2 = rows[2] || [];
+    const r0 = rows[0] || [];
 
-      rows.slice(5).forEach((r) => {
-        // 1. PSB (Pemasangan)
-        const psbNama = r[1] && typeof r[1] === "string" ? r[1].trim() : null;
-        if (psbNama && psbNama !== "Nama" && !psbNama.toUpperCase().includes("TOTAL")) {
-          const start = excelDateToDate(r[3]) || "2026-09-01";
-          const finish = excelDateToDate(r[4]);
-          const alamat = (r[2] && String(r[2]).trim()) || "Pontianak";
-          const ket = r[5] ? String(r[5]).trim() : "";
-          const isSelesai = r[8] === 1 || finish !== null;
-          const isGagal = r[9] === 1 || (r[6] === 0 && ket.length > 0);
+    // Detect blocks dynamically
+    const blocks = [];
+    for (let c = 0; c < 50; c++) {
+      if (String(r2[c] || '').trim().toLowerCase() === 'no' && String(r2[c + 1] || '').trim().toLowerCase() === 'nama') {
+        let title = '';
+        for (let tcCol = c; tcCol >= Math.max(0, c - 5); tcCol--) {
+          if (r0[tcCol]) { title = String(r0[tcCol]); break; }
+        }
+        blocks.push({ colNo: c, colNama: c + 1, title });
+      }
+    }
+
+    rows.slice(5).forEach(r => {
+      // 1. PSB (Block 0)
+      if (blocks.length > 0) {
+        const c = blocks[0].colNo;
+        const psbNama = r[c + 1] && typeof r[c + 1] === "string" ? r[c + 1].trim() : null;
+        if (psbNama && psbNama.toLowerCase() !== "nama" && !psbNama.toUpperCase().includes("TOTAL")) {
+          const start = excelDateToDate(r[c + 3], defaultDate);
+          const finish = r[c + 4] ? excelDateToDate(r[c + 4], start) : null;
+          const alamat = (r[c + 2] && String(r[c + 2]).trim()) || "Pontianak";
+          const ket = r[c + 5] ? String(r[c + 5]).trim() : "";
+          
+          const isSelesai = r[c + 8] === 1 || finish !== null;
+          const isGagal = r[c + 9] === 1 || (r[c + 6] === 0 && ket.length > 0 && /gagal|batal|cancel|tidak|kendala/i.test(ket));
           const status = isGagal ? "GAGAL" : isSelesai ? "SELESAI" : "WAITING LIST";
 
-          const sumber = r[11] === 1 ? "IKLAN" : r[12] === 1 ? "AFFILIATE" : r[13] === 1 ? "MARKETING" : "IKLAN";
+          // Sumber Leads
+          let sumber = "IKLAN";
+          if (r[c + 12] === 1) sumber = "AFFILIATE";
+          else if (r[c + 13] === 1) sumber = "MARKETING";
+          else if (r[c + 11] === 1) sumber = "IKLAN";
+          else if (/affiliate/i.test(ket)) sumber = "AFFILIATE";
+          else if (/marketing/i.test(ket)) sumber = "MARKETING";
 
+          const taskId = ++globalCounters.taskId;
           result.pekerjaan.push({
-            id: ++taskId,
+            id: taskId,
             spk_no: `SPK/PSB/${start.replace(/-/g, "")}/${String(taskId).padStart(4, "0")}`,
             pelanggan: psbNama,
             jenis: "PEMASANGAN",
@@ -211,7 +199,7 @@ async function importFromFile(filePath) {
             prioritas: "NORMAL",
             sesi: "PAGI",
             tim: tc.tim,
-            teknisi_list: tc.teknisi,
+            teknisi_list: teknisiMembers,
             alamat,
             tanggal: start,
             keterangan: ket || `Pemasangan baru ${psbNama}`,
@@ -219,7 +207,7 @@ async function importFromFile(filePath) {
           });
 
           result.leads.push({
-            id: 2000 + result.leads.length + 1,
+            id: ++globalCounters.leadId,
             nama: psbNama,
             alamat,
             sumber,
@@ -228,11 +216,11 @@ async function importFromFile(filePath) {
             keterangan_survey: ket || "Survey awal PSB",
           });
 
-          // Masukkan ke Pelanggan Radius jika aktif / selesai
           if (status === "SELESAI") {
+            const custId = ++globalCounters.pelangganId;
             result.pelanggan.push({
-              id: 1000 + result.pelanggan.length + 1,
-              id_pelanggan: `NX-2026-${String(result.pelanggan.length + 1).padStart(3, "0")}`,
+              id: custId,
+              id_pelanggan: `NX-2026-${String(custId).padStart(4, "0")}`,
               nama: psbNama,
               telepon: "-",
               alamat,
@@ -244,199 +232,295 @@ async function importFromFile(filePath) {
             });
           }
         }
+      }
 
-        // 2. RPR (Perbaikan)
-        const rprNama = r[17] && typeof r[17] === "string" ? r[17].trim() : null;
-        if (rprNama && rprNama !== "Nama" && !rprNama.toUpperCase().includes("TOTAL")) {
-          const start = excelDateToDate(r[18]) || "2026-09-01";
-          const finish = excelDateToDate(r[19]);
-          const ket = r[20] ? String(r[20]).trim() : "";
-          const isSelesai = finish !== null || r[25] === 1 || r[24] === 1;
-          const status = isSelesai ? "SELESAI" : "WAITING LIST";
+      // 2. Block 1 (RPR or DIS/Penarikan)
+      if (blocks.length > 1) {
+        const c = blocks[1].colNo;
+        const b1Nama = r[c + 1] && typeof r[c + 1] === "string" ? r[c + 1].trim() : null;
+        if (b1Nama && b1Nama.toLowerCase() !== "nama" && !b1Nama.toUpperCase().includes("TOTAL")) {
+          const isDisOrPenarikan = /penarikan|pemutusan/i.test(blocks[1].title) || /pemutusan|dismantle|cabut/i.test(String(r[c + 4] || r[c + 5] || ''));
+          
+          if (isDisOrPenarikan) {
+            const start = excelDateToDate(r[c + 2] || r[c + 3], defaultDate);
+            const ket = (r[c + 4] || r[c + 5] || r[c + 2]) ? String(r[c + 4] || r[c + 5] || r[c + 2]).trim() : "Pemutusan / Dismantle";
+            const taskId = ++globalCounters.taskId;
+            result.pekerjaan.push({
+              id: taskId,
+              spk_no: `SPK/DIS/${start.replace(/-/g, "")}/${String(taskId).padStart(4, "0")}`,
+              pelanggan: b1Nama,
+              jenis: "PEMUTUSAN",
+              status: "SELESAI",
+              prioritas: "NORMAL",
+              sesi: "PAGI",
+              tim: tc.tim,
+              teknisi_list: teknisiMembers,
+              alamat: "-",
+              tanggal: start,
+              keterangan: ket || `Pemutusan & dismantle perangkat ${b1Nama}`,
+              komisi_total: 5000,
+            });
+          } else {
+            // Perbaikan (RPR)
+            const start = excelDateToDate(r[c + 2] || r[c + 3], defaultDate);
+            const finish = r[c + 3] ? excelDateToDate(r[c + 3], start) : null;
+            const ket = (r[c + 4] || r[c + 2]) ? String(r[c + 4] || r[c + 2]).trim() : "";
+            const isSelesai = finish !== null || r[c + 7] === 1 || r[c + 8] === 1 || r[c + 9] === 1;
+            const status = isSelesai ? "SELESAI" : "WAITING LIST";
 
-          result.pekerjaan.push({
-            id: ++taskId,
-            spk_no: `SPK/RPR/${start.replace(/-/g, "")}/${String(taskId).padStart(4, "0")}`,
-            pelanggan: rprNama,
-            jenis: "PERBAIKAN",
-            status,
-            prioritas: "URGENT",
-            sesi: "SORE",
-            tim: tc.tim,
-            teknisi_list: tc.teknisi,
-            alamat: "-",
-            tanggal: start,
-            keterangan: ket || `Perbaikan koneksi ${rprNama}`,
-            komisi_total: status === "SELESAI" ? 8500 : 0,
-          });
-        }
-
-        // 3. DIS (Pemutusan / Penarikan)
-        let disNama = null;
-        let disStart = null;
-        let disKet = "";
-
-        for (let c = 31; c <= 34; c++) {
-          if (r[c] && typeof r[c] === "string" && r[c].trim() && isNaN(r[c]) && r[c] !== "Nama" && !r[c].includes("TOTAL")) {
-            disNama = r[c].trim();
-            disStart = excelDateToDate(r[c + 1]) || excelDateToDate(r[c + 2]) || "2026-09-22";
-            disKet = r[c + 3] ? String(r[c + 3]) : "";
-            break;
+            const taskId = ++globalCounters.taskId;
+            result.pekerjaan.push({
+              id: taskId,
+              spk_no: `SPK/RPR/${start.replace(/-/g, "")}/${String(taskId).padStart(4, "0")}`,
+              pelanggan: b1Nama,
+              jenis: "PERBAIKAN",
+              status,
+              prioritas: "URGENT",
+              sesi: "SORE",
+              tim: tc.tim,
+              teknisi_list: teknisiMembers,
+              alamat: "-",
+              tanggal: start,
+              keterangan: ket || `Perbaikan koneksi ${b1Nama}`,
+              komisi_total: status === "SELESAI" ? 8500 : 0,
+            });
           }
         }
+      }
 
-        if (disNama) {
+      // 3. Block 2 (DIS / Pemutusan)
+      if (blocks.length > 2) {
+        const c = blocks[2].colNo;
+        const disNama = r[c + 1] && typeof r[c + 1] === "string" ? r[c + 1].trim() : null;
+        if (disNama && disNama.toLowerCase() !== "nama" && !disNama.toUpperCase().includes("TOTAL")) {
+          const start = excelDateToDate(r[c + 2] || r[c + 3], defaultDate);
+          const ket = r[c + 4] ? String(r[c + 4]).trim() : "";
+          const taskId = ++globalCounters.taskId;
           result.pekerjaan.push({
-            id: ++taskId,
-            spk_no: `SPK/DIS/${(disStart || "20260922").replace(/-/g, "")}/${String(taskId).padStart(4, "0")}`,
+            id: taskId,
+            spk_no: `SPK/DIS/${start.replace(/-/g, "")}/${String(taskId).padStart(4, "0")}`,
             pelanggan: disNama,
             jenis: "PEMUTUSAN",
             status: "SELESAI",
             prioritas: "NORMAL",
             sesi: "PAGI",
             tim: tc.tim,
-            teknisi_list: tc.teknisi,
+            teknisi_list: teknisiMembers,
             alamat: "-",
-            tanggal: disStart || "2026-09-22",
-            keterangan: disKet || `Pemutusan & dismantle perangkat ${disNama}`,
+            tanggal: start,
+            keterangan: ket || `Pemutusan & dismantle perangkat ${disNama}`,
             komisi_total: 5000,
           });
         }
+      }
+    });
+  });
+
+  // 4. Daftar Gangguan / Gangguan Mingguan / Non Teknisi
+  const dgSheetNames = workbook.SheetNames.filter(s => {
+    const sUp = s.toUpperCase();
+    return sUp.includes("GANGGUAN") && !sUp.includes("ODP") && !sUp.includes("INTERNAL");
+  });
+
+  dgSheetNames.forEach(dgSheetName => {
+    const dgRows = XLSX.utils.sheet_to_json(workbook.Sheets[dgSheetName]);
+    dgRows.forEach((r) => {
+      const rawNama = (r.Nama || r.nama || r["Nama Pelanggan"] || "").trim();
+      if (!rawNama || rawNama.toLowerCase() === "nama" || rawNama.toUpperCase().includes("TOTAL")) return;
+
+      const ket = (r.Keterangan || r.keterangan || r.Reaksi || "Gangguan koneksi").trim();
+      let kontak = "-";
+      if (r.Kontak) kontak = String(r.Kontak).replace(/^62/, "0").replace(/[\r\n\t]/g, " ").trim();
+      
+      const tglMulai = excelDateToDate(r["Tanggal Mulai"] || r.Start, defaultDate);
+      const followUp = r.FollUp || r.FollowUp || r["Tanggal Selesai"] || r.Finish ? excelDateToDate(r.FollUp || r.FollowUp || r["Tanggal Selesai"] || r.Finish, tglMulai) : "-";
+      const hasilFU = r["Hasil FU"] ? String(r["Hasil FU"]).trim() : (r.Keterangan ? String(r.Keterangan).trim() : "Aman");
+      const isAman = /aman|normal|selesai|sudah/i.test(hasilFU);
+
+      result.gangguan.push({
+        id: ++globalCounters.gangguanId,
+        nama: rawNama,
+        keterangan: ket,
+        kontak,
+        tanggalMulai: tglMulai,
+        followUp,
+        hasilFU,
+        status: isAman ? "SELESAI" : "PROSES",
       });
     });
+  });
 
-    // 4. Daftar Gangguan
-    const dgSheetName = workbook.SheetNames.find(s => s.toUpperCase().includes("GANGGUAN") && !s.toUpperCase().includes("ODP"));
-    if (dgSheetName) {
-      const dgRows = XLSX.utils.sheet_to_json(workbook.Sheets[dgSheetName]);
-      console.log(`   -> Memproses lembar kerja Gangguan (${dgSheetName}): ${dgRows.length} entri...`);
-      dgRows.forEach((r, i) => {
-        const nama = (r.Nama || r.nama || "Pelanggan").trim();
-        const ket = (r.Keterangan || r.keterangan || "Gangguan koneksi").trim();
-        const kontak = r.Kontak ? String(r.Kontak).replace(/^62/, "0") : "-";
-        const tglMulai = excelDateToDate(r["Tanggal Mulai"]) || "2026-09-01";
-        const followUp = excelDateToDate(r.FollUp || r.FollowUp) || "-";
-        const hasilFU = r["Hasil FU"] ? String(r["Hasil FU"]).trim() : "Aman";
+  // 5. Pengajuan Pemutusan
+  const ppSheetNames = workbook.SheetNames.filter(s => s.toUpperCase().includes("PEMUTUSAN"));
+  ppSheetNames.forEach(ppSheetName => {
+    const ppRows = XLSX.utils.sheet_to_json(workbook.Sheets[ppSheetName]);
+    ppRows.forEach((r) => {
+      const rawNama = (r["Nama "] || r.Nama || r.nama || "").trim();
+      if (!rawNama || rawNama.toLowerCase() === "nama" || rawNama.toUpperCase().includes("TOTAL")) return;
 
-        result.gangguan.push({
-          id: 3000 + i + 1,
-          nama,
-          keterangan: ket,
-          kontak,
-          tanggalMulai: tglMulai,
-          followUp,
-          hasilFU,
-          status: hasilFU === "Aman" ? "SELESAI" : "PROSES",
-        });
+      let kontak = "-";
+      if (r.Kontak) kontak = String(r.Kontak).replace(/^62/, "0").replace(/[\r\n\t]/g, " ").trim();
+      const alasan = (r["Sebab/alasan"] || r.alasan || r["Perkiraan sebab"] || "Permintaan pelanggan").replace(/[\r\n\t]/g, " ").trim();
+      const tgl = excelDateToDate(r["Tanggal Pengajuan Pemutusan"] || r.Tanggal, defaultDate);
+
+      result.pengajuan_pemutusan.push({
+        id: ++globalCounters.pemutusanId,
+        nama: rawNama,
+        kontak,
+        alasan,
+        tanggal: tgl,
+        status: "SELESAI",
       });
-    }
+    });
+  });
 
-    // 5. Pengajuan Pemutusan
-    const ppSheetName = workbook.SheetNames.find(s => s.toUpperCase().includes("PEMUTUSAN"));
-    if (ppSheetName) {
-      const ppRows = XLSX.utils.sheet_to_json(workbook.Sheets[ppSheetName]);
-      console.log(`   -> Memproses lembar kerja Pengajuan Pemutusan (${ppSheetName}): ${ppRows.length} entri...`);
-      ppRows.forEach((r, i) => {
-        const rawNama = (r["Nama "] || r.Nama || "Pelanggan").trim();
-        const kontak = r.Kontak ? String(r.Kontak).replace(/^62/, "0") : "-";
-        const alasan = (r["Sebab/alasan"] || r.alasan || "Permintaan pelanggan").trim();
-
-        result.pengajuan_pemutusan.push({
-          id: 4000 + i + 1,
-          nama: rawNama,
-          kontak,
-          alasan,
-          tanggal: "2026-09-22",
+  // 6. ODP LOS
+  const odpLosName = workbook.SheetNames.find(s => s.toUpperCase().includes("ODP LOS"));
+  if (odpLosName) {
+    const odpLosRows = XLSX.utils.sheet_to_json(workbook.Sheets[odpLosName], { header: 1 });
+    odpLosRows.slice(5).forEach((r) => {
+      if (r[1] && typeof r[1] === "string" && r[1].toUpperCase().includes("ODP")) {
+        const odp = String(r[1]).trim();
+        const ket = r[2] ? String(r[2]).trim() : "ODP LOS / Perbaikan Redaman";
+        const start = excelDateToDate(r[3], defaultDate);
+        const taskId = ++globalCounters.taskId;
+        result.pekerjaan.push({
+          id: taskId,
+          spk_no: `SPK/RPR/${start.replace(/-/g, "")}/${String(taskId).padStart(4, "0")}`,
+          pelanggan: `Infrastruktur ${odp}`,
+          jenis: "PERBAIKAN KHUSUS (ODP/ODC)",
           status: "SELESAI",
+          prioritas: "URGENT",
+          sesi: "PAGI",
+          tim: "Tim A",
+          teknisi_list: ["AIS", "Gatra"],
+          alamat: `Tiang ODP ${odp}`,
+          odp,
+          tanggal: start,
+          keterangan: ket,
+          komisi_total: 10000,
         });
-      });
-    }
-
-    // 6. ODP LOS (Ditambahkan ke pekerjaan perbaikan khusus ODP)
-    const odpLosName = workbook.SheetNames.find(s => s.toUpperCase().includes("ODP LOS"));
-    if (odpLosName) {
-      const odpLosRows = XLSX.utils.sheet_to_json(workbook.Sheets[odpLosName], { header: 1 });
-      odpLosRows.slice(5).forEach((r) => {
-        if (r[1] && typeof r[1] === "string" && r[1].startsWith("ODP")) {
-          const odp = r[1];
-          const ket = r[2] || "ODP LOS / Perbaikan Redaman";
-          const start = excelDateToDate(r[3]) || "2026-09-10";
-          result.pekerjaan.push({
-            id: ++taskId,
-            spk_no: `SPK/RPR/${start.replace(/-/g, "")}/${String(taskId).padStart(4, "0")}`,
-            pelanggan: `Infrastruktur ${odp}`,
-            jenis: "PERBAIKAN KHUSUS (ODP/ODC)",
-            status: "SELESAI",
-            prioritas: "URGENT",
-            sesi: "PAGI",
-            tim: "Tim A",
-            teknisi_list: ["AIS", "Gatra"],
-            alamat: `Tiang ODP ${odp}`,
-            odp,
-            tanggal: start,
-            keterangan: ket,
-            komisi_total: 10000,
-          });
-        }
-      });
-    }
-
-  } else {
-    // Mode lembar kerja umum / flat
-    workbook.SheetNames.forEach((sheetName) => {
-      const sLower = sheetName.toLowerCase();
-      const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
-
-      if (sLower.includes("pekerjaan") || sLower.includes("spk")) {
-        result.pekerjaan.push(...rawRows.map(normalizePekerjaanRow));
-      } else if (sLower.includes("lead") || sLower.includes("prospek")) {
-        result.leads.push(...rawRows.map(normalizeLeadsRow));
-      } else if (sLower.includes("pelanggan") || sLower.includes("radius")) {
-        result.pelanggan.push(...rawRows.map(normalizePelangganRow));
-      } else if (sLower.includes("gangguan")) {
-        result.gangguan.push(...rawRows.map(normalizeGangguanRow));
-      } else if (sLower.includes("putus")) {
-        result.pengajuan_pemutusan.push(...rawRows.map(normalizePemutusanRow));
       }
     });
   }
 
-  // Tulis ke JSON arsip
-  fs.writeFileSync(IMPORTED_DATA_PATH, JSON.stringify(result, null, 2), "utf8");
+  // 7. FU Pelanggan Redaman Tinggi
+  const redamanSheetName = workbook.SheetNames.find(s => s.toUpperCase().includes("REDAMAN TINGGI"));
+  if (redamanSheetName) {
+    const rRows = XLSX.utils.sheet_to_json(workbook.Sheets[redamanSheetName], { header: 1 });
+    let currentOdc = "ODC 1";
+    rRows.forEach(r => {
+      if (r[0] && typeof r[0] === 'string' && r[0].includes('ODC')) {
+        currentOdc = r[0].trim();
+      }
+      if (r[1] && typeof r[1] === 'string' && (r[1].includes('ODP') || r[1].includes('-'))) {
+        result.redaman_tinggi.push({
+          odc: currentOdc,
+          pelanggan: r[1].trim(),
+          status: r[2] ? String(r[2]).trim() : "Tinggi",
+          bulan: monthMeta.month,
+        });
+      }
+    });
+  }
 
-  // Perbarui mockData.js dengan data baru yang sudah bersih dan riil
+  return result;
+}
+
+function importAll10Months() {
+  console.log("\n=======================================================");
+  console.log("🚀 [MEMULAI IMPOR DATA UTUH 10 BULAN (JANUARI - OKTOBER 2026)]");
+  console.log("=======================================================\n");
+
+  const XLSX = require("xlsx");
+
+  const globalCounters = {
+    taskId: 1000,
+    leadId: 2000,
+    pelangganId: 1000,
+    gangguanId: 3000,
+    pemutusanId: 4000,
+  };
+
+  const aggregated = {
+    timestamp: new Date().toISOString(),
+    datasetRange: "2026-01 s/d 2026-10",
+    sourceFiles: MONTHLY_FILES.map(f => f.file),
+    pekerjaan: [],
+    leads: [],
+    pelanggan: [],
+    gangguan: [],
+    pengajuan_pemutusan: [],
+    redaman_tinggi: [],
+  };
+
+  MONTHLY_FILES.forEach(mMeta => {
+    const filePath = path.join(MONTHLY_DIR, mMeta.file);
+    if (!fs.existsSync(filePath)) {
+      console.warn(`⚠️ Berkas tidak ditemukan: ${mMeta.file}`);
+      return;
+    }
+
+    console.log(`📂 Memproses Bulan ${mMeta.month} (${mMeta.file})...`);
+    const wb = XLSX.readFile(filePath);
+    const parsed = parseWorkbook(wb, mMeta, globalCounters);
+
+    aggregated.pekerjaan.push(...parsed.pekerjaan);
+    aggregated.leads.push(...parsed.leads);
+    aggregated.pelanggan.push(...parsed.pelanggan);
+    aggregated.gangguan.push(...parsed.gangguan);
+    aggregated.pengajuan_pemutusan.push(...parsed.pengajuan_pemutusan);
+    aggregated.redaman_tinggi.push(...parsed.redaman_tinggi);
+
+    console.log(`   -> Selesai: +${parsed.pekerjaan.length} SPK, +${parsed.leads.length} Leads, +${parsed.gangguan.length} Gangguan, +${parsed.pengajuan_pemutusan.length} Pemutusan`);
+  });
+
+  // Save to JSON
+  fs.writeFileSync(IMPORTED_DATA_PATH, JSON.stringify(aggregated, null, 2), "utf8");
+  console.log(`\n💾 Arsip JSON disimpan ke: ${path.relative(process.cwd(), IMPORTED_DATA_PATH)}`);
+
+  // Update mockData.js
   updateMockDataFile(
-    result.pekerjaan,
-    result.leads,
-    result.gangguan,
-    result.pengajuan_pemutusan,
-    result.pelanggan
+    aggregated.pekerjaan,
+    aggregated.leads,
+    aggregated.gangguan,
+    aggregated.pengajuan_pemutusan,
+    aggregated.pelanggan,
+    aggregated.redaman_tinggi
   );
 
-  console.log("\n📊 Ringkasan Data yang Berhasil Diimpor & Diterapkan ke Sistem:");
-  console.log(`   - Pekerjaan Lapangan : ${result.pekerjaan.length} entri SPK`);
-  console.log(`   - Calon Leads/Prospek : ${result.leads.length} entri Leads`);
-  console.log(`   - Pelanggan Radius   : ${result.pelanggan.length} entri Pelanggan`);
-  console.log(`   - Tiket Gangguan     : ${result.gangguan.length} entri Gangguan`);
-  console.log(`   - Pengajuan Putus    : ${result.pengajuan_pemutusan.length} entri Pemutusan`);
-  console.log(`\n💾 Disimpan ke: ${path.relative(process.cwd(), MOCK_DATA_PATH)}`);
-  console.log("✅ Berhasil! Data operasional terbaru sekarang aktif di Kharisma Hub & Nexus Net.");
+  console.log("\n=======================================================");
+  console.log("🎉 SUKSES: SELURUH DATA JANUARI - OKTOBER 2026 TELAH MASUK KE SISTEM!");
+  console.log(`   - Total SPK Pekerjaan : ${aggregated.pekerjaan.length} entri`);
+  console.log(`   - Total Leads Masuk   : ${aggregated.leads.length} entri`);
+  console.log(`   - Total Pelanggan Aktif: ${aggregated.pelanggan.length} entri`);
+  console.log(`   - Total Tiket Gangguan : ${aggregated.gangguan.length} entri`);
+  console.log(`   - Total Pengajuan Putus: ${aggregated.pengajuan_pemutusan.length} entri`);
+  console.log(`   - Total Redaman Tinggi : ${aggregated.redaman_tinggi.length} entri`);
   console.log("=======================================================\n");
 }
 
-function updateMockDataFile(pekerjaan, leads, gangguan, pengajuan, pelanggan) {
-  // Hitung metrik teknisi
-  const selesaiByTim = {
-    "Tim A": pekerjaan.filter(p => p.tim === "Tim A" && p.status === "SELESAI").length,
-    "Tim B": pekerjaan.filter(p => p.tim === "Tim B" && p.status === "SELESAI").length,
-    "Tim C": pekerjaan.filter(p => p.tim === "Tim C" && p.status === "SELESAI").length,
+function updateMockDataFile(pekerjaan, leads, gangguan, pengajuan, pelanggan, redaman = []) {
+  // Hitung metrik teknisi perorangan dari SPK yang selesai
+  const personilStats = {
+    AIS: { selesai: 0, komisi: 0 },
+    Gatra: { selesai: 0, komisi: 0 },
+    Jusman: { selesai: 0, komisi: 0 },
+    Iqbal: { selesai: 0, komisi: 0 },
+    Azwar: { selesai: 0, komisi: 0 },
+    Rio: { selesai: 0, komisi: 0 },
+    Wahyu: { selesai: 0, komisi: 0 },
   };
 
-  const komisiByTim = {
-    "Tim A": pekerjaan.filter(p => p.tim === "Tim A" && p.status === "SELESAI").reduce((sum, p) => sum + (p.komisi_total || 0), 0),
-    "Tim B": pekerjaan.filter(p => p.tim === "Tim B" && p.status === "SELESAI").reduce((sum, p) => sum + (p.komisi_total || 0), 0),
-    "Tim C": pekerjaan.filter(p => p.tim === "Tim C" && p.status === "SELESAI").reduce((sum, p) => sum + (p.komisi_total || 0), 0),
-  };
+  pekerjaan.filter(p => p.status === "SELESAI").forEach(p => {
+    const list = p.teknisi_list || [];
+    list.forEach(tech => {
+      if (personilStats[tech]) {
+        personilStats[tech].selesai++;
+        personilStats[tech].komisi += (p.komisi_total || 0);
+      }
+    });
+  });
 
   const personilList = [
     {
@@ -448,8 +532,8 @@ function updateMockDataFile(pekerjaan, leads, gangguan, pengajuan, pelanggan) {
       timId: 1,
       timNama: "Tim A",
       status: "AKTIF",
-      total_selesai: selesaiByTim["Tim A"] || 0,
-      total_komisi: komisiByTim["Tim A"] || 0,
+      total_selesai: personilStats.AIS.selesai,
+      total_komisi: personilStats.AIS.komisi,
     },
     {
       id: 2,
@@ -460,8 +544,8 @@ function updateMockDataFile(pekerjaan, leads, gangguan, pengajuan, pelanggan) {
       timId: 1,
       timNama: "Tim A",
       status: "AKTIF",
-      total_selesai: selesaiByTim["Tim A"] || 0,
-      total_komisi: komisiByTim["Tim A"] || 0,
+      total_selesai: personilStats.Gatra.selesai,
+      total_komisi: personilStats.Gatra.komisi,
     },
     {
       id: 3,
@@ -472,8 +556,8 @@ function updateMockDataFile(pekerjaan, leads, gangguan, pengajuan, pelanggan) {
       timId: 2,
       timNama: "Tim B",
       status: "AKTIF",
-      total_selesai: selesaiByTim["Tim B"] || 0,
-      total_komisi: komisiByTim["Tim B"] || 0,
+      total_selesai: personilStats.Jusman.selesai,
+      total_komisi: personilStats.Jusman.komisi,
     },
     {
       id: 4,
@@ -484,8 +568,8 @@ function updateMockDataFile(pekerjaan, leads, gangguan, pengajuan, pelanggan) {
       timId: 2,
       timNama: "Tim B",
       status: "AKTIF",
-      total_selesai: selesaiByTim["Tim B"] || 0,
-      total_komisi: komisiByTim["Tim B"] || 0,
+      total_selesai: personilStats.Iqbal.selesai,
+      total_komisi: personilStats.Iqbal.komisi,
     },
     {
       id: 5,
@@ -496,8 +580,8 @@ function updateMockDataFile(pekerjaan, leads, gangguan, pengajuan, pelanggan) {
       timId: 3,
       timNama: "Tim C",
       status: "AKTIF",
-      total_selesai: selesaiByTim["Tim C"] || 0,
-      total_komisi: komisiByTim["Tim C"] || 0,
+      total_selesai: personilStats.Azwar.selesai,
+      total_komisi: personilStats.Azwar.komisi,
     },
     {
       id: 6,
@@ -508,12 +592,48 @@ function updateMockDataFile(pekerjaan, leads, gangguan, pengajuan, pelanggan) {
       timId: 3,
       timNama: "Tim C",
       status: "AKTIF",
-      total_selesai: selesaiByTim["Tim C"] || 0,
-      total_komisi: komisiByTim["Tim C"] || 0,
+      total_selesai: personilStats.Rio.selesai,
+      total_komisi: personilStats.Rio.komisi,
     },
   ];
 
-  const code = `import unifiedOdpOdc from "./unifiedOdpOdc.json";
+  // Hitung summary metrik
+  const psbList = pekerjaan.filter(p => p.jenis === "PEMASANGAN");
+  const rprList = pekerjaan.filter(p => p.jenis === "PERBAIKAN");
+  const disList = pekerjaan.filter(p => p.jenis === "PEMUTUSAN");
+
+  const summaryData = {
+    totalPekerjaan: pekerjaan.length,
+    totalLeads: leads.length,
+    pemasangan: {
+      waitingList: psbList.filter(p => p.status === "WAITING LIST").length,
+      dijadwalkan: psbList.filter(p => p.status === "DIJADWALKAN").length,
+      selesai: psbList.filter(p => p.status === "SELESAI").length,
+      gagal: psbList.filter(p => p.status === "GAGAL").length,
+    },
+    perbaikan: {
+      waitingList: rprList.filter(p => p.status === "WAITING LIST").length,
+      dijadwalkan: rprList.filter(p => p.status === "DIJADWALKAN").length,
+      selesai: rprList.filter(p => p.status === "SELESAI").length,
+    },
+    pemutusan: {
+      waitingList: disList.filter(p => p.status === "WAITING LIST").length,
+      dijadwalkan: disList.filter(p => p.status === "DIJADWALKAN").length,
+      selesai: disList.filter(p => p.status === "SELESAI").length,
+      gagal: disList.filter(p => p.status === "GAGAL").length,
+    },
+    sumberLeads: {
+      IKLAN: leads.filter(l => l.sumber === "IKLAN").length,
+      MARKETING: leads.filter(l => l.sumber === "MARKETING").length,
+      AFFILIATE: leads.filter(l => l.sumber === "AFFILIATE").length,
+    },
+    odpOdc: {
+      total: pekerjaan.filter(p => p.jenis === "PERBAIKAN KHUSUS (ODP/ODC)").length,
+      userTerdampak: 0,
+    },
+  };
+
+  const codeContent = `import unifiedOdpOdc from "./unifiedOdpOdc.json";
 
 export const bulan = new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 
@@ -581,7 +701,7 @@ export const kategoriGangguan = [
 
 export const initialTimData = timList;
 
-// Data operasional detail (Hasil Impor Spreadsheet Terbaru)
+// Data Operasional Riil (Januari - Oktober 2026)
 export const pekerjaanList = ${JSON.stringify(pekerjaan, null, 2)};
 
 export const leadsList = ${JSON.stringify(leads, null, 2)};
@@ -592,37 +712,11 @@ export const daftarGangguanList = gangguanList;
 export const initialGangguanList = daftarGangguanList;
 
 export const fuPelangganList = [];
-export const redamanTinggiList = [];
+export const redamanTinggiList = ${JSON.stringify(redaman, null, 2)};
 
 export const pengajuanPemutusanList = ${JSON.stringify(pengajuan, null, 2)};
 
-export const summaryData = {
-  totalPekerjaan: ${pekerjaan.length},
-  totalLeads: ${leads.length},
-  pemasangan: {
-    waitingList: ${pekerjaan.filter(p => p.jenis === "PEMASANGAN" && p.status === "WAITING LIST").length},
-    dijadwalkan: ${pekerjaan.filter(p => p.jenis === "PEMASANGAN" && p.status === "DIJADWALKAN").length},
-    selesai: ${pekerjaan.filter(p => p.jenis === "PEMASANGAN" && p.status === "SELESAI").length},
-    gagal: ${pekerjaan.filter(p => p.jenis === "PEMASANGAN" && p.status === "GAGAL").length},
-  },
-  perbaikan: {
-    waitingList: ${pekerjaan.filter(p => p.jenis === "PERBAIKAN" && p.status === "WAITING LIST").length},
-    dijadwalkan: ${pekerjaan.filter(p => p.jenis === "PERBAIKAN" && p.status === "DIJADWALKAN").length},
-    selesai: ${pekerjaan.filter(p => p.jenis === "PERBAIKAN" && p.status === "SELESAI").length},
-  },
-  pemutusan: {
-    waitingList: ${pekerjaan.filter(p => p.jenis === "PEMUTUSAN" && p.status === "WAITING LIST").length},
-    dijadwalkan: ${pekerjaan.filter(p => p.jenis === "PEMUTUSAN" && p.status === "DIJADWALKAN").length},
-    selesai: ${pekerjaan.filter(p => p.jenis === "PEMUTUSAN" && p.status === "SELESAI").length},
-    gagal: 0,
-  },
-  sumberLeads: {
-    IKLAN: ${leads.filter(l => l.sumber === "IKLAN").length},
-    MARKETING: ${leads.filter(l => l.sumber === "MARKETING").length},
-    AFFILIATE: ${leads.filter(l => l.sumber === "AFFILIATE").length},
-  },
-  odpOdc: { total: 200, userTerdampak: 0 },
-};
+export const summaryData = ${JSON.stringify(summaryData, null, 2)};
 
 export const gangguanData = {
   eksternal: {},
@@ -652,6 +746,7 @@ export function clearAllOperationalData() {
         })
       );
     });
+    console.log("🧹 [CLEANUP] Data operasional dikosongkan.");
   } catch (err) {
     console.warn("Gagal membersihkan data operasional:", err);
   }
@@ -667,95 +762,31 @@ export const odcMasterList = unifiedOdpOdc.odcList || [];
 export const initialPelangganRadius = ${JSON.stringify(pelanggan, null, 2)};
 `;
 
-  fs.writeFileSync(MOCK_DATA_PATH, code, "utf8");
+  fs.writeFileSync(MOCK_DATA_PATH, codeContent, "utf8");
+  console.log(`✅ File ${path.relative(process.cwd(), MOCK_DATA_PATH)} berhasil diperbarui.`);
 }
 
-function normalizePekerjaanRow(row, idx) {
-  return {
-    id: Number(row.id || row.ID || row.no || (Date.now() + idx)),
-    spk_no: String(row.spk_no || row.spk || row.SPK || row["No SPK"] || `SPK/GEN/${new Date().getFullYear()}/${idx + 1}`),
-    pelanggan: String(row.pelanggan || row.nama || row.Nama || row["Nama Pelanggan"] || "Pelanggan"),
-    jenis: String(row.jenis || row["Jenis Pekerjaan"] || "PEMASANGAN").toUpperCase(),
-    status: String(row.status || row.Status || "WAITING LIST").toUpperCase(),
-    prioritas: String(row.prioritas || row.Prioritas || "NORMAL").toUpperCase(),
-    sesi: String(row.sesi || row.Sesi || "PAGI").toUpperCase(),
-    tim: String(row.tim || row.Tim || "-"),
-    teknisi_list: Array.isArray(row.teknisi_list) ? row.teknisi_list : (row.teknisi ? [row.teknisi] : []),
-    alamat: String(row.alamat || row.Alamat || "-"),
-    odp: String(row.odp || row.ODP || "-"),
-    port: String(row.port || row.Port || "-"),
-    telepon: String(row.telepon || row.hp || row.kontak || row.Kontak || "-"),
-    tanggal: String(row.tanggal || row.Tanggal || new Date().toISOString().split("T")[0]),
-    keterangan: String(row.keterangan || row.Keterangan || ""),
-    komisi_items: Array.isArray(row.komisi_items) ? row.komisi_items : [],
-    komisi_total: Number(row.komisi_total || row.komisi || 0),
-  };
-}
-
-function normalizeLeadsRow(row, idx) {
-  return {
-    id: Number(row.id || (2000 + idx)),
-    nama: String(row.nama || row.Nama || "Calon Pelanggan"),
-    telepon: String(row.telepon || row.hp || row.kontak || "-"),
-    alamat: String(row.alamat || row.Alamat || "-"),
-    sumber: String(row.sumber || row.Sumber || "IKLAN").toUpperCase(),
-    status: String(row.status || row.Status || "BARU").toUpperCase(),
-    paket: String(row.paket || row.Paket || "Home Fiber 30 Mbps"),
-    tanggal: String(row.tanggal || row.Tanggal || new Date().toISOString().split("T")[0]),
-    odp_terdekat: String(row.odp_terdekat || row.odp || row.ODP || "-"),
-    jarak_odp: Number(row.jarak_odp || row.jarak || 0),
-    keterangan_survey: String(row.keterangan_survey || row.keterangan || ""),
-  };
-}
-
-function normalizePelangganRow(row, idx) {
-  return {
-    id: Number(row.id || (1000 + idx)),
-    id_pelanggan: String(row.id_pelanggan || row.id_cust || row.customer_id || `NX-${1000 + idx}`),
-    nama: String(row.nama || row.Nama || "Pelanggan"),
-    telepon: String(row.telepon || row.hp || row.kontak || "-"),
-    alamat: String(row.alamat || row.Alamat || "-"),
-    odp: String(row.odp || row.ODP || "-"),
-    paket: String(row.paket || row.Paket || "Home Fiber 30 Mbps"),
-    status: String(row.status || row.Status || "AKTIF").toUpperCase(),
-    ip_address: String(row.ip_address || row.ip || "-"),
-    tgl_daftar: String(row.tgl_daftar || row.tanggal || new Date().toISOString().split("T")[0]),
-  };
-}
-
-function normalizeGangguanRow(row, idx) {
-  return {
-    id: Number(row.id || (3000 + idx)),
-    tanggal: String(row.tanggal || new Date().toISOString().split("T")[0]),
-    kategori: String(row.kategori || row.Kategori || "Kabel Putus"),
-    pelanggan: String(row.pelanggan || row.nama || "-"),
-    alamat: String(row.alamat || "-"),
-    status: String(row.status || "WAITING").toUpperCase(),
-    keterangan: String(row.keterangan || "-"),
-    user_terdampak: Number(row.user_terdampak || 1),
-  };
-}
-
-function normalizePemutusanRow(row, idx) {
-  return {
-    id: Number(row.id || (4000 + idx)),
-    nama: String(row.nama || row.pelanggan || "-"),
-    kontak: String(row.kontak || row.telepon || "-"),
-    alasan: String(row.alasan || row.keterangan || "-"),
-    tanggal: String(row.tanggal || new Date().toISOString().split("T")[0]),
-    status: String(row.status || "MENUNGGU_DISPOSISI").toUpperCase(),
-  };
-}
-
-// Main Execution
+// CLI Routing
 const args = process.argv.slice(2);
 if (args.includes("--clean")) {
   cleanOperationalData();
 } else if (args.includes("--status")) {
   showStatus();
+} else if (args.includes("--import-all")) {
+  importAll10Months();
 } else if (args.includes("--import")) {
-  const fileIdx = args.indexOf("--import") + 1;
-  importFromFile(args[fileIdx]);
+  const filePath = args[args.indexOf("--import") + 1];
+  if (!filePath) {
+    console.error("❌ Sertakan path berkas.");
+    process.exit(1);
+  }
+  const XLSX = require("xlsx");
+  const wb = XLSX.readFile(path.resolve(process.cwd(), filePath));
+  const globalCounters = { taskId: 1000, leadId: 2000, pelangganId: 1000, gangguanId: 3000, pemutusanId: 4000 };
+  const parsed = parseWorkbook(wb, { month: "2026-10", fallbackDate: "2026-10-01" }, globalCounters);
+  fs.writeFileSync(IMPORTED_DATA_PATH, JSON.stringify(parsed, null, 2), "utf8");
+  updateMockDataFile(parsed.pekerjaan, parsed.leads, parsed.gangguan, parsed.pengajuan_pemutusan, parsed.pelanggan, parsed.redaman_tinggi);
+  console.log("✅ Impor berkas selesai!");
 } else {
-  console.log("Argumen tidak dikenali. Gunakan --clean, --status, atau --import <file>");
+  console.log("Penggunaan: node scripts/clean_and_import_new_data.cjs [--clean | --status | --import-all | --import <file>]");
 }

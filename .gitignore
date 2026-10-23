@@ -27,3 +27,5 @@ auto-ai-marketplace/
 .vercel
 .env*
 *.xlsx
+data_bulanan_2026/
+test_januari.xlsx
