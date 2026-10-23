@@ -1642,198 +1642,99 @@ export default function TeknisiDashboard() {
       {/* ========================================================================= */}
       {viewMode === "DASHBOARD" && (
         <div className="space-y-4 animate-in fade-in duration-200">
-          {/* 1. HERO WELCOME BANNER (PERSIS GAMBAR MOCKUP) */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm relative overflow-hidden">
+          {/* 1. HERO WELCOME BANNER (MODERN & MINIMALIS) */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm relative overflow-hidden transition-all">
             {/* Background Graphic Tower BTS di sebelah kanan */}
-            <div className="absolute right-0 top-0 bottom-0 w-72 sm:w-96 pointer-events-none opacity-25 md:opacity-35 hidden sm:block">
+            <div className="absolute right-0 top-0 bottom-0 w-72 sm:w-96 pointer-events-none opacity-20 hidden md:block">
               <img
                 src="/telecom_tower.jpg"
                 alt="BTS Tower"
                 className="w-full h-full object-cover object-right"
                 style={{
-                  maskImage: "linear-gradient(to left, rgba(0,0,0,1) 40%, transparent 100%)",
-                  WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,1) 40%, transparent 100%)",
+                  maskImage: "linear-gradient(to left, rgba(0,0,0,1) 30%, transparent 100%)",
+                  WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,1) 30%, transparent 100%)",
                 }}
               />
             </div>
 
-            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-              {/* Sisi Kiri: Ranah Personal Teknisi (Identitas, Status Siaga & Mode Supervisi) */}
-              <div className="space-y-3 max-w-xl">
-                <div className="flex items-start gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#0D1B4A] to-blue-600 text-white flex items-center justify-center font-black text-xl shadow-md shrink-0 border border-blue-400/30">
-                    {activePersonil?.nama ? activePersonil.nama.charAt(0) : "T"}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200">
-                        {activePersonil?.peran || "Teknisi Lapangan"}
-                      </span>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                        NIK: {activePersonil?.nik || `TKN-00${activePersonil?.id || 1}`}
-                      </span>
-                      {isSupervisor && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-300">
-                          Supervisi Admin
-                        </span>
-                      )}
-                    </div>
-                    <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                      Halo, {activePersonil?.nama || profile?.full_name || "Teknisi"}! 👋
-                    </h1>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {isSupervisor
-                        ? `Mode Supervisi: Anda sedang meninjau portal personal ${activePersonil?.nama} (${activePersonilTeamObj?.nama || activeTeam}).`
-                        : `Selamat bertugas di lapangan. Utamakan kepatuhan SOP K3 dan mutu redaman OPM.`}
-                    </p>
-                  </div>
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+              {/* Sisi Kiri: Ranah Personal Teknisi (Identitas & Mode Supervisi) */}
+              <div className="flex items-center gap-4 sm:gap-5">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-[#0D1B4A] via-[#152763] to-blue-600 text-white flex items-center justify-center font-black text-2xl shadow-sm border border-blue-400/20 ring-4 ring-blue-50/70 shrink-0">
+                  {activePersonil?.nama ? activePersonil.nama.charAt(0) : "T"}
                 </div>
 
-                {/* Personil Switcher untuk Mode Supervisi Admin */}
-                {isSupervisor && (
-                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-blue-50/70 border border-blue-200/80 w-fit flex-wrap">
-                    <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-blue-600" />
-                      Melihat Personil:
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60">
+                      {activePersonil?.peran || "Teknisi Lapangan"}
                     </span>
-                    <div className="relative inline-block">
-                      <select
-                        value={activePersonil?.id || 1}
-                        onChange={(e) => setSelectedPersonilId(Number(e.target.value))}
-                        className="text-xs font-black text-blue-900 bg-white px-3 py-1.5 pr-7 rounded-lg border border-blue-300 shadow-2xs outline-none cursor-pointer appearance-none font-sans hover:border-blue-500 transition-colors"
-                      >
-                        {personilList.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            👷 {p.nama} ({p.timNama} - {p.peran})
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-blue-600 pointer-events-none absolute right-2 top-1/2 -translate-y-1/2" />
-                    </div>
+                    <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60">
+                      NIK: {activePersonil?.nik || `TKN-00${activePersonil?.id || 1}`}
+                    </span>
+                    {isSupervisor && (
+                      <div className="relative inline-flex items-center">
+                        <select
+                          value={activePersonil?.id || 1}
+                          onChange={(e) => setSelectedPersonilId(Number(e.target.value))}
+                          className="text-[11px] font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 px-2.5 py-0.5 pr-6 rounded-full border border-amber-300/80 outline-none cursor-pointer appearance-none transition-colors"
+                          title="Ganti personil yang ditinjau"
+                        >
+                          {personilList.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              Melihat: {p.nama} ({p.timNama})
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-3 h-3 text-amber-700 pointer-events-none absolute right-2" />
+                      </div>
+                    )}
                   </div>
-                )}
 
-                {/* Status Siaga Kerja Pribadi (Personal Duty Presence) */}
-                <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                  <span className="text-[11px] font-bold text-slate-600">Status Kehadiran:</span>
-                  <div className="inline-flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/80">
-                    {Object.values(DUTY_STATUS_MAP).map((ds) => (
-                      <button
-                        key={ds.key}
-                        type="button"
-                        onClick={() => {
-                          setDutyStatus(ds.key);
-                          triggerToast(`Status siaga ${activePersonil?.panggilan || "Anda"}: ${ds.label}`, "info");
-                        }}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                          dutyStatus === ds.key
-                            ? "bg-white text-slate-900 shadow-xs"
-                            : "text-slate-500 hover:text-slate-800"
-                        }`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${ds.dot}`} />
-                        <span>{ds.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    Halo, {activePersonil?.nama || profile?.full_name || "Teknisi"}! 👋
+                  </h1>
 
-                {/* 3 Quick Action Field Toolkit Buttons */}
-                <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowOpmGuideModal(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/90 hover:bg-blue-100 text-blue-700 border border-blue-200/80 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-blue-600 fill-blue-600" />
-                    <span>Standar Redaman OPM</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowNocContactModal(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50/90 hover:bg-rose-100 text-rose-700 border border-rose-200/80 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
-                  >
-                    <PhoneCall className="w-3.5 h-3.5 text-rose-600" />
-                    <span>Hotline NOC & OLT</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowSopModal(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50/90 hover:bg-amber-100 text-amber-800 border border-amber-200/80 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
-                  >
-                    <FileText className="w-3.5 h-3.5 text-amber-700" />
-                    <span>SOP Instalasi & K3</span>
-                  </button>
+                  <p className="text-xs text-slate-500 max-w-md">
+                    {isSupervisor
+                      ? `Meninjau portal operasional dan slip gaji ${activePersonil?.nama}.`
+                      : "Selamat bertugas di lapangan. Utamakan kepatuhan SOP K3 dan mutu redaman OPM."}
+                  </p>
                 </div>
               </div>
 
-              {/* Sisi Kanan: Kartu Ranah Tim (Tersinkronisasi Lapangan) */}
-              <div className="bg-slate-50/90 sm:bg-white/95 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs min-w-[260px] sm:min-w-[280px] space-y-3 self-start lg:self-auto">
-                {/* Info Tim & Partner Lapangan */}
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                      <Users className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold leading-tight">Regu Lapangan (Tim)</span>
-                      <span className="text-xs font-black text-slate-900 block mt-0.5">
-                        {activePersonilTeamObj?.nama || activePersonil?.timNama || "Tim A"} ({activePersonilTeamObj?.alias || activeTeam})
-                      </span>
-                    </div>
+              {/* Sisi Kanan: Team Context & Partner (Minimalist Compact Card) */}
+              <div className="flex items-center gap-3 sm:gap-4 bg-slate-50/80 backdrop-blur-sm p-3 sm:p-3.5 rounded-2xl border border-slate-200/70 shrink-0 self-start md:self-auto">
+                {/* Regu Tim */}
+                <div className="px-1 pr-3 border-r border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Regu Tim</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-xs sm:text-sm font-black text-slate-900">
+                      {activePersonilTeamObj?.nama || activePersonil?.timNama || "Tim A"}
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-500 hidden sm:inline">
+                      ({activePersonilTeamObj?.alias || activeTeam})
+                    </span>
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
-                    Tersinkron
-                  </span>
                 </div>
 
-                {/* Partner Tim (Rekan Kerja Duo) */}
-                <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                      <Users className="w-4 h-4" />
+                {/* Partner Lapangan */}
+                <div className="px-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Partner Lapangan</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      {partnerPersonil?.nama ? partnerPersonil.nama.charAt(0) : "P"}
                     </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold leading-tight">Partner Lapangan</span>
-                      <span className="text-xs font-black text-slate-800">
-                        {partnerPersonil ? partnerPersonil.nama : "Mandiri / Solo"}
-                      </span>
-                    </div>
-                  </div>
-                  {partnerPersonil && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                      {partnerPersonil.panggilan}
+                    <span className="text-xs font-bold text-slate-800">
+                      {partnerPersonil ? partnerPersonil.nama : "Mandiri / Solo"}
                     </span>
-                  )}
+                  </div>
                 </div>
 
                 {/* Shift Lapangan */}
-                <div className="pt-2 border-t border-slate-200/70 flex items-center gap-2.5 text-xs">
-                  <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
-                    <Clock className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 block font-semibold leading-tight">Shift Lapangan</span>
-                    <span className="text-xs font-black text-slate-800">08:00 – 17:00 WIB</span>
-                  </div>
-                </div>
-
-                {/* Batas Cut-Off Laporan Harian */}
-                <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                      <Clock className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-amber-800 font-bold block leading-tight">Batas Laporan Harian</span>
-                      <span className="text-xs font-black text-slate-900">Maks. Pk 21:00 WIB</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                    Jam 9 Malam
-                  </span>
+                <div className="hidden lg:block pl-3 border-l border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Shift Kerja</span>
+                  <span className="text-xs font-bold text-slate-700 mt-0.5 block">08:00 – 17:00</span>
                 </div>
               </div>
             </div>
