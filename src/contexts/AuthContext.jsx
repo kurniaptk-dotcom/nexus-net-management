@@ -234,13 +234,39 @@ export function AuthProvider({ children }) {
   }
 
   async function signIn(email, password) {
+    const cleanEmail = (email || "").toLowerCase().trim();
+    
+    // Resolusi email alias ke akun cloud Supabase yang terdaftar & aktif
+    let targetEmail = cleanEmail;
+    if (cleanEmail === "admin@nexus.net") {
+      targetEmail = "demo_admin@nexus.net";
+    } else if (cleanEmail === "ais@nexus.net" || cleanEmail === "teknisi@nexus.net") {
+      targetEmail = "gatra@nexus.net";
+    }
+
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      return data;
+      // 1. Coba login ke cloud Supabase dengan target email
+      let res = await supabase.auth.signInWithPassword({ email: targetEmail, password });
+      
+      // Jika targetEmail beda dan gagal, coba email asli
+      if (res.error && targetEmail !== cleanEmail) {
+        res = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+      }
+
+      if (res.error) throw res.error;
+
+      if (res.data?.user) {
+        // Berhasil terautentikasi ke Supabase Cloud secara live!
+        localStorage.removeItem("nexus_demo_session");
+        setUser(res.data.user);
+        await fetchProfile(res.data.user.id);
+        return res.data;
+      }
+      return res.data;
     } catch (err) {
-      // Graceful fallback untuk akun demo saat offline atau belum terdaftar di Auth Supabase
-      const cleanEmail = (email || "").toLowerCase().trim();
+      console.warn("[AUTH] Cloud login failed, falling back to local demo profile:", err.message);
+
+      // 2. Graceful fallback untuk akun demo saat offline atau belum terdaftar di Auth Supabase
       if (cleanEmail === "admin@nexus.net" || cleanEmail === "demo_admin@nexus.net") {
         const demoUser = { id: "demo-admin-id", email: cleanEmail, user_metadata: { full_name: "Nexus Admin" } };
         const demoProf = { id: "demo-admin-id", email: cleanEmail, full_name: "Nexus Admin", role: "admin" };

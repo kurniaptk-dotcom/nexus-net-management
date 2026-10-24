@@ -230,25 +230,45 @@ export default function Login() {
               <div className="grid grid-cols-2 gap-2 mb-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setEmail("admin@nexus.net");
+                  disabled={loading}
+                  onClick={async () => {
+                    setEmail("demo_admin@nexus.net");
                     setPassword("password123");
+                    setError("");
+                    setLoading(true);
+                    try {
+                      await signIn("demo_admin@nexus.net", "password123");
+                    } catch (err) {
+                      setError(formatErrorMessage(err.message));
+                    } finally {
+                      setLoading(false);
+                    }
                   }}
-                  className="px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-blue-400 flex items-center justify-center gap-1.5 text-center active:scale-95 cursor-pointer"
+                  className="px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-blue-400 flex items-center justify-center gap-1.5 text-center active:scale-95 cursor-pointer disabled:opacity-50"
                 >
                   <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                  👑 Admin Demo
+                  👑 Admin Cloud
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setEmail("ais@nexus.net");
+                  disabled={loading}
+                  onClick={async () => {
+                    setEmail("gatra@nexus.net");
                     setPassword("gatra123");
+                    setError("");
+                    setLoading(true);
+                    try {
+                      await signIn("gatra@nexus.net", "gatra123");
+                    } catch (err) {
+                      setError(formatErrorMessage(err.message));
+                    } finally {
+                      setLoading(false);
+                    }
                   }}
-                  className="px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-amber-400 flex items-center justify-center gap-1.5 text-center active:scale-95 cursor-pointer"
+                  className="px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-amber-400 flex items-center justify-center gap-1.5 text-center active:scale-95 cursor-pointer disabled:opacity-50"
                 >
                   <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                  🛠️ Teknisi Demo
+                  🛠️ Teknisi Cloud
                 </button>
               </div>
 

@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Radio, Wifi, WifiOff, RefreshCw, CheckCircle2, AlertCircle, Database, CloudUpload } from "lucide-react";
+import { Radio, Wifi, WifiOff, RefreshCw, CheckCircle2, AlertCircle, Database, CloudUpload, ArrowUpDown, Loader2 } from "lucide-react";
 import { useRealtimeStatus, usePersistState } from "../hooks/usePersistState";
 import { countPendingOfflinePhotos, flushPendingOfflineEvidence } from "../lib/offlineSyncQueue";
+import { syncAllOperationalData } from "../lib/cloudSync";
 import { pekerjaanList } from "../data/mockData";
 
 export default function RealtimeStatusBadge() {
   const { isOnline, overallStatus, activeChannelsCount, tableStatuses } = useRealtimeStatus();
   const [pekerjaan, setPekerjaan] = usePersistState("xnet_pekerjaan", pekerjaanList);
   const [isSyncingOffline, setIsSyncingOffline] = useState(false);
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [syncStatusMsg, setSyncStatusMsg] = useState("");
   const [open, setOpen] = useState(false);
   const popoverRef = useRef(null);
 
@@ -38,6 +41,28 @@ export default function RealtimeStatusBadge() {
       await flushPendingOfflineEvidence(pekerjaan, setPekerjaan);
     } finally {
       setIsSyncingOffline(false);
+    }
+  };
+
+  const handleSyncAll = async (e) => {
+    e.stopPropagation();
+    if (isSyncingAll || !isOnline) return;
+    setIsSyncingAll(true);
+    setSyncStatusMsg("Menyinkronkan data ke Cloud...");
+    try {
+      const res = await syncAllOperationalData((prog) => {
+        setSyncStatusMsg(`Sinkron: ${prog.label} (${prog.step}/${prog.total})`);
+      });
+      if (res.success) {
+        setSyncStatusMsg(res.message);
+        setTimeout(() => setSyncStatusMsg(""), 4000);
+      } else {
+        setSyncStatusMsg(res.message);
+      }
+    } catch (err) {
+      setSyncStatusMsg("Gagal: " + err.message);
+    } finally {
+      setIsSyncingAll(false);
     }
   };
 
@@ -211,6 +236,31 @@ export default function RealtimeStatusBadge() {
           </div>
 
           <div className="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-1.5">
+            {syncStatusMsg && (
+              <div className="text-[10px] text-center font-semibold text-slate-700 bg-slate-100/80 py-1 px-2 rounded-lg border border-slate-200">
+                {syncStatusMsg}
+              </div>
+            )}
+
+            <button
+              onClick={handleSyncAll}
+              disabled={isSyncingAll || !isOnline}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0D1B4A] hover:bg-[#1a2d6e] disabled:opacity-50 text-white text-xs font-semibold transition-all cursor-pointer w-full justify-center shadow-sm"
+              title="Tarik data terbaru dari server Supabase dan dorong data lokal yang belum tersimpan"
+            >
+              {isSyncingAll ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Sinkronisasi Berjalan...</span>
+                </>
+              ) : (
+                <>
+                  <ArrowUpDown className="w-3.5 h-3.5 text-cyan-300" />
+                  <span>Sinkronkan Cloud (2 Arah)</span>
+                </>
+              )}
+            </button>
+
             {pendingPhotosCount > 0 && (
               <button
                 onClick={handleFlushOffline}

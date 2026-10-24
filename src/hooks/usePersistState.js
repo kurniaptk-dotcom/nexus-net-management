@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { db, supabase } from "../lib/supabase";
 
+// Global BroadcastChannel for instant sub-millisecond tab-to-tab & PWA synchronization
+const liveBroadcast = typeof window !== "undefined" && typeof BroadcastChannel !== "undefined"
+  ? new BroadcastChannel("xnet_live_sync_bus")
+  : null;
+
 const TABLE_MAP = {
   xnet_pekerjaan: "pekerjaan",
   xnet_leads: "leads",
@@ -12,7 +17,7 @@ const TABLE_MAP = {
   xnet_pelanggan_radius: "pelanggan_radius",
 };
 
-const BASE_PEKERJAAN_COLUMNS = ["tim", "jenis", "alamat", "pelanggan", "odp", "status", "tanggal", "keterangan"];
+const BASE_PEKERJAAN_COLUMNS = ["tim", "jenis", "alamat", "pelanggan", "status", "tanggal", "keterangan"];
 
 const ALLOWED_COLUMNS = {
   pekerjaan: [
@@ -254,9 +259,10 @@ const fetchCache = new Map();
  * - Request yang sedang berjalan dipakai bersama (in-flight dedup)
  * - Hasil di-cache selama FETCH_TTL_MS
  */
-function fetchTableShared(table) {
+function fetchTableShared(table, forceFresh = false) {
+  if (forceFresh) fetchCache.delete(table);
   const cached = fetchCache.get(table);
-  if (cached && Date.now() - cached.at < FETCH_TTL_MS) return cached.promise;
+  if (!forceFresh && cached && Date.now() - cached.at < FETCH_TTL_MS) return cached.promise;
   const promise = db.fetchAll(table).catch((err) => {
     fetchCache.delete(table);
     throw err;
@@ -439,7 +445,7 @@ export function usePersistState(key, initialValue) {
 
   const baselineStateRef = useRef(null);
 
-  // Listen for storage events across tabs & custom events in the same tab (instant real-time sync)
+  // Listen for storage events across tabs & BroadcastChannel (sub-millisecond live sync)
   useEffect(() => {
     const handleStorage = (e) => {
       if (e.key === key && e.newValue) {
@@ -453,15 +459,27 @@ export function usePersistState(key, initialValue) {
         setState(e.detail.value);
       }
     };
+    const handleBroadcast = (e) => {
+      if (e.data?.key === key && e.data?.value !== undefined) {
+        setState(e.data.value);
+      }
+    };
+
     window.addEventListener("storage", handleStorage);
     window.addEventListener("xnet_storage_update", handleCustom);
+    if (liveBroadcast) {
+      liveBroadcast.addEventListener("message", handleBroadcast);
+    }
     return () => {
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener("xnet_storage_update", handleCustom);
+      if (liveBroadcast) {
+        liveBroadcast.removeEventListener("message", handleBroadcast);
+      }
     };
   }, [key]);
 
-  // On mount: fetch from Supabase (shared + cached) and merge
+  // On mount: fetch from Supabase (shared + cached) and merge with Zero Data Loss
   useEffect(() => {
     if (!table) return;
     let cancelled = false;
@@ -487,8 +505,9 @@ export function usePersistState(key, initialValue) {
 
           const currentList = Array.isArray(current) ? current : [];
 
-          // Keep only user-created pending items with timestamp IDs
-          const localOnly = currentList.filter((r) => r.id >= 1000000000000);
+          // PENTING: Pertahankan semua item lokal yang belum tercatat di server (Zero Data Loss)
+          const remoteIds = new Set(camelRows.map((r) => r.id));
+          const localOnly = currentList.filter((r) => !remoteIds.has(r.id));
           
           // Merge remote rows with local, keeping any local frontend-only attributes (e.g. odp, userTerdampak)
           const mergedRemote = camelRows.map((remote) => {
@@ -511,28 +530,32 @@ export function usePersistState(key, initialValue) {
   useEffect(() => {
     if (!table) return;
 
-    // Setiap instance menerima payload langsung dari channel bersama,
-    // jadi tidak perlu broadcast ulang via xnet_storage_update.
     const listener = (payload) => {
       if (payload.eventType === "INSERT") {
         const newItem = toCamel(payload.new);
         setState((prev) => {
           const list = Array.isArray(prev) ? prev : [];
           if (list.some((r) => r.id === newItem.id)) return prev;
-          return [newItem, ...list];
+          const next = [newItem, ...list];
+          safeSetLocalStorage(key, next);
+          return next;
         });
       } else if (payload.eventType === "UPDATE") {
         const updatedItem = toCamel(payload.new);
         setState((prev) => {
           const list = Array.isArray(prev) ? prev : [];
-          return list.map((r) => (r.id === updatedItem.id ? { ...r, ...updatedItem } : r));
+          const next = list.map((r) => (r.id === updatedItem.id ? { ...r, ...updatedItem } : r));
+          safeSetLocalStorage(key, next);
+          return next;
         });
       } else if (payload.eventType === "DELETE") {
         const deletedId = payload.old?.id;
         if (deletedId) {
           setState((prev) => {
             const list = Array.isArray(prev) ? prev : [];
-            return list.filter((r) => r.id !== deletedId);
+            const next = list.filter((r) => r.id !== deletedId);
+            safeSetLocalStorage(key, next);
+            return next;
           });
         }
       }
@@ -541,12 +564,78 @@ export function usePersistState(key, initialValue) {
     return subscribeTable(table, listener);
   }, [table, key]);
 
+  // Background Delta Polling & Window Focus Auto-Refresh antar perangkat
+  useEffect(() => {
+    if (!table) return;
+
+    const pullDelta = async (isManual = false) => {
+      if (!navigator.onLine) return;
+      if (!isManual && typeof document !== "undefined" && document.visibilityState === "hidden") return;
+
+      try {
+        const fresh = await fetchTableShared(table, true);
+        if (fresh && Array.isArray(fresh) && fresh.length > 0) {
+          const camel = fresh.map(toCamel);
+          setState((prev) => {
+            if (!Array.isArray(prev)) return prev;
+            const prevMap = new Map(prev.map((p) => [p.id, p]));
+            let changed = false;
+
+            const next = prev.map((item) => {
+              const rem = camel.find((c) => c.id === item.id);
+              if (rem) {
+                const mergedItem = { ...item, ...rem };
+                if (JSON.stringify(mergedItem) !== JSON.stringify(item)) {
+                  changed = true;
+                  return mergedItem;
+                }
+              }
+              return item;
+            });
+
+            // Tambahkan item baru yang masuk dari perangkat lain
+            camel.forEach((rem) => {
+              if (!prevMap.has(rem.id)) {
+                next.unshift(rem);
+                changed = true;
+              }
+            });
+
+            if (changed) {
+              safeSetLocalStorage(key, next);
+              window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
+              if (liveBroadcast) {
+                try { liveBroadcast.postMessage({ key, value: next }); } catch {}
+              }
+              return next;
+            }
+            return prev;
+          });
+        }
+      } catch (e) {
+        // Abaikan kegagalan polling periodik di background
+      }
+    };
+
+    // Polling setiap 20 detik jika tab aktif
+    const pollTimer = setInterval(() => pullDelta(false), 20000);
+
+    // Refresh segera saat teknisi atau admin kembali membuka tab aplikasi
+    const handleFocus = () => pullDelta(true);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      clearInterval(pollTimer);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [table, key]);
+
   // Persist to localStorage on change safely
   useEffect(() => {
     safeSetLocalStorage(key, state);
   }, [key, state]);
 
-  // Smart Sync to Supabase: handles insert, update, and delete cleanly without schema error
+  // Smart Sync to Supabase: handles insert, update, and delete cleanly with auto-upsert
   const syncTimer = useRef(null);
   const syncToSupabase = useCallback((prevRows, newState) => {
     if (!table || !Array.isArray(newState)) return;
@@ -588,7 +677,7 @@ export function usePersistState(key, initialValue) {
             }
           } catch (e) {
             // Auto fallback jika database Supabase belum menjalankan SQL migrasi kolom extended
-            if (table === "pekerjaan" && e.message && /column.*does not exist/i.test(e.message)) {
+            if (table === "pekerjaan" && e.message && /(column.*does not exist|could not find.*column|schema cache)/i.test(e.message)) {
               try {
                 const baseSnake = sanitizeForTable(table, toSnake(a), true);
                 const inserted = await db.insert(table, baseSnake);
@@ -609,7 +698,7 @@ export function usePersistState(key, initialValue) {
           }
         }
 
-        // 3. Updated items
+        // 3. Updated items (termasuk item lokal yang belum tercatat di cloud)
         const updatedRows = newState.filter((r) => {
           if (r.id >= 1000000000000) return false;
           const old = prevMap.get(r.id);
@@ -620,13 +709,30 @@ export function usePersistState(key, initialValue) {
             const snake = sanitizeForTable(table, toSnake(u));
             await db.update(table, u.id, snake);
           } catch (e) {
-            // Auto fallback jika database Supabase belum menjalankan SQL migrasi kolom extended
-            if (table === "pekerjaan" && e.message && /column.*does not exist/i.test(e.message)) {
+            // Jika kolom extended belum ada di Supabase, coba update base columns
+            if (table === "pekerjaan" && e.message && /(column.*does not exist|could not find.*column|schema cache)/i.test(e.message)) {
               try {
                 const baseSnake = sanitizeForTable(table, toSnake(u), true);
                 await db.update(table, u.id, baseSnake);
               } catch (innerErr) {
-                console.warn(`[SYNC] Update ${table} fallback error:`, innerErr.message);
+                // Jika row belum ada di cloud Supabase (PGRST116 / 0 rows), otomatis INSERT!
+                if (innerErr.code === "PGRST116" || innerErr.message?.includes("0 rows") || innerErr.message?.includes("no rows")) {
+                  try {
+                    await db.insert(table, sanitizeForTable(table, toSnake(u), true));
+                  } catch (insErr) {
+                    console.warn(`[SYNC] Insert fallback on missing row error:`, insErr.message);
+                  }
+                } else {
+                  console.warn(`[SYNC] Update ${table} fallback error:`, innerErr.message);
+                }
+              }
+            } else if (e.code === "PGRST116" || e.message?.includes("0 rows") || e.message?.includes("no rows")) {
+              // Row belum ada di server Supabase! Otomatis INSERT agar data dari perangkat teknisi masuk ke cloud
+              try {
+                const snake = sanitizeForTable(table, toSnake(u));
+                await db.insert(table, snake);
+              } catch (insErr) {
+                console.warn(`[SYNC] Upsert on missing row error:`, insErr.message);
               }
             } else {
               console.warn(`[SYNC] Update ${table} id=${u.id} error:`, e.message);
@@ -636,7 +742,6 @@ export function usePersistState(key, initialValue) {
       } catch (err) {
         console.warn(`usePersistState sync ${key}:`, err);
       } finally {
-        // Data server berubah karena tulisan lokal -> fetch berikutnya harus segar
         invalidateTableCache(table);
       }
     }, 400);
@@ -647,6 +752,9 @@ export function usePersistState(key, initialValue) {
       const next = typeof updater === "function" ? updater(prev) : updater;
       safeSetLocalStorage(key, next);
       window.dispatchEvent(new CustomEvent("xnet_storage_update", { detail: { key, value: next } }));
+      if (liveBroadcast) {
+        try { liveBroadcast.postMessage({ key, value: next }); } catch {}
+      }
       syncToSupabase(prev, next);
       return next;
     });
