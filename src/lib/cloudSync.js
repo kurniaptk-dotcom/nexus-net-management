@@ -111,25 +111,50 @@ export async function syncAllOperationalData(onProgress) {
       const remoteList = Array.isArray(remoteRows) ? remoteRows : [];
       const remoteIds = new Set(remoteList.map((r) => r.id));
 
-      // 3. Deteksi item lokal yang belum ada di remote server
-      const localUnsynced = localData.filter((item) => !remoteIds.has(item.id));
-      let uploadedForTable = 0;
+      // 3. Deteksi item offline buatan pengguna lokal (ID Date.now() >= 1000000000000 atau string ODC/NX)
+      // Jangan pernah mengunggah data mock bawaan (ID integer statis) ke server produksi Supabase!
+      const isUserCreatedItem = (item) => {
+        if (!item || !item.id) return false;
+        if (typeof item.id === "number" && item.id >= 1000000000000) return true;
+        if (typeof item.id === "string" && (item.id.startsWith("ODC-") || item.id.startsWith("NX-") || item.id.startsWith("item_"))) return true;
+        return false;
+      };
 
-      // Upload item lokal yang belum tercatat di server (batch per 10 items)
+      const localUnsynced = localData.filter((item) => !remoteIds.has(item.id) && isUserCreatedItem(item));
+      let uploadedForTable = 0;
+      const uploadedMap = new Map(); // oldTempId -> newServerRow
+
+      // Upload item lokal yang dibuat saat offline ke Supabase
       for (const item of localUnsynced.slice(0, 50)) {
         try {
           const payload = sanitizeForUpload(table, item);
-          const { error: insErr } = await supabase.from(table).insert(payload);
-          if (!insErr) uploadedForTable++;
+          const { data: inserted, error: insErr } = await supabase.from(table).insert(payload).select().single();
+          if (!insErr && inserted && inserted.id) {
+            uploadedForTable++;
+            uploadedMap.set(item.id, inserted);
+          }
         } catch (e) {
           console.warn(`[CLOUD SYNC] Upload ${table} item error:`, e.message);
         }
       }
 
       // 4. Rekonsiliasi: Gabungkan remote data dengan local data (Zero Data Loss)
+      // Update item lokal yang baru di-upload dengan ID resmi dari Supabase server
+      const updatedLocal = localData.map((item) => {
+        if (uploadedMap.has(item.id)) {
+          const srv = uploadedMap.get(item.id);
+          return { ...item, ...srv, id: srv.id };
+        }
+        return item;
+      });
+
+      const allRemoteIds = new Set([...remoteIds, ...Array.from(uploadedMap.values()).map((r) => r.id)]);
+      const remainingLocal = updatedLocal.filter((item) => !allRemoteIds.has(item.id));
+
       const mergedList = [
         ...remoteList,
-        ...localData.filter((item) => !remoteIds.has(item.id)),
+        ...Array.from(uploadedMap.values()),
+        ...remainingLocal,
       ];
 
       localStorage.setItem(key, JSON.stringify(mergedList));

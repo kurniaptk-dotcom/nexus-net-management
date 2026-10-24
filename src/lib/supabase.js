@@ -18,9 +18,9 @@ export function createUnpersistedClient() {
 
 // Generic CRUD helpers
 export const db = {
-  // Fetch all rows from a table
+  // Fetch all rows from a table (up to 5000 rows)
   async fetchAll(table) {
-    const { data, error } = await supabase.from(table).select("*").order("id", { ascending: true });
+    const { data, error } = await supabase.from(table).select("*").order("id", { ascending: true }).limit(5000);
     if (error) throw error;
     return data;
   },
