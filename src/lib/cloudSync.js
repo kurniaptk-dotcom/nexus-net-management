@@ -47,14 +47,21 @@ function sanitizeForUpload(tableName, item) {
     delete clean.hasilFU;
   }
 
-  // Jika tabel pekerjaan, gunakan base columns yang aman jika database remote belum ada extended columns
+  // Sekarang database Supabase sudah memiliki seluruh kolom operasional lengkap
   if (tableName === "pekerjaan") {
-    const baseFields = ["tim", "jenis", "alamat", "pelanggan", "status", "tanggal", "keterangan"];
-    const baseClean = {};
-    for (const f of baseFields) {
-      if (clean[f] !== undefined) baseClean[f] = clean[f];
+    const fullFields = [
+      "tim", "jenis", "alamat", "pelanggan", "odp", "status", "tanggal", "keterangan",
+      "spk_no", "prioritas", "sesi", "telepon", "port", "shareloc", "redaman", "sn_modem",
+      "mac_modem", "kabel_meter", "evidence", "komisi_items", "komisi_total", "waktu_selesai",
+      "revisi_catatan", "waktu_lapor", "cutoff_status", "cutoff_label", "foto_bukti_utama",
+      "foto_bukti_modem", "foto_bukti_redaman", "teknisi_list", "is_started", "waktu_mulai",
+      "lat", "lng"
+    ];
+    const fullClean = {};
+    for (const f of fullFields) {
+      if (clean[f] !== undefined) fullClean[f] = clean[f];
     }
-    return baseClean;
+    return fullClean;
   }
 
   return clean;
