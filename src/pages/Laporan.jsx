@@ -830,8 +830,8 @@ export default function Laporan() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {redamanTinggiList.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
+              {redamanTinggiList.map((r, rIdx) => (
+                <tr key={r.id || `redaman-${rIdx}-${r.lokasi || r.pelanggan || ""}`} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-5 py-3 font-semibold text-gray-800">{r.lokasi}</td>
                   <td className="px-5 py-3 text-center">
                     <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${

@@ -771,7 +771,7 @@ export default function ODP() {
             >
               <option value="ALL">Semua ODC ({allOdcs.length})</option>
               {allOdcs.map((o) => (
-                <option key={o.id || o.nama} value={o.nama}>
+                <option key={o.nama} value={o.nama}>
                   {o.nama}
                 </option>
               ))}
@@ -1348,7 +1348,7 @@ export default function ODP() {
                 >
                   <option value="">-- Pilih ODC Induk --</option>
                   {allOdcs.map((o) => (
-                    <option key={o.id || o.nama} value={o.nama}>
+                    <option key={o.nama} value={o.nama}>
                       {o.nama} {o.lokasi ? `(${o.lokasi})` : ""}
                     </option>
                   ))}

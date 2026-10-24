@@ -2285,7 +2285,7 @@ export default function TeknisiDashboard() {
 
                           {/* Quick Action Buttons for Field Tech on Mobile */}
                           <div className="flex items-center gap-1 shrink-0">
-                            {cleanWaPhone && (
+                            {cleanWaPhone ? (
                               <a
                                 href={waUrl}
                                 target="_blank"
@@ -2295,6 +2295,15 @@ export default function TeknisiDashboard() {
                               >
                                 <MessageCircle className="w-3.5 h-3.5" />
                               </a>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled
+                                className="w-8 h-8 rounded-lg bg-slate-100 text-slate-300 flex items-center justify-center cursor-not-allowed opacity-60"
+                                title="Nomor WhatsApp tidak tersedia"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </button>
                             )}
                             <a
                               href={mapsNavigationUrl}
